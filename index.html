@@ -3320,16 +3320,14 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - 申込者選択時のみ表示 */}
-              {selectedApplicant && (
-                <button
-                  className="ai-chat-button"
-                  onClick={openAIChat}
-                  title="AIに聞いてみる？"
-                >
-                  AI
-                </button>
-              )}
+              {/* AIチャットフローティングボタン - テスト用：常に表示 */}
+              <button
+                className="ai-chat-button"
+                onClick={openAIChat}
+                title="AIに聞いてみる？"
+              >
+                AI
+              </button>
 
               {/* AIチャットモーダル */}
               {showAIChat && (
