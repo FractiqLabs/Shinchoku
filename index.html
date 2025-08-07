@@ -2869,10 +2869,16 @@
                           key={applicant.id}
                           onClick={() => {
                             console.log('🔸 Row clicked, setting:', applicant.name);
+                            // 状態を順序立てて更新
+                            setCurrentView('detail');
                             setSelectedApplicant(applicant);
                             setCurrentMemo(applicant.memo || '');
-                            setCurrentView('detail');
-                            console.log('🔹 setCurrentView(detail) called');
+                            console.log('🔹 States updated: detail, applicant set');
+                            
+                            // 強制再レンダリングのため少し遅延
+                            setTimeout(() => {
+                              console.log('🔄 Force re-render check');
+                            }, 10);
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
