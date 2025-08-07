@@ -1371,6 +1371,18 @@
             console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
           }, [selectedApplicant]);
 
+          // AIボタンの強制更新
+          React.useEffect(() => {
+            console.log('🚀 AI Button Force Update:', { currentView, applicantName: selectedApplicant?.name || 'null' });
+            // AIボタンの表示状態を強制更新
+            const aiButton = document.querySelector('.ai-chat-button');
+            if (aiButton) {
+              const shouldShow = currentView === 'detail' && selectedApplicant;
+              aiButton.style.display = shouldShow ? 'block' : 'none';
+              console.log('💡 AI Button manually set to:', shouldShow ? 'SHOW' : 'HIDE');
+            }
+          }, [currentView, selectedApplicant]);
+
           // 申込者データを読み込み
           const loadApplicants = async () => {
             try {
