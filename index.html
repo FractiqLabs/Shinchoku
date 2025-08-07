@@ -1358,6 +1358,16 @@
             localStorage.setItem('shinchoku-memo', currentMemo);
           }, [currentMemo]);
 
+          // デバッグ用: currentViewの変更を監視
+          React.useEffect(() => {
+            console.log('🟢 currentView changed to:', currentView);
+          }, [currentView]);
+
+          // デバッグ用: selectedApplicantの変更を監視
+          React.useEffect(() => {
+            console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
+          }, [selectedApplicant]);
+
           // 申込者データを読み込み
           const loadApplicants = async () => {
             try {
@@ -2862,7 +2872,7 @@
                             setSelectedApplicant(applicant);
                             setCurrentMemo(applicant.memo || '');
                             setCurrentView('detail');
-                            console.log('🔹 After setState: currentView should be detail');
+                            console.log('🔹 setCurrentView(detail) called');
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
