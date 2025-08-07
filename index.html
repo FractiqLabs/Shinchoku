@@ -2268,7 +2268,10 @@
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                   <div style={{display: 'flex', alignItems: 'center'}}>
                     <div 
-                      onClick={() => setCurrentView('list')}
+                      onClick={() => {
+                        console.log('🔴 Header clicked, currentView was:', currentView);
+                        if (currentView !== 'detail') setCurrentView('list');
+                      }}
                       style={{
                         fontFamily: 'kirin-Regular',
                         fontSize: '28px',
@@ -2855,9 +2858,11 @@
                         <tr 
                           key={applicant.id}
                           onClick={() => {
+                            console.log('🔸 Row clicked, setting:', applicant.name);
                             setSelectedApplicant(applicant);
                             setCurrentMemo(applicant.memo || '');
                             setCurrentView('detail');
+                            console.log('🔹 After setState: currentView should be detail');
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
