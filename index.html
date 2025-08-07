@@ -2279,8 +2279,9 @@
                   <div style={{display: 'flex', alignItems: 'center'}}>
                     <div 
                       onClick={() => {
-                        console.log('🔴 Header clicked, currentView was:', currentView);
-                        if (currentView !== 'detail') setCurrentView('list');
+                        console.log('🔴 Header clicked, returning to list');
+                        setCurrentView('list');
+                        setSelectedApplicant(null);
                       }}
                       style={{
                         fontFamily: 'kirin-Regular',
