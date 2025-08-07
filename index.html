@@ -1371,24 +1371,23 @@
             console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
           }, [selectedApplicant]);
 
-          // AIボタンの直接作成と制御
+          // AIボタンの完全制御
           React.useEffect(() => {
-            console.log('🚀 AI Button Direct Creation:', { currentView, applicantName: selectedApplicant?.name || 'null' });
+            console.log('🎯 AI Button Clean Control:', { currentView, applicantName: selectedApplicant?.name || 'null' });
             
-            // 既存のボタンを削除
-            const existingButton = document.querySelector('.ai-chat-button-direct');
-            if (existingButton) {
-              existingButton.remove();
-            }
+            // 全ての既存AIボタンを削除（クラス名問わず）
+            const existingButtons = document.querySelectorAll('[class*="ai-chat-button"]');
+            existingButtons.forEach(btn => btn.remove());
+            console.log('🧹 Removed', existingButtons.length, 'existing AI buttons');
 
-            // 条件に合致する場合のみボタンを作成
+            // タイムライン画面でのみボタンを作成
             if (currentView === 'detail' && selectedApplicant) {
               const aiButton = document.createElement('button');
-              aiButton.className = 'ai-chat-button-direct';
+              aiButton.className = 'ai-chat-button-final';
               aiButton.innerHTML = 'AI';
               aiButton.title = 'AIに聞いてみる？';
               
-              // スタイルを直接適用
+              // スタイル適用
               Object.assign(aiButton.style, {
                 position: 'fixed',
                 bottom: '30px',
@@ -1403,17 +1402,28 @@
                 fontWeight: 'bold',
                 cursor: 'pointer',
                 zIndex: '9999',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                transition: 'transform 0.2s ease'
               });
 
-              // クリックイベントを追加
-              aiButton.onclick = openAIChat;
+              // ホバー効果
+              aiButton.onmouseenter = () => aiButton.style.transform = 'scale(1.1)';
+              aiButton.onmouseleave = () => aiButton.style.transform = 'scale(1)';
+
+              // クリックイベント（正確な関数参照）
+              aiButton.onclick = () => {
+                console.log('🔥 AI Button clicked!');
+                if (typeof openAIChat === 'function') {
+                  openAIChat();
+                } else {
+                  console.error('openAIChat function not found');
+                }
+              };
               
-              // bodyに追加
               document.body.appendChild(aiButton);
-              console.log('✅ AI Button directly created and added to DOM');
+              console.log('✅ AI Button created ONLY for timeline screen');
             } else {
-              console.log('❌ Conditions not met for AI button creation');
+              console.log('❌ NOT timeline screen - no button created');
             }
           }, [currentView, selectedApplicant]);
 
@@ -3501,32 +3511,7 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - 超シンプル版 */}
-              {console.log('🎯 Simple AIボタン表示:', { currentView, applicantName: selectedApplicant?.name || 'null' })}
-              <button
-                className="ai-chat-button"
-                onClick={openAIChat}
-                title="AIに聞いてみる？"
-                style={{
-                  position: 'fixed',
-                  bottom: '30px',
-                  right: '30px',
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  zIndex: 9999,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  display: 'block'
-                }}
-              >
-                AI
-              </button>
+              {/* AIボタンはuseEffectで制御されます */}
 
               {/* デバッグ情報（削除予定） */}
               <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'green', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
