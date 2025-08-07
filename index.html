@@ -1371,61 +1371,6 @@
             console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
           }, [selectedApplicant]);
 
-          // AIボタンの完全制御
-          React.useEffect(() => {
-            console.log('🎯 AI Button Clean Control:', { currentView, applicantName: selectedApplicant?.name || 'null' });
-            
-            // 全ての既存AIボタンを削除（クラス名問わず）
-            const existingButtons = document.querySelectorAll('[class*="ai-chat-button"]');
-            existingButtons.forEach(btn => btn.remove());
-            console.log('🧹 Removed', existingButtons.length, 'existing AI buttons');
-
-            // タイムライン画面でのみボタンを作成
-            if (currentView === 'detail' && selectedApplicant) {
-              const aiButton = document.createElement('button');
-              aiButton.className = 'ai-chat-button-final';
-              aiButton.innerHTML = 'AI';
-              aiButton.title = 'AIに聞いてみる？';
-              
-              // スタイル適用
-              Object.assign(aiButton.style, {
-                position: 'fixed',
-                bottom: '30px',
-                right: '30px',
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                border: 'none',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                zIndex: '9999',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'transform 0.2s ease'
-              });
-
-              // ホバー効果
-              aiButton.onmouseenter = () => aiButton.style.transform = 'scale(1.1)';
-              aiButton.onmouseleave = () => aiButton.style.transform = 'scale(1)';
-
-              // クリックイベント（正確な関数参照）
-              aiButton.onclick = () => {
-                console.log('🔥 AI Button clicked!');
-                if (typeof openAIChat === 'function') {
-                  openAIChat();
-                } else {
-                  console.error('openAIChat function not found');
-                }
-              };
-              
-              document.body.appendChild(aiButton);
-              console.log('✅ AI Button created ONLY for timeline screen');
-            } else {
-              console.log('❌ NOT timeline screen - no button created');
-            }
-          }, [currentView, selectedApplicant]);
 
           // 申込者データを読み込み
           const loadApplicants = async () => {
@@ -3456,67 +3401,16 @@
                 </div>
               )}
 
-
-              {/* AIチャットモーダル */}
-              {showAIChat && (
-                <div className="ai-chat-modal" onClick={closeAIChat}>
-                  <div className="ai-chat-container" onClick={(e) => e.stopPropagation()}>
-                    <div className="ai-chat-header">
-                      <h3>
-                        <span>🤖</span>
-                        AIアシスタント
-                      </h3>
-                      <button className="ai-chat-close" onClick={closeAIChat}>×</button>
-                    </div>
-                    
-                    <div className="ai-chat-messages">
-                      <div className="ai-welcome-message">
-                        <div className="ai-welcome-icon">👋</div>
-                        <div className="ai-welcome-title">
-                          AIに聞いてみる？
-                        </div>
-                        <div className="ai-welcome-subtitle">
-                          進捗についてお答えします！
-                        </div>
-                        
-                        <div className="ai-quick-questions">
-                          <div 
-                            className="ai-quick-question" 
-                            onClick={() => handleQuickQuestion('実調日はいつですか？')}
-                          >
-                            📅 実調日はいつ？
-                          </div>
-                          <div 
-                            className="ai-quick-question" 
-                            onClick={() => handleQuickQuestion('健康診断書の状況を教えて')}
-                          >
-                            🏥 健康診断書の状況は？
-                          </div>
-                          <div 
-                            className="ai-quick-question" 
-                            onClick={() => handleQuickQuestion('現在の進捗はどうなっていますか？')}
-                          >
-                            📊 現在の進捗は？
-                          </div>
-                          <div 
-                            className="ai-quick-question" 
-                            onClick={() => handleQuickQuestion('次に必要な手続きは何ですか？')}
-                          >
-                            ➡️ 次に必要な手続きは？
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* AIチャットボタン */}
+              {currentView === 'detail' && selectedApplicant && (
+                <button
+                  className="ai-chat-button"
+                  title="AIに聞いてみる？"
+                  onClick={openAIChat}
+                >
+                  AI
+                </button>
               )}
-
-              {/* AIボタンはuseEffectで制御されます */}
-
-              {/* デバッグ情報（削除予定） */}
-              <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'green', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
-                NOW: view={currentView}, applicant={selectedApplicant ? 'YES' : 'NO'}
-              </div>
             </div>
           );
         };
