@@ -3320,8 +3320,9 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - タイムライン画面でのみ表示 */}
-              {currentView === 'detail' && selectedApplicant && (
+              {/* AIチャットフローティングボタン - デバッグ表示 */}
+              {console.log('Debug AI Button:', { currentView, selectedApplicant: !!selectedApplicant })}
+              {(currentView === 'detail' && selectedApplicant) ? (
                 <button
                   className="ai-chat-button"
                   onClick={openAIChat}
@@ -3329,6 +3330,10 @@
                 >
                   AI
                 </button>
+              ) : (
+                <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
+                  Debug: view={currentView}, applicant={selectedApplicant ? 'YES' : 'NO'}
+                </div>
               )}
 
               {/* AIチャットモーダル */}
@@ -3385,8 +3390,9 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - タイムライン画面でのみ表示 */}
-              {currentView === 'detail' && selectedApplicant && (
+              {/* AIチャットフローティングボタン - デバッグ表示 */}
+              {console.log('Debug AI Button:', { currentView, selectedApplicant: !!selectedApplicant })}
+              {(currentView === 'detail' && selectedApplicant) ? (
                 <button
                   className="ai-chat-button"
                   onClick={openAIChat}
@@ -3394,6 +3400,10 @@
                 >
                   AI
                 </button>
+              ) : (
+                <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
+                  Debug: view={currentView}, applicant={selectedApplicant ? 'YES' : 'NO'}
+                </div>
               )}
 
               {/* AIチャットモーダル */}
