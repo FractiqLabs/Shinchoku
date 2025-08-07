@@ -3382,6 +3382,69 @@
                   </div>
                 </div>
               )}
+
+              {/* AIチャットフローティングボタン - テスト用：常に表示 */}
+              <button
+                className="ai-chat-button"
+                onClick={openAIChat}
+                title="AIに聞いてみる？"
+              >
+                AI
+              </button>
+
+              {/* AIチャットモーダル */}
+              {showAIChat && (
+                <div className="ai-chat-modal" onClick={closeAIChat}>
+                  <div className="ai-chat-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="ai-chat-header">
+                      <h3>
+                        <span>🤖</span>
+                        AIアシスタント
+                      </h3>
+                      <button className="ai-chat-close" onClick={closeAIChat}>×</button>
+                    </div>
+                    
+                    <div className="ai-chat-messages">
+                      <div className="ai-welcome-message">
+                        <div className="ai-welcome-icon">👋</div>
+                        <div className="ai-welcome-title">
+                          AIに聞いてみる？
+                        </div>
+                        <div className="ai-welcome-subtitle">
+                          進捗についてお答えします！
+                        </div>
+                        
+                        <div className="ai-quick-questions">
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('実調日はいつですか？')}
+                          >
+                            📅 実調日はいつ？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('健康診断書の状況を教えて')}
+                          >
+                            🏥 健康診断書の状況は？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('現在の進捗はどうなっていますか？')}
+                          >
+                            📊 現在の進捗は？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('次に必要な手続きは何ですか？')}
+                          >
+                            ➡️ 次に必要な手続きは？
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         };
