@@ -1371,17 +1371,49 @@
             console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
           }, [selectedApplicant]);
 
-          // AIボタンの強制更新
+          // AIボタンの直接作成と制御
           React.useEffect(() => {
-            console.log('🚀 AI Button Force Update:', { currentView, applicantName: selectedApplicant?.name || 'null' });
-            // AIボタンの表示状態を強制更新
-            const aiButton = document.querySelector('.ai-chat-button');
-            if (aiButton) {
-              const shouldShow = currentView === 'detail' && selectedApplicant;
-              aiButton.style.display = shouldShow ? 'block' : 'none';
-              console.log('💡 AI Button manually set to:', shouldShow ? 'SHOW' : 'HIDE');
+            console.log('🚀 AI Button Direct Creation:', { currentView, applicantName: selectedApplicant?.name || 'null' });
+            
+            // 既存のボタンを削除
+            const existingButton = document.querySelector('.ai-chat-button-direct');
+            if (existingButton) {
+              existingButton.remove();
+            }
+
+            // 条件に合致する場合のみボタンを作成
+            if (currentView === 'detail' && selectedApplicant) {
+              const aiButton = document.createElement('button');
+              aiButton.className = 'ai-chat-button-direct';
+              aiButton.innerHTML = 'AI';
+              aiButton.title = 'AIに聞いてみる？';
+              
+              // スタイルを直接適用
+              Object.assign(aiButton.style, {
+                position: 'fixed',
+                bottom: '30px',
+                right: '30px',
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                zIndex: '9999',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              });
+
+              // クリックイベントを追加
+              aiButton.onclick = openAIChat;
+              
+              // bodyに追加
+              document.body.appendChild(aiButton);
+              console.log('✅ AI Button directly created and added to DOM');
             } else {
-              console.log('❗ AI Button not found in DOM');
+              console.log('❌ Conditions not met for AI button creation');
             }
           }, [currentView, selectedApplicant]);
 
