@@ -3320,14 +3320,16 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - テスト用：常に表示 */}
-              <button
-                className="ai-chat-button"
-                onClick={openAIChat}
-                title="AIに聞いてみる？"
-              >
-                AI
-              </button>
+              {/* AIチャットフローティングボタン - タイムライン画面でのみ表示 */}
+              {currentView === 'detail' && selectedApplicant && (
+                <button
+                  className="ai-chat-button"
+                  onClick={openAIChat}
+                  title="AIに聞いてみる？"
+                >
+                  AI
+                </button>
+              )}
 
               {/* AIチャットモーダル */}
               {showAIChat && (
@@ -3383,14 +3385,16 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - テスト用：常に表示 */}
-              <button
-                className="ai-chat-button"
-                onClick={openAIChat}
-                title="AIに聞いてみる？"
-              >
-                AI
-              </button>
+              {/* AIチャットフローティングボタン - タイムライン画面でのみ表示 */}
+              {currentView === 'detail' && selectedApplicant && (
+                <button
+                  className="ai-chat-button"
+                  onClick={openAIChat}
+                  title="AIに聞いてみる？"
+                >
+                  AI
+                </button>
+              )}
 
               {/* AIチャットモーダル */}
               {showAIChat && (
