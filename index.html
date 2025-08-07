@@ -1380,6 +1380,8 @@
               const shouldShow = currentView === 'detail' && selectedApplicant;
               aiButton.style.display = shouldShow ? 'block' : 'none';
               console.log('💡 AI Button manually set to:', shouldShow ? 'SHOW' : 'HIDE');
+            } else {
+              console.log('❗ AI Button not found in DOM');
             }
           }, [currentView, selectedApplicant]);
 
