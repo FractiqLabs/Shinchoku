@@ -3469,14 +3469,28 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - CSS制御版（必ず動く） */}
-              {console.log('🎯 CSS制御でAIボタン表示:', { currentView, applicantName: selectedApplicant?.name || 'null' })}
+              {/* AIチャットフローティングボタン - 超シンプル版 */}
+              {console.log('🎯 Simple AIボタン表示:', { currentView, applicantName: selectedApplicant?.name || 'null' })}
               <button
                 className="ai-chat-button"
                 onClick={openAIChat}
                 title="AIに聞いてみる？"
                 style={{
-                  display: (currentView === 'detail' && selectedApplicant) ? 'block' : 'none'
+                  position: 'fixed',
+                  bottom: '30px',
+                  right: '30px',
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  zIndex: 9999,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  display: 'block'
                 }}
               >
                 AI
