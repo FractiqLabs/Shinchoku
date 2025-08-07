@@ -3451,31 +3451,33 @@
                 </div>
               )}
 
-              {/* AIチャットフローティングボタン - 修正版 */}
-              {console.log('🔍 FINAL Render check - AI Button:', { 
-                currentView, 
-                selectedApplicant: selectedApplicant?.name || 'null',
-                condition: (currentView === 'detail' && selectedApplicant) 
-              })}
-              {(currentView === 'detail' && selectedApplicant) ? (
-                <div>
-                  {console.log('✅ AIボタンを表示します')}
-                  <button
-                    className="ai-chat-button"
-                    onClick={openAIChat}
-                    title="AIに聞いてみる？"
-                  >
-                    AI
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  {console.log('❌ AIボタン非表示 - 条件不一致')}
-                  <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
-                    Debug: view={currentView}, applicant={selectedApplicant ? 'YES' : 'NO'}
+              {/* AIチャットフローティングボタン - 強制再レンダリング版 */}
+              <div key={`ai-button-${currentView}-${selectedApplicant?.id || 'none'}`}>
+                {console.log('🔍 FINAL Render check - AI Button:', { 
+                  currentView, 
+                  selectedApplicant: selectedApplicant?.name || 'null',
+                  condition: (currentView === 'detail' && selectedApplicant) 
+                })}
+                {(currentView === 'detail' && selectedApplicant) ? (
+                  <div>
+                    {console.log('✅ AIボタンを表示します')}
+                    <button
+                      className="ai-chat-button"
+                      onClick={openAIChat}
+                      title="AIに聞いてみる？"
+                    >
+                      AI
+                    </button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div>
+                    {console.log('❌ AIボタン非表示 - 条件不一致')}
+                    <div style={{position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999}}>
+                      Debug: view={currentView}, applicant={selectedApplicant ? 'YES' : 'NO'}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         };
