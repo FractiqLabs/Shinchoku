@@ -1011,6 +1011,237 @@
         .reply-item:hover .post-hover-actions {
             opacity: 1;
         }
+
+        /* AIチャットボット - フローティングボタン */
+        .ai-chat-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: ai-pulse 2s infinite;
+        }
+
+        .ai-chat-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .ai-chat-button:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        @keyframes ai-pulse {
+            0%, 100% {
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6), 0 0 0 10px rgba(102, 126, 234, 0.1);
+            }
+        }
+
+        /* AIチャットモーダル */
+        .ai-chat-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: ai-modal-fade-in 0.3s ease-out;
+        }
+
+        @keyframes ai-modal-fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .ai-chat-container {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            height: 70vh;
+            max-height: 600px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            animation: ai-modal-slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes ai-modal-slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .ai-chat-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-chat-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .ai-chat-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #f8faff 0%, #f0f2ff 100%);
+        }
+
+        /* ウェルカムメッセージ */
+        .ai-welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            animation: ai-welcome-appear 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes ai-welcome-appear {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .ai-welcome-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: ai-icon-bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes ai-icon-bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .ai-welcome-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4a5568;
+            margin-bottom: 12px;
+        }
+
+        .ai-welcome-subtitle {
+            font-size: 16px;
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        /* クイック質問ボタン */
+        .ai-quick-questions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .ai-quick-question {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #4a5568;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .ai-quick-question:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .ai-chat-container {
+                width: 95%;
+                height: 80vh;
+            }
+            
+            .ai-chat-button {
+                width: 56px;
+                height: 56px;
+                bottom: 20px;
+                right: 20px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1055,6 +1286,10 @@
           const [showActions, setShowActions] = React.useState(true);
           const [currentMemo, setCurrentMemo] = React.useState('');
           const [isSavingMemo, setIsSavingMemo] = React.useState(false);
+
+          // AIチャット関連のstate
+          const [showAIChat, setShowAIChat] = React.useState(false);
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1238,6 +1473,22 @@
             apiClient.disconnectSocket();
             setCurrentView('list');
             setApplicants([]);
+          };
+
+          // AIチャット機能
+          const openAIChat = () => {
+            if (selectedApplicant) {
+              setShowAIChat(true);
+            }
+          };
+
+          const closeAIChat = () => {
+            setShowAIChat(false);
+          };
+
+          const handleQuickQuestion = (question) => {
+            // 後で実装: 実際のAI機能
+            console.log('Quick question:', question);
           };
 
           // ログインフォームの入力処理
@@ -3064,6 +3315,71 @@
                       <button onClick={confirmDelete} className="btn btn-danger">
                         削除
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AIチャットフローティングボタン - 申込者選択時のみ表示 */}
+              {selectedApplicant && (
+                <button
+                  className="ai-chat-button"
+                  onClick={openAIChat}
+                  title="AIに聞いてみる？"
+                >
+                  AI
+                </button>
+              )}
+
+              {/* AIチャットモーダル */}
+              {showAIChat && (
+                <div className="ai-chat-modal" onClick={closeAIChat}>
+                  <div className="ai-chat-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="ai-chat-header">
+                      <h3>
+                        <span>🤖</span>
+                        AIアシスタント
+                      </h3>
+                      <button className="ai-chat-close" onClick={closeAIChat}>×</button>
+                    </div>
+                    
+                    <div className="ai-chat-messages">
+                      <div className="ai-welcome-message">
+                        <div className="ai-welcome-icon">👋</div>
+                        <div className="ai-welcome-title">
+                          AIに聞いてみる？
+                        </div>
+                        <div className="ai-welcome-subtitle">
+                          {selectedApplicant && `${selectedApplicant.surname} ${selectedApplicant.given_name}さんの進捗についてお答えします！`}
+                        </div>
+                        
+                        <div className="ai-quick-questions">
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('実調日はいつですか？')}
+                          >
+                            📅 実調日はいつ？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('健康診断書の状況を教えて')}
+                          >
+                            🏥 健康診断書の状況は？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('現在の進捗はどうなっていますか？')}
+                          >
+                            📊 現在の進捗は？
+                          </div>
+                          <div 
+                            className="ai-quick-question" 
+                            onClick={() => handleQuickQuestion('次に必要な手続きは何ですか？')}
+                          >
+                            ➡️ 次に必要な手続きは？
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
