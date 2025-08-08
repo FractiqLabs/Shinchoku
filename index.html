@@ -1794,6 +1794,22 @@
             setPostType(type);
             setShowPostForm(true);
             setReplyTo(null);
+
+            if (type === '健康診断書受領') {
+              const hasRequestPost = selectedApplicant.timeline.some(p => p.type === '健康診断書依頼' && !p.is_deleted);
+              if (!hasRequestPost) {
+                // 「健康診断書依頼」の投稿も作成する
+                apiClient.createPost(
+                  selectedApplicant.id,
+                  `担当者: ${currentUser.name} (自動登録)`,
+                  '健康診断書依頼',
+                  null
+                ).then(() => {
+                  loadApplicantDetail(selectedApplicant.id);
+                  loadApplicants();
+                });
+              }
+            }
           };
 
           const handleReply = (postId) => {
