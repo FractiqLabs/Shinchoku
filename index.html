@@ -2116,29 +2116,6 @@
             reader.readAsText(file, 'Shift_JIS'); // ほのぼのNEXTはShift_JIS
           };
 
-          const generateSampleCSV = () => {
-            const sampleData = [
-              ['居室', '利用者番号', '利用者氏名', '年齢', '性別', '要介護度', '入居日', '退居日', 'ケアマネ事業所', '担当者'],
-              ['101-1', '1500001', '山田太郎', '75', '男', '要介護3', 'R05/04/01', '', '渋谷介護支援センター', '佐藤'],
-              ['102-1', '1500002', '佐藤花子', '82', '女', '要介護4', 'R05/05/15', '', '新宿ケアプランセンター', '田中'],
-              ['103-1', '1500003', '田中一郎', '78', '男', '要介護2', 'R05/06/01', '', '世田谷居宅介護', '鈴木'],
-              ['104-1', '', '', '', '', '', '', '', '', ''],
-              ['105-1', '1500004', '高橋美子', '85', '女', '要介護5', 'R05/03/20', '', 'ほのぼの介護', '山田'],
-              ['201-1', '', '', '', '', '', '', '', '', ''],
-              ['202-1', '1500005', '鈴木次郎', '79', '男', '要介護3', 'R05/07/10', '', 'ケアプラン中央', '伊藤']
-            ];
-
-            const csvContent = sampleData.map(row => 
-              row.map(cell => `"${cell}"`).join(',')
-            ).join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'honobono_sample.csv';
-            link.click();
-          };
-
           const sortedApplicants = React.useMemo(() => {
             let sortableApplicants = [...applicants];
             if (sortConfig.key) {
@@ -3461,6 +3438,21 @@
                       こんにちは、{currentUser?.name}さん
                     </div>
                     <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px'}}>
+                      <input 
+                        type="file" 
+                        accept=".csv" 
+                        onChange={handleFileUpload}
+                        style={{display: 'none'}}
+                        id="simple-csv-input"
+                      />
+                      <button 
+                        onClick={() => document.getElementById('simple-csv-input').click()}
+                        className="help-btn"
+                        title="ほのぼのNEXT CSVインポート"
+                        style={{fontSize: '12px', padding: '4px 8px'}}
+                      >
+                        ほのぼのNEXT CSVインポート
+                      </button>
                       <button 
                         onClick={() => setShowKeyboardHelp(true)} 
                         className="help-btn"
@@ -3549,33 +3541,6 @@
                       </div>
                     </div>
 
-                    {/* データ連携 */}
-                    <div className="card dashboard-card">
-                      <div className="card-header">
-                        <h3 className="card-title">🔗 ほのぼのNEXT連携</h3>
-                      </div>
-                      <div className="card-content">
-                        <div className="import-actions">
-                          <button 
-                            className="btn btn-primary btn-sm"
-                            onClick={() => setShowCSVImportModal(true)}
-                          >
-                            📊 CSVインポート
-                          </button>
-                          <button 
-                            className="btn btn-secondary btn-sm"
-                            onClick={generateSampleCSV}
-                          >
-                            📝 サンプル生成
-                          </button>
-                        </div>
-                        <div className="import-status">
-                          <small className="text-muted">
-                            最終同期: 手動インポートのみ
-                          </small>
-                        </div>
-                      </div>
-                    </div>
 
                     {/* 最近の活動 */}
                     <div className="card dashboard-card recent-activity">
@@ -4237,18 +4202,6 @@
                             </label>
                           </div>
 
-                          <div className="sample-section">
-                            <p><strong>初回テスト用:</strong></p>
-                            <button 
-                              className="btn btn-secondary"
-                              onClick={generateSampleCSV}
-                            >
-                              📝 サンプルCSVをダウンロード
-                            </button>
-                            <small className="text-muted">
-                              ※ サンプルデータで動作確認できます
-                            </small>
-                          </div>
                         </div>
                       )}
 
