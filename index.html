@@ -1520,14 +1520,40 @@
           const [currentUser, setCurrentUser] = React.useState(null);
           const [loginForm, setLoginForm] = React.useState({ id: '', password: '' });
           const [loginError, setLoginError] = React.useState('');
+          // 施設情報をローカルストレージから復元
+          const loadFacilityInfo = () => {
+            try {
+              const saved = localStorage.getItem('facilityInfo');
+              if (saved) {
+                const parsed = JSON.parse(saved);
+                console.log('施設情報を復元しました:', parsed);
+                return parsed;
+              }
+            } catch (error) {
+              console.warn('施設情報の復元に失敗:', error);
+            }
+            // デフォルト値
+            return {
+              totalBeds: 116,
+              occupiedBeds: 0,
+              availableBeds: 116
+            };
+          };
+
+          // 施設情報をローカルストレージに保存
+          const saveFacilityInfo = (info) => {
+            try {
+              localStorage.setItem('facilityInfo', JSON.stringify(info));
+              console.log('施設情報を保存しました:', info);
+            } catch (error) {
+              console.warn('施設情報の保存に失敗:', error);
+            }
+          };
+
           const [currentView, setCurrentView] = React.useState('dashboard');
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
           const [searchTerm, setSearchTerm] = React.useState('');
-          const [facilityInfo, setFacilityInfo] = React.useState({
-            totalBeds: 116,
-            occupiedBeds: 0,
-            availableBeds: 116
-          });
+          const [facilityInfo, setFacilityInfo] = React.useState(loadFacilityInfo());
           const [showKeyboardHelp, setShowKeyboardHelp] = React.useState(false);
           const [showCSVImportModal, setShowCSVImportModal] = React.useState(false);
           const [csvImportData, setCsvImportData] = React.useState([]);
@@ -2017,15 +2043,20 @@
 
           const handleCSVImport = async (csvData) => {
             try {
-              // 単純に居室の入居状況を解析するだけ
+              // 居室の入居状況を解析
               const roomAnalysis = analyzeRoomNumbers(csvData);
               
-              // ベッド状況を更新
-              setFacilityInfo({
+              // 施設情報を更新（上書き）
+              const newFacilityInfo = {
                 totalBeds: roomAnalysis.totalBeds,
                 occupiedBeds: roomAnalysis.occupiedBeds,
-                availableBeds: roomAnalysis.availableBeds
-              });
+                availableBeds: roomAnalysis.availableBeds,
+                lastUpdated: new Date().toISOString(),
+                csvImportCount: (facilityInfo.csvImportCount || 0) + 1
+              };
+              
+              setFacilityInfo(newFacilityInfo);
+              saveFacilityInfo(newFacilityInfo); // ローカルストレージに保存
 
               // 結果を表示
               setCsvImportResult({
@@ -2036,7 +2067,9 @@
                   `総居室数: ${roomAnalysis.totalBeds}室`,
                   `入居済み: ${roomAnalysis.occupiedBeds}室`,
                   `空室: ${roomAnalysis.availableBeds}室`,
-                  `入居率: ${Math.round((roomAnalysis.occupiedBeds / roomAnalysis.totalBeds) * 100)}%`
+                  `入居率: ${Math.round((roomAnalysis.occupiedBeds / roomAnalysis.totalBeds) * 100)}%`,
+                  `更新日時: ${new Date().toLocaleString('ja-JP')}`,
+                  `インポート回数: ${newFacilityInfo.csvImportCount}回`
                 ],
                 roomAnalysis: roomAnalysis
               });
@@ -2063,14 +2096,18 @@
                 setCsvImportData(parsedData);
                 setCsvImportResult(null);
 
-                // 居室番号を解析してベッド状況を自動更新
+                // 居室番号を解析してベッド状況を自動更新（プレビュー）
                 if (parsedData.length > 0) {
                   const roomAnalysis = analyzeRoomNumbers(parsedData);
-                  setFacilityInfo({
+                  const previewFacilityInfo = {
                     totalBeds: roomAnalysis.totalBeds,
                     occupiedBeds: roomAnalysis.occupiedBeds,
-                    availableBeds: roomAnalysis.availableBeds
-                  });
+                    availableBeds: roomAnalysis.availableBeds,
+                    lastUpdated: new Date().toISOString(),
+                    csvImportCount: (facilityInfo.csvImportCount || 0) + 1
+                  };
+                  setFacilityInfo(previewFacilityInfo);
+                  saveFacilityInfo(previewFacilityInfo); // プレビュー時点でも保存
                 }
               } catch (error) {
                 alert(`ファイルの読み込みに失敗しました: ${error.message}`);
