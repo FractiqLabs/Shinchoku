@@ -1157,42 +1157,6 @@
             gap: 16px;
         }
 
-        /* ステータス別リスト */
-        .status-breakdown {
-            grid-column: 1 / -1;
-        }
-
-        .status-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f8f9fa;
-        }
-
-        .status-item:last-child {
-            border-bottom: none;
-        }
-
-        .status-name {
-            font-size: 14px;
-            color: #2c3e50;
-        }
-
-        .status-count {
-            font-weight: 600;
-            color: #007bff;
-            background: #e7f3ff;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
 
         /* 最近の活動 */
         .recent-activity {
@@ -1226,6 +1190,14 @@
             color: #2c3e50;
             font-size: 14px;
             margin-bottom: 2px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .activity-name:hover {
+            color: #007bff;
+            text-decoration: underline;
         }
 
         .activity-content {
@@ -1264,7 +1236,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .status-breakdown,
             .recent-activity {
                 grid-column: 1;
             }
@@ -3491,7 +3462,7 @@
                     {/* ベッド・入居状況 */}
                     <div className="card dashboard-card">
                       <div className="card-header">
-                        <h3 className="card-title">🏥 施設状況</h3>
+                        <h3 className="card-title">施設状況</h3>
                       </div>
                       <div className="card-content">
                         <div className="facility-stats">
@@ -3521,7 +3492,7 @@
                     {/* 申込者統計 */}
                     <div className="card dashboard-card">
                       <div className="card-header">
-                        <h3 className="card-title">📋 申込者統計</h3>
+                        <h3 className="card-title">申込者統計</h3>
                       </div>
                       <div className="card-content">
                         <div className="applicant-stats">
@@ -3537,26 +3508,6 @@
                             <div className="stat-label">30日超過</div>
                             <div className="stat-value urgent">{dashboardStats.urgentCases}</div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ステータス別集計 */}
-                    <div className="card dashboard-card status-breakdown">
-                      <div className="card-header">
-                        <h3 className="card-title">📊 ステータス別</h3>
-                      </div>
-                      <div className="card-content">
-                        <div className="status-list">
-                          {Object.entries(dashboardStats.statusCounts)
-                            .sort(([,a], [,b]) => b - a)
-                            .slice(0, 6)
-                            .map(([status, count]) => (
-                            <div key={status} className="status-item">
-                              <span className="status-name">{status}</span>
-                              <span className="status-count">{count}</span>
-                            </div>
-                          ))}
                         </div>
                       </div>
                     </div>
@@ -3592,7 +3543,7 @@
                     {/* 最近の活動 */}
                     <div className="card dashboard-card recent-activity">
                       <div className="card-header">
-                        <h3 className="card-title">⚡ 最近の活動</h3>
+                        <h3 className="card-title">最近の活動</h3>
                         <button 
                           className="btn btn-secondary btn-sm"
                           onClick={() => setCurrentView('list')}
@@ -3615,7 +3566,11 @@
                               return (
                                 <div key={app.id} className="activity-item">
                                   <div className="activity-info">
-                                    <div className="activity-name">{app.name}さん</div>
+                                    <div className="activity-name" onClick={() => {
+                                      setCurrentView('detail');
+                                      setSelectedApplicant(app);
+                                      setCurrentMemo(app.memo || '');
+                                    }}>{app.name}さん</div>
                                     <div className="activity-content">{latestActivity?.content || latestActivity?.action}</div>
                                   </div>
                                   <div className="activity-time">
