@@ -1015,6 +1015,306 @@
             opacity: 1;
         }
 
+        /* ナビゲーションタブ */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav-tab {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: #2c3e50;
+            background: #f8f9fa;
+        }
+
+        .nav-tab.active {
+            color: #2c3e50;
+            border-bottom-color: #007bff;
+        }
+
+        /* ダッシュボードレイアウト */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card {
+            margin-bottom: 0;
+        }
+
+        .dashboard-card .card-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .dashboard-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 施設統計スタイル */
+        .facility-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-value.large {
+            font-size: 32px;
+            color: #007bff;
+        }
+
+        .stat-value.occupied {
+            color: #28a745;
+        }
+
+        .stat-value.available {
+            color: #17a2b8;
+        }
+
+        .stat-value.waiting {
+            color: #ffc107;
+        }
+
+        .stat-value.urgent {
+            color: #dc3545;
+        }
+
+        .stat-value.rate {
+            color: #6f42c1;
+        }
+
+        /* 入居率バー */
+        .occupancy-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .occupancy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #ffc107);
+            transition: width 0.3s ease;
+        }
+
+        /* 申込者統計 */
+        .applicant-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ステータス別リスト */
+        .status-breakdown {
+            grid-column: 1 / -1;
+        }
+
+        .status-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-name {
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .status-count {
+            font-weight: 600;
+            color: #007bff;
+            background: #e7f3ff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* 最近の活動 */
+        .recent-activity {
+            grid-column: 1 / -1;
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-info {
+            flex: 1;
+        }
+
+        .activity-name {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .activity-content {
+            font-size: 12px;
+            color: #6c757d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: #adb5bd;
+            white-space: nowrap;
+            margin-left: 16px;
+        }
+
+        /* ボタンサイズ */
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .facility-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .applicant-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .status-breakdown,
+            .recent-activity {
+                grid-column: 1;
+            }
+        }
+
+        /* ヘルプボタンスタイル */
+        .help-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .help-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        /* キーボードショートカット */
+        .keyboard-shortcuts {
+            display: grid;
+            gap: 24px;
+        }
+
+        .shortcut-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut-item kbd {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #495057;
+            margin: 0 2px;
+        }
+
+        .shortcut-item span {
+            font-size: 14px;
+            color: #495057;
+        }
+
         
     </style>
 </head>
@@ -1027,9 +1327,15 @@
           const [currentUser, setCurrentUser] = React.useState(null);
           const [loginForm, setLoginForm] = React.useState({ id: '', password: '' });
           const [loginError, setLoginError] = React.useState('');
-          const [currentView, setCurrentView] = React.useState('list');
+          const [currentView, setCurrentView] = React.useState('dashboard');
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
           const [searchTerm, setSearchTerm] = React.useState('');
+          const [facilityInfo, setFacilityInfo] = React.useState({
+            totalBeds: 100,
+            occupiedBeds: 85,
+            availableBeds: 15
+          });
+          const [showKeyboardHelp, setShowKeyboardHelp] = React.useState(false);
           const [showModal, setShowModal] = React.useState(false);
           const [showEditModal, setShowEditModal] = React.useState(false);
           const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -1314,6 +1620,83 @@
             if (sortConfig.key !== key) return '↕';
             return sortConfig.direction === 'asc' ? '↑' : '↓';
           };
+
+          // ダッシュボード用の統計情報を計算
+          const dashboardStats = React.useMemo(() => {
+            const totalApplicants = applicants.length;
+            const waitingApplicants = applicants.filter(app => 
+              !['入居完了', 'キャンセル', '入居不可'].includes(app.status)
+            ).length;
+            
+            const statusCounts = applicants.reduce((counts, app) => {
+              counts[app.status] = (counts[app.status] || 0) + 1;
+              return counts;
+            }, {});
+
+            const urgentCases = applicants.filter(app => {
+              const appDate = new Date(app.applicationDate);
+              const daysSinceApplication = (Date.now() - appDate) / (1000 * 60 * 60 * 24);
+              return daysSinceApplication > 30 && !['入居完了', 'キャンセル', '入居不可'].includes(app.status);
+            }).length;
+
+            return {
+              totalApplicants,
+              waitingApplicants,
+              statusCounts,
+              urgentCases,
+              occupancyRate: ((facilityInfo.occupiedBeds / facilityInfo.totalBeds) * 100).toFixed(1)
+            };
+          }, [applicants, facilityInfo]);
+
+          // キーボードショートカット
+          React.useEffect(() => {
+            const handleKeyDown = (e) => {
+              // Ctrl/Cmd キーとの組み合わせのみ
+              if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+              
+              switch (e.key.toLowerCase()) {
+                case 'd':
+                  e.preventDefault();
+                  setCurrentView('dashboard');
+                  break;
+                case 'l':
+                  e.preventDefault();
+                  setCurrentView('list');
+                  break;
+                case 'n':
+                  e.preventDefault();
+                  if (currentView === 'list') {
+                    setShowModal(true);
+                  }
+                  break;
+                case '/':
+                  e.preventDefault();
+                  // 検索入力フィールドにフォーカス
+                  const searchInput = document.querySelector('input[placeholder*="検索"], input[placeholder*="見つける"]');
+                  if (searchInput) {
+                    searchInput.focus();
+                  }
+                  break;
+                case '?':
+                  e.preventDefault();
+                  setShowKeyboardHelp(true);
+                  break;
+                case 'escape':
+                case 'Escape':
+                  // モーダルを閉じる
+                  setShowModal(false);
+                  setShowEditModal(false);
+                  setShowDeleteModal(false);
+                  setShowKeyboardHelp(false);
+                  // 検索をクリア
+                  setSearchTerm('');
+                  break;
+              }
+            };
+
+            document.addEventListener('keydown', handleKeyDown);
+            return () => document.removeEventListener('keydown', handleKeyDown);
+          }, [currentView]);
 
           const sortedApplicants = React.useMemo(() => {
             let sortableApplicants = [...applicants];
@@ -2636,14 +3019,163 @@
                     <div className="user-greeting">
                       こんにちは、{currentUser?.name}さん
                     </div>
-                    <button onClick={handleLogout} className="logout-btn">
-                      ログアウト
-                    </button>
+                    <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px'}}>
+                      <button 
+                        onClick={() => setShowKeyboardHelp(true)} 
+                        className="help-btn"
+                        title="キーボードショートカット（Ctrl+?）"
+                      >
+                        ⌘
+                      </button>
+                      <button onClick={handleLogout} className="logout-btn">
+                        ログアウト
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="card">
+              {/* ナビゲーションタブ */}
+              <div className="nav-tabs">
+                <button 
+                  className={`nav-tab ${currentView === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => setCurrentView('dashboard')}
+                >
+                  ダッシュボード
+                </button>
+                <button 
+                  className={`nav-tab ${currentView === 'list' ? 'active' : ''}`}
+                  onClick={() => setCurrentView('list')}
+                >
+                  申込者一覧
+                </button>
+              </div>
+
+              {/* ダッシュボード画面 */}
+              {currentView === 'dashboard' && (
+                <>
+                  <div className="dashboard-grid">
+                    {/* ベッド・入居状況 */}
+                    <div className="card dashboard-card">
+                      <div className="card-header">
+                        <h3 className="card-title">🏥 施設状況</h3>
+                      </div>
+                      <div className="card-content">
+                        <div className="facility-stats">
+                          <div className="stat-item">
+                            <div className="stat-label">総ベッド数</div>
+                            <div className="stat-value large">{facilityInfo.totalBeds}</div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-label">入居中</div>
+                            <div className="stat-value occupied">{facilityInfo.occupiedBeds}</div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-label">空きベッド</div>
+                            <div className="stat-value available">{facilityInfo.availableBeds}</div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-label">入居率</div>
+                            <div className="stat-value rate">{dashboardStats.occupancyRate}%</div>
+                          </div>
+                        </div>
+                        <div className="occupancy-bar">
+                          <div 
+                            className="occupancy-fill" 
+                            style={{width: `${dashboardStats.occupancyRate}%`}}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 申込者統計 */}
+                    <div className="card dashboard-card">
+                      <div className="card-header">
+                        <h3 className="card-title">📋 申込者統計</h3>
+                      </div>
+                      <div className="card-content">
+                        <div className="applicant-stats">
+                          <div className="stat-item">
+                            <div className="stat-label">総申込者数</div>
+                            <div className="stat-value large">{dashboardStats.totalApplicants}</div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-label">待機中</div>
+                            <div className="stat-value waiting">{dashboardStats.waitingApplicants}</div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-label">30日超過</div>
+                            <div className="stat-value urgent">{dashboardStats.urgentCases}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ステータス別集計 */}
+                    <div className="card dashboard-card status-breakdown">
+                      <div className="card-header">
+                        <h3 className="card-title">📊 ステータス別</h3>
+                      </div>
+                      <div className="card-content">
+                        <div className="status-list">
+                          {Object.entries(dashboardStats.statusCounts)
+                            .sort(([,a], [,b]) => b - a)
+                            .slice(0, 6)
+                            .map(([status, count]) => (
+                            <div key={status} className="status-item">
+                              <span className="status-name">{status}</span>
+                              <span className="status-count">{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 最近の活動 */}
+                    <div className="card dashboard-card recent-activity">
+                      <div className="card-header">
+                        <h3 className="card-title">⚡ 最近の活動</h3>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setCurrentView('list')}
+                        >
+                          すべて見る
+                        </button>
+                      </div>
+                      <div className="card-content">
+                        <div className="activity-list">
+                          {applicants
+                            .filter(app => app.timeline && app.timeline.length > 0)
+                            .sort((a, b) => {
+                              const aLatest = a.timeline[0]?.timestamp || '';
+                              const bLatest = b.timeline[0]?.timestamp || '';
+                              return new Date(bLatest) - new Date(aLatest);
+                            })
+                            .slice(0, 5)
+                            .map((app) => {
+                              const latestActivity = app.timeline[0];
+                              return (
+                                <div key={app.id} className="activity-item">
+                                  <div className="activity-info">
+                                    <div className="activity-name">{app.name}さん</div>
+                                    <div className="activity-content">{latestActivity?.content || latestActivity?.action}</div>
+                                  </div>
+                                  <div className="activity-time">
+                                    {latestActivity ? formatTimeAgo(latestActivity.timestamp) : ''}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* 申込者一覧画面 */}
+              {currentView === 'list' && (
+                <div className="card">
                 <div className="card-header">
                   <div className="stat-row">
                     <h2 className="section-title">申込者一覧</h2>
@@ -2741,6 +3273,7 @@
                   </table>
                 </div>
               </div>
+              )}
               
               {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -3168,6 +3701,58 @@
 
 
               
+
+              {/* キーボードショートカットヘルプモーダル */}
+              {showKeyboardHelp && (
+                <div className="modal-overlay" onClick={() => setShowKeyboardHelp(false)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">キーボードショートカット</h3>
+                      <button className="modal-close" onClick={() => setShowKeyboardHelp(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                      <div className="keyboard-shortcuts">
+                        <div className="shortcut-section">
+                          <h4>ナビゲーション</h4>
+                          <div className="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>D</kbd>
+                            <span>ダッシュボード表示</span>
+                          </div>
+                          <div className="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>L</kbd>
+                            <span>申込者一覧表示</span>
+                          </div>
+                        </div>
+                        <div className="shortcut-section">
+                          <h4>操作</h4>
+                          <div className="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                            <span>新規申込者登録</span>
+                          </div>
+                          <div className="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>/</kbd>
+                            <span>検索フィールドにフォーカス</span>
+                          </div>
+                        </div>
+                        <div className="shortcut-section">
+                          <h4>ヘルプ・その他</h4>
+                          <div className="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>?</kbd>
+                            <span>このヘルプを表示</span>
+                          </div>
+                          <div className="shortcut-item">
+                            <kbd>Esc</kbd>
+                            <span>モーダル閉じる・検索クリア</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{marginTop: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '6px', fontSize: '12px', color: '#6c757d'}}>
+                        💡 ヒント: Macの場合は Cmd キーを使用してください
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* AIチャットボタン */}
               {currentView === 'detail' && selectedApplicant && (
