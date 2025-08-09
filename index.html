@@ -1029,6 +1029,7 @@
           const [loginError, setLoginError] = React.useState('');
           const [currentView, setCurrentView] = React.useState('list');
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
+          const [searchTerm, setSearchTerm] = React.useState('');
           const [showModal, setShowModal] = React.useState(false);
           const [showEditModal, setShowEditModal] = React.useState(false);
           const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -2085,49 +2086,82 @@
                 </div>
                 
                 <div className="detail-header">
-                  <h1 className="detail-title">
-                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
-                  </h1>
-                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
-                    {selectedApplicant.status}
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px'}}>
+                    <div>
+                      <h1 className="detail-title">
+                        {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
+                      </h1>
+                      <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
+                        {selectedApplicant.status}
+                      </div>
+                    </div>
+                    <div style={{minWidth: '300px'}}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="情報を素早く見つける"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                          width: '100%',
+                          fontSize: '14px',
+                          padding: '8px 12px'
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  <div className="detail-info">
-                    <div className="info-section">
-                      <h3>基本情報</h3>
-                      <div className="info-item">申込日: {selectedApplicant.applicationDate}</div>
-                      {selectedApplicant.assignee && <div className="info-item">担当者: {selectedApplicant.assignee}</div>}
-                      {selectedApplicant.address && <div className="info-item">住所: {selectedApplicant.address}</div>}
+                  {(!searchTerm || 
+                    selectedApplicant.assignee?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.kp?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.kpRelationship?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.kpContact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.kpAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.careManager?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.careManagerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.cmContact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    selectedApplicant.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+                  ) && (
+                    <div className="detail-info">
+                      <div className="info-section">
+                        <h3>基本情報</h3>
+                        <div className="info-item">申込日: {selectedApplicant.applicationDate}</div>
+                        {selectedApplicant.assignee && <div className="info-item">担当者: {selectedApplicant.assignee}</div>}
+                        {selectedApplicant.address && <div className="info-item">住所: {selectedApplicant.address}</div>}
+                      </div>
+                      <div className="info-section">
+                        <h3>KP情報</h3>
+                        {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}{selectedApplicant.kpRelationship && `（${selectedApplicant.kpRelationship}）`}</div>}
+                        {selectedApplicant.kpContact && <div className="info-item">連絡先: {selectedApplicant.kpContact}</div>}
+                        {selectedApplicant.kpAddress && <div className="info-item">住所: {selectedApplicant.kpAddress}</div>}
+                      </div>
+                      <div className="info-section">
+                        <h3>ケアマネ・SW情報</h3>
+                        {selectedApplicant.careManager && <div className="info-item">居宅介護支援事業所・病院: {selectedApplicant.careManager}</div>}
+                        {selectedApplicant.careManagerName && <div className="info-item">ケアマネ・SW: {selectedApplicant.careManagerName}</div>}
+                        {selectedApplicant.cmContact && <div className="info-item">連絡先: {selectedApplicant.cmContact}</div>}
+                      </div>
                     </div>
-                    <div className="info-section">
-                      <h3>KP情報</h3>
-                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}{selectedApplicant.kpRelationship && `（${selectedApplicant.kpRelationship}）`}</div>}
-                      {selectedApplicant.kpContact && <div className="info-item">連絡先: {selectedApplicant.kpContact}</div>}
-                      {selectedApplicant.kpAddress && <div className="info-item">住所: {selectedApplicant.kpAddress}</div>}
-                    </div>
-                    <div className="info-section">
-                      <h3>ケアマネ・SW情報</h3>
-                      {selectedApplicant.careManager && <div className="info-item">居宅介護支援事業所・病院: {selectedApplicant.careManager}</div>}
-                      {selectedApplicant.careManagerName && <div className="info-item">ケアマネ・SW: {selectedApplicant.careManagerName}</div>}
-                      {selectedApplicant.cmContact && <div className="info-item">連絡先: {selectedApplicant.cmContact}</div>}
-                    </div>
-                  </div>
+                  )}
                   
-                  <div className="info-section" style={{marginTop: '24px'}}>
-                    <h3>特記</h3>
-                    <div className="info-item" style={{
-                      backgroundColor: '#f8f9fa',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      marginTop: '8px',
-                      minHeight: '40px',
-                      whiteSpace: 'pre-line',
-                      fontStyle: selectedApplicant.notes ? 'normal' : 'italic',
-                      color: selectedApplicant.notes ? '#495057' : '#6c757d'
-                    }}>
-                      {selectedApplicant.notes || '特記事項はありません'}
+                  {(!searchTerm || selectedApplicant.notes?.toLowerCase().includes(searchTerm.toLowerCase())) && (
+                    <div className="info-section" style={{marginTop: '24px'}}>
+                      <h3>特記</h3>
+                      <div className="info-item" style={{
+                        backgroundColor: '#f8f9fa',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginTop: '8px',
+                        minHeight: '40px',
+                        whiteSpace: 'pre-line',
+                        fontStyle: selectedApplicant.notes ? 'normal' : 'italic',
+                        color: selectedApplicant.notes ? '#495057' : '#6c757d'
+                      }}>
+                        {selectedApplicant.notes || '特記事項はありません'}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="grid-layout">
@@ -2171,7 +2205,21 @@
                         </div>
                       )}
 
-                      {selectedApplicant.timeline.map((item) => (
+                      {selectedApplicant.timeline
+                        .filter((item) => {
+                          if (!searchTerm) return true;
+                          const searchLower = searchTerm.toLowerCase();
+                          return (
+                            item.content.toLowerCase().includes(searchLower) ||
+                            item.author.toLowerCase().includes(searchLower) ||
+                            (item.action && item.action.toLowerCase().includes(searchLower)) ||
+                            (item.replies && item.replies.some(reply => 
+                              reply.content.toLowerCase().includes(searchLower) ||
+                              reply.author.toLowerCase().includes(searchLower)
+                            ))
+                          );
+                        })
+                        .map((item) => (
                         <div key={item.id} className="timeline-item">
                           <div className="timeline-post">
                             <div className="post-header">
