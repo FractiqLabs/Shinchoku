@@ -1315,6 +1315,213 @@
             color: #495057;
         }
 
+        /* CSVインポート機能 */
+        .large-modal {
+            max-width: 800px;
+            width: 90vw;
+        }
+
+        .csv-upload-area {
+            text-align: center;
+            padding: 24px;
+        }
+
+        .upload-instructions {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .upload-instructions h4 {
+            color: #2c3e50;
+            margin-bottom: 12px;
+        }
+
+        .upload-instructions ol {
+            text-align: left;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .upload-instructions li {
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .file-upload-section {
+            margin: 24px 0;
+        }
+
+        .upload-btn {
+            padding: 16px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+        }
+
+        .sample-section {
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
+            margin-top: 24px;
+        }
+
+        .sample-section p {
+            margin-bottom: 12px;
+            color: #495057;
+        }
+
+        .sample-section small {
+            display: block;
+            margin-top: 8px;
+        }
+
+        /* インポートプレビュー */
+        .csv-preview {
+            padding: 16px;
+        }
+
+        .preview-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .preview-table th {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+
+        .preview-table td {
+            padding: 8px;
+            border-bottom: 1px solid #e9ecef;
+            color: #495057;
+        }
+
+        .preview-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .preview-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        /* インポート結果 */
+        .import-result {
+            padding: 16px;
+        }
+
+        .result-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .result-item.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .result-item.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .result-label {
+            display: block;
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            display: block;
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .imported-list, .error-list {
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .imported-list h5, .error-list h5 {
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        .imported-list ul, .error-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .imported-list li {
+            color: #28a745;
+            margin-bottom: 4px;
+        }
+
+        .error-list li.error-item {
+            color: #dc3545;
+            margin-bottom: 4px;
+        }
+
+        .result-actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* データ連携セクション */
+        .import-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .import-actions .btn {
+            flex: 1;
+        }
+
+        .import-status {
+            padding-top: 8px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+        }
+
         
     </style>
 </head>
@@ -1336,6 +1543,9 @@
             availableBeds: 15
           });
           const [showKeyboardHelp, setShowKeyboardHelp] = React.useState(false);
+          const [showCSVImportModal, setShowCSVImportModal] = React.useState(false);
+          const [csvImportData, setCsvImportData] = React.useState([]);
+          const [csvImportResult, setCsvImportResult] = React.useState(null);
           const [showModal, setShowModal] = React.useState(false);
           const [showEditModal, setShowEditModal] = React.useState(false);
           const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -1697,6 +1907,186 @@
             document.addEventListener('keydown', handleKeyDown);
             return () => document.removeEventListener('keydown', handleKeyDown);
           }, [currentView]);
+
+          // CSV解析・インポート機能
+          const parseCSV = (csvText) => {
+            const lines = csvText.split('\n').filter(line => line.trim());
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+              const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+              const row = {};
+              headers.forEach((header, index) => {
+                row[header] = values[index] || '';
+              });
+              data.push(row);
+            }
+            return data;
+          };
+
+          const mapCSVToApplicant = (csvRow) => {
+            // ほのぼのNEXT想定のマッピング
+            const mapping = {
+              '利用者番号': 'id',
+              '氏名': 'name',
+              '姓': 'surname', 
+              '名': 'givenName',
+              '年齢': 'age',
+              '要介護度': 'careLevel',
+              '住所': 'address',
+              '入居日': 'applicationDate',
+              'ステータス': 'status',
+              'キーパーソン': 'kp',
+              'キーパーソン続柄': 'kpRelationship',
+              'キーパーソン連絡先': 'kpContact',
+              'ケアマネ事業所': 'careManager',
+              'ケアマネ氏名': 'careManagerName',
+              'ケアマネ連絡先': 'cmContact',
+              '担当者': 'assignee',
+              '特記事項': 'notes'
+            };
+
+            const mapped = {};
+            Object.entries(mapping).forEach(([csvKey, appKey]) => {
+              if (csvRow[csvKey]) {
+                mapped[appKey] = csvRow[csvKey];
+              }
+            });
+
+            // 必須データの設定
+            if (!mapped.name && mapped.surname && mapped.givenName) {
+              mapped.name = `${mapped.surname} ${mapped.givenName}`;
+            }
+            
+            // デフォルト値設定
+            mapped.id = mapped.id || Date.now();
+            mapped.applicationDate = mapped.applicationDate || new Date().toISOString().split('T')[0];
+            mapped.status = mapped.status || '申込書受領';
+            mapped.timeline = [];
+
+            return mapped;
+          };
+
+          const handleCSVImport = async (csvData) => {
+            try {
+              const results = {
+                success: 0,
+                error: 0,
+                errors: [],
+                imported: []
+              };
+
+              let newOccupiedBeds = facilityInfo.occupiedBeds;
+
+              for (const row of csvData) {
+                try {
+                  const applicant = mapCSVToApplicant(row);
+                  
+                  // バリデーション
+                  if (!applicant.name) {
+                    results.errors.push(`行${results.success + results.error + 1}: 氏名が必要です`);
+                    results.error++;
+                    continue;
+                  }
+
+                  // 重複チェック
+                  const existingApplicant = applicants.find(app => 
+                    app.name === applicant.name || app.id == applicant.id
+                  );
+
+                  if (existingApplicant) {
+                    // 既存データを更新
+                    const updatedApplicants = applicants.map(app => 
+                      app.id == applicant.id ? { ...app, ...applicant } : app
+                    );
+                    setApplicants(updatedApplicants);
+                    results.imported.push(`${applicant.name}さん（更新）`);
+                  } else {
+                    // 新規追加
+                    applicant.timeline = [{
+                      id: Date.now(),
+                      content: 'CSVインポートにより登録',
+                      author: currentUser?.name || 'システム',
+                      timestamp: new Date().toISOString(),
+                      action: applicant.status
+                    }];
+                    
+                    setApplicants(prev => [...prev, applicant]);
+                    results.imported.push(`${applicant.name}さん（新規）`);
+                  }
+
+                  // 入居状況の更新
+                  if (applicant.status === '入居完了' || applicant.status === '入居中') {
+                    newOccupiedBeds++;
+                  }
+
+                  results.success++;
+                } catch (error) {
+                  results.errors.push(`行${results.success + results.error + 1}: ${error.message}`);
+                  results.error++;
+                }
+              }
+
+              // ベッド状況更新
+              if (newOccupiedBeds !== facilityInfo.occupiedBeds) {
+                setFacilityInfo(prev => ({
+                  ...prev,
+                  occupiedBeds: Math.min(newOccupiedBeds, prev.totalBeds),
+                  availableBeds: prev.totalBeds - Math.min(newOccupiedBeds, prev.totalBeds)
+                }));
+              }
+
+              setCsvImportResult(results);
+              
+            } catch (error) {
+              setCsvImportResult({
+                success: 0,
+                error: 1,
+                errors: [`CSVファイルの処理中にエラーが発生しました: ${error.message}`],
+                imported: []
+              });
+            }
+          };
+
+          const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const csvText = e.target.result;
+                const parsedData = parseCSV(csvText);
+                setCsvImportData(parsedData);
+                setCsvImportResult(null);
+              } catch (error) {
+                alert(`ファイルの読み込みに失敗しました: ${error.message}`);
+              }
+            };
+            reader.readAsText(file, 'UTF-8');
+          };
+
+          const generateSampleCSV = () => {
+            const sampleData = [
+              ['利用者番号', '氏名', '年齢', '要介護度', '住所', 'ステータス', 'キーパーソン', 'キーパーソン続柄', 'ケアマネ事業所', '担当者', '特記事項'],
+              ['001', '山田太郎', '75', '要介護3', '東京都渋谷区1-1-1', '入居中', '山田花子', '長女', '渋谷介護支援センター', '佐藤', '糖尿病あり'],
+              ['002', '佐藤花子', '82', '要介護4', '東京都新宿区2-2-2', '申込書受領', '佐藤次郎', '長男', '新宿ケアプランセンター', '田中', '認知症初期'],
+              ['003', '田中一郎', '78', '要介護2', '東京都世田谷区3-3-3', '実調完了', '田中美恵', '妻', '世田谷居宅介護', '鈴木', '歩行器使用']
+            ];
+
+            const csvContent = sampleData.map(row => 
+              row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'honobono_sample.csv';
+            link.click();
+          };
 
           const sortedApplicants = React.useMemo(() => {
             let sortableApplicants = [...applicants];
@@ -3131,6 +3521,34 @@
                       </div>
                     </div>
 
+                    {/* データ連携 */}
+                    <div className="card dashboard-card">
+                      <div className="card-header">
+                        <h3 className="card-title">🔗 ほのぼのNEXT連携</h3>
+                      </div>
+                      <div className="card-content">
+                        <div className="import-actions">
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            onClick={() => setShowCSVImportModal(true)}
+                          >
+                            📊 CSVインポート
+                          </button>
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            onClick={generateSampleCSV}
+                          >
+                            📝 サンプル生成
+                          </button>
+                        </div>
+                        <div className="import-status">
+                          <small className="text-muted">
+                            最終同期: 手動インポートのみ
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* 最近の活動 */}
                     <div className="card dashboard-card recent-activity">
                       <div className="card-header">
@@ -3749,6 +4167,162 @@
                       <div style={{marginTop: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '6px', fontSize: '12px', color: '#6c757d'}}>
                         💡 ヒント: Macの場合は Cmd キーを使用してください
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CSVインポートモーダル */}
+              {showCSVImportModal && (
+                <div className="modal-overlay" onClick={() => setShowCSVImportModal(false)}>
+                  <div className="modal large-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">📊 ほのぼのNEXT CSVインポート</h3>
+                      <button className="modal-close" onClick={() => setShowCSVImportModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                      {!csvImportData.length && !csvImportResult && (
+                        <div className="csv-upload-area">
+                          <div className="upload-instructions">
+                            <h4>📋 インポート手順</h4>
+                            <ol>
+                              <li>ほのぼのNEXTから利用者データをCSVエクスポート</li>
+                              <li>下記のファイル選択からCSVファイルをアップロード</li>
+                              <li>プレビューを確認してインポート実行</li>
+                            </ol>
+                          </div>
+                          
+                          <div className="file-upload-section">
+                            <input 
+                              type="file" 
+                              accept=".csv" 
+                              onChange={handleFileUpload}
+                              style={{display: 'none'}}
+                              id="csv-file-input"
+                            />
+                            <label htmlFor="csv-file-input" className="btn btn-primary upload-btn">
+                              📁 CSVファイルを選択
+                            </label>
+                          </div>
+
+                          <div className="sample-section">
+                            <p><strong>初回テスト用:</strong></p>
+                            <button 
+                              className="btn btn-secondary"
+                              onClick={generateSampleCSV}
+                            >
+                              📝 サンプルCSVをダウンロード
+                            </button>
+                            <small className="text-muted">
+                              ※ サンプルデータで動作確認できます
+                            </small>
+                          </div>
+                        </div>
+                      )}
+
+                      {csvImportData.length > 0 && !csvImportResult && (
+                        <div className="csv-preview">
+                          <h4>📋 インポートプレビュー ({csvImportData.length}件)</h4>
+                          <div className="preview-table-container">
+                            <table className="preview-table">
+                              <thead>
+                                <tr>
+                                  <th>氏名</th>
+                                  <th>年齢</th>
+                                  <th>要介護度</th>
+                                  <th>ステータス</th>
+                                  <th>キーパーソン</th>
+                                  <th>担当者</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {csvImportData.slice(0, 5).map((row, index) => (
+                                  <tr key={index}>
+                                    <td>{row['氏名'] || row['姓'] + ' ' + row['名'] || '-'}</td>
+                                    <td>{row['年齢'] || '-'}</td>
+                                    <td>{row['要介護度'] || '-'}</td>
+                                    <td>{row['ステータス'] || '申込書受領'}</td>
+                                    <td>{row['キーパーソン'] || '-'}</td>
+                                    <td>{row['担当者'] || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {csvImportData.length > 5 && (
+                              <p className="text-muted">...他 {csvImportData.length - 5} 件</p>
+                            )}
+                          </div>
+                          <div className="preview-actions">
+                            <button 
+                              className="btn btn-secondary"
+                              onClick={() => {
+                                setCsvImportData([]);
+                                setCsvImportResult(null);
+                              }}
+                            >
+                              キャンセル
+                            </button>
+                            <button 
+                              className="btn btn-primary"
+                              onClick={() => handleCSVImport(csvImportData)}
+                            >
+                              🚀 インポート実行
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {csvImportResult && (
+                        <div className="import-result">
+                          <h4>✅ インポート結果</h4>
+                          <div className="result-summary">
+                            <div className="result-item success">
+                              <span className="result-label">成功:</span>
+                              <span className="result-value">{csvImportResult.success}件</span>
+                            </div>
+                            <div className="result-item error">
+                              <span className="result-label">エラー:</span>
+                              <span className="result-value">{csvImportResult.error}件</span>
+                            </div>
+                          </div>
+
+                          {csvImportResult.imported.length > 0 && (
+                            <div className="imported-list">
+                              <h5>📥 インポートされたデータ:</h5>
+                              <ul>
+                                {csvImportResult.imported.map((item, index) => (
+                                  <li key={index}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {csvImportResult.errors.length > 0 && (
+                            <div className="error-list">
+                              <h5>⚠️ エラー詳細:</h5>
+                              <ul>
+                                {csvImportResult.errors.map((error, index) => (
+                                  <li key={index} className="error-item">{error}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <div className="result-actions">
+                            <button 
+                              className="btn btn-primary"
+                              onClick={() => {
+                                setShowCSVImportModal(false);
+                                setCsvImportData([]);
+                                setCsvImportResult(null);
+                                setCurrentView('dashboard'); // ダッシュボードを更新
+                              }}
+                            >
+                              完了
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
