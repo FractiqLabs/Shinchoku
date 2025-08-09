@@ -1073,9 +1073,24 @@
         /* 施設統計スタイル */
         .facility-stats {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr;
             gap: 16px;
             margin-bottom: 16px;
+        }
+
+        .stat-item.main-stat {
+            grid-row: span 2;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 2px solid #17a2b8;
+        }
+
+        .stat-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 4px;
         }
 
         .stat-item {
@@ -1538,9 +1553,9 @@
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
           const [searchTerm, setSearchTerm] = React.useState('');
           const [facilityInfo, setFacilityInfo] = React.useState({
-            totalBeds: 100,
-            occupiedBeds: 85,
-            availableBeds: 15
+            totalBeds: 116,
+            occupiedBeds: 0,
+            availableBeds: 116
           });
           const [showKeyboardHelp, setShowKeyboardHelp] = React.useState(false);
           const [showCSVImportModal, setShowCSVImportModal] = React.useState(false);
@@ -1908,6 +1923,50 @@
             return () => document.removeEventListener('keydown', handleKeyDown);
           }, [currentView]);
 
+          // 居室番号解析機能
+          const analyzeRoomNumbers = (csvData) => {
+            const roomNumbers = [];
+            const occupiedRooms = [];
+            const floorStats = {
+              '1': { total: 20, occupied: 0, range: '101-120' },
+              '2': { total: 24, occupied: 0, range: '201-224' },
+              '3': { total: 24, occupied: 0, range: '301-324' },
+              '4': { total: 24, occupied: 0, range: '401-424' },
+              '5': { total: 24, occupied: 0, range: '501-524' }
+            };
+
+            csvData.forEach(row => {
+              // 居室番号を取得（最初の列が居室番号の想定）
+              const roomNum = Object.values(row)[0];
+              const userName = row['利用者氏名'] || row['氏名'] || Object.values(row)[2];
+              
+              if (roomNum && roomNum.match(/^\d{3}-\d$/)) {
+                roomNumbers.push(roomNum);
+                
+                // 入居者がいる場合（氏名があるかチェック）
+                if (userName && userName.trim() !== '') {
+                  occupiedRooms.push(roomNum);
+                  
+                  // フロア別統計を更新
+                  const floor = roomNum.substring(0, 1);
+                  if (floorStats[floor]) {
+                    floorStats[floor].occupied++;
+                  }
+                }
+              }
+            });
+
+            return {
+              totalBeds: 116, // 固定値
+              occupiedBeds: occupiedRooms.length,
+              availableBeds: 116 - occupiedRooms.length,
+              roomNumbers: roomNumbers.sort(),
+              occupiedRooms: occupiedRooms.sort(),
+              floorStats: floorStats,
+              occupancyRate: ((occupiedRooms.length / 116) * 100).toFixed(1)
+            };
+          };
+
           // CSV解析・インポート機能
           const parseCSV = (csvText) => {
             const lines = csvText.split('\n').filter(line => line.trim());
@@ -2062,19 +2121,33 @@
                 const parsedData = parseCSV(csvText);
                 setCsvImportData(parsedData);
                 setCsvImportResult(null);
+
+                // 居室番号を解析してベッド状況を自動更新
+                if (parsedData.length > 0) {
+                  const roomAnalysis = analyzeRoomNumbers(parsedData);
+                  setFacilityInfo({
+                    totalBeds: roomAnalysis.totalBeds,
+                    occupiedBeds: roomAnalysis.occupiedBeds,
+                    availableBeds: roomAnalysis.availableBeds
+                  });
+                }
               } catch (error) {
                 alert(`ファイルの読み込みに失敗しました: ${error.message}`);
               }
             };
-            reader.readAsText(file, 'UTF-8');
+            reader.readAsText(file, 'Shift_JIS'); // ほのぼのNEXTはShift_JIS
           };
 
           const generateSampleCSV = () => {
             const sampleData = [
-              ['利用者番号', '氏名', '年齢', '要介護度', '住所', 'ステータス', 'キーパーソン', 'キーパーソン続柄', 'ケアマネ事業所', '担当者', '特記事項'],
-              ['001', '山田太郎', '75', '要介護3', '東京都渋谷区1-1-1', '入居中', '山田花子', '長女', '渋谷介護支援センター', '佐藤', '糖尿病あり'],
-              ['002', '佐藤花子', '82', '要介護4', '東京都新宿区2-2-2', '申込書受領', '佐藤次郎', '長男', '新宿ケアプランセンター', '田中', '認知症初期'],
-              ['003', '田中一郎', '78', '要介護2', '東京都世田谷区3-3-3', '実調完了', '田中美恵', '妻', '世田谷居宅介護', '鈴木', '歩行器使用']
+              ['居室', '利用者番号', '利用者氏名', '年齢', '性別', '要介護度', '入居日', '退居日', 'ケアマネ事業所', '担当者'],
+              ['101-1', '1500001', '山田太郎', '75', '男', '要介護3', 'R05/04/01', '', '渋谷介護支援センター', '佐藤'],
+              ['102-1', '1500002', '佐藤花子', '82', '女', '要介護4', 'R05/05/15', '', '新宿ケアプランセンター', '田中'],
+              ['103-1', '1500003', '田中一郎', '78', '男', '要介護2', 'R05/06/01', '', '世田谷居宅介護', '鈴木'],
+              ['104-1', '', '', '', '', '', '', '', '', ''],
+              ['105-1', '1500004', '高橋美子', '85', '女', '要介護5', 'R05/03/20', '', 'ほのぼの介護', '山田'],
+              ['201-1', '', '', '', '', '', '', '', '', ''],
+              ['202-1', '1500005', '鈴木次郎', '79', '男', '要介護3', 'R05/07/10', '', 'ケアプラン中央', '伊藤']
             ];
 
             const csvContent = sampleData.map(row => 
@@ -3452,17 +3525,14 @@
                       </div>
                       <div className="card-content">
                         <div className="facility-stats">
-                          <div className="stat-item">
-                            <div className="stat-label">総ベッド数</div>
-                            <div className="stat-value large">{facilityInfo.totalBeds}</div>
+                          <div className="stat-item main-stat">
+                            <div className="stat-label">空床数</div>
+                            <div className="stat-value large available">{facilityInfo.availableBeds}</div>
+                            <div className="stat-subtitle">/ {facilityInfo.totalBeds}床</div>
                           </div>
                           <div className="stat-item">
-                            <div className="stat-label">入居中</div>
+                            <div className="stat-label">入居済み</div>
                             <div className="stat-value occupied">{facilityInfo.occupiedBeds}</div>
-                          </div>
-                          <div className="stat-item">
-                            <div className="stat-label">空きベッド</div>
-                            <div className="stat-value available">{facilityInfo.availableBeds}</div>
                           </div>
                           <div className="stat-item">
                             <div className="stat-label">入居率</div>
