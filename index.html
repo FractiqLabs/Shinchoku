@@ -1956,12 +1956,27 @@
               }
             });
 
+            // 空室リストを生成（全居室から入居済みを除外）
+            const allRooms = [];
+            // 1階: 101-120
+            for (let i = 101; i <= 120; i++) allRooms.push(`${i}-1`);
+            // 2-5階: 201-224, 301-324, 401-424, 501-524
+            for (let floor = 2; floor <= 5; floor++) {
+              for (let room = 1; room <= 24; room++) {
+                allRooms.push(`${floor}${String(room).padStart(2, '0')}-1`);
+              }
+            }
+            
+            const availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
+
             return {
               totalBeds: 116, // 固定値
               occupiedBeds: occupiedRooms.length,
               availableBeds: 116 - occupiedRooms.length,
               roomNumbers: roomNumbers.sort(),
               occupiedRooms: occupiedRooms.sort(),
+              availableRooms: availableRooms.sort(),
+              availableRooms: availableRooms.sort(),
               floorStats: floorStats,
               occupancyRate: ((occupiedRooms.length / 116) * 100).toFixed(1)
             };
@@ -2031,74 +2046,29 @@
 
           const handleCSVImport = async (csvData) => {
             try {
-              const results = {
-                success: 0,
+              // 単純に居室の入居状況を解析するだけ
+              const roomAnalysis = analyzeRoomNumbers(csvData);
+              
+              // ベッド状況を更新
+              setFacilityInfo({
+                totalBeds: roomAnalysis.totalBeds,
+                occupiedBeds: roomAnalysis.occupiedBeds,
+                availableBeds: roomAnalysis.availableBeds
+              });
+
+              // 結果を表示
+              setCsvImportResult({
+                success: csvData.length,
                 error: 0,
                 errors: [],
-                imported: []
-              };
-
-              let newOccupiedBeds = facilityInfo.occupiedBeds;
-
-              for (const row of csvData) {
-                try {
-                  const applicant = mapCSVToApplicant(row);
-                  
-                  // バリデーション
-                  if (!applicant.name) {
-                    results.errors.push(`行${results.success + results.error + 1}: 氏名が必要です`);
-                    results.error++;
-                    continue;
-                  }
-
-                  // 重複チェック
-                  const existingApplicant = applicants.find(app => 
-                    app.name === applicant.name || app.id == applicant.id
-                  );
-
-                  if (existingApplicant) {
-                    // 既存データを更新
-                    const updatedApplicants = applicants.map(app => 
-                      app.id == applicant.id ? { ...app, ...applicant } : app
-                    );
-                    setApplicants(updatedApplicants);
-                    results.imported.push(`${applicant.name}さん（更新）`);
-                  } else {
-                    // 新規追加
-                    applicant.timeline = [{
-                      id: Date.now(),
-                      content: 'CSVインポートにより登録',
-                      author: currentUser?.name || 'システム',
-                      timestamp: new Date().toISOString(),
-                      action: applicant.status
-                    }];
-                    
-                    setApplicants(prev => [...prev, applicant]);
-                    results.imported.push(`${applicant.name}さん（新規）`);
-                  }
-
-                  // 入居状況の更新
-                  if (applicant.status === '入居完了' || applicant.status === '入居中') {
-                    newOccupiedBeds++;
-                  }
-
-                  results.success++;
-                } catch (error) {
-                  results.errors.push(`行${results.success + results.error + 1}: ${error.message}`);
-                  results.error++;
-                }
-              }
-
-              // ベッド状況更新
-              if (newOccupiedBeds !== facilityInfo.occupiedBeds) {
-                setFacilityInfo(prev => ({
-                  ...prev,
-                  occupiedBeds: Math.min(newOccupiedBeds, prev.totalBeds),
-                  availableBeds: prev.totalBeds - Math.min(newOccupiedBeds, prev.totalBeds)
-                }));
-              }
-
-              setCsvImportResult(results);
+                imported: [
+                  `総居室数: ${roomAnalysis.totalBeds}室`,
+                  `入居済み: ${roomAnalysis.occupiedBeds}室`,
+                  `空室: ${roomAnalysis.availableBeds}室`,
+                  `入居率: ${Math.round((roomAnalysis.occupiedBeds / roomAnalysis.totalBeds) * 100)}%`
+                ],
+                roomAnalysis: roomAnalysis
+              });
               
             } catch (error) {
               setCsvImportResult({
@@ -4364,6 +4334,29 @@
                                   <li key={index}>{item}</li>
                                 ))}
                               </ul>
+                            </div>
+                          )}
+
+                          {csvImportResult.roomAnalysis && csvImportResult.roomAnalysis.availableRooms && csvImportResult.roomAnalysis.availableRooms.length > 0 && (
+                            <div className="available-rooms-list">
+                              <h5>🏠 空室一覧 ({csvImportResult.roomAnalysis.availableRooms.length}室):</h5>
+                              <div style={{maxHeight: '200px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '4px', padding: '12px'}}>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: '4px'}}>
+                                  {csvImportResult.roomAnalysis.availableRooms.map((room, index) => (
+                                    <span key={index} style={{
+                                      backgroundColor: '#e8f5e8',
+                                      border: '1px solid #4CAF50',
+                                      borderRadius: '4px',
+                                      padding: '4px 8px',
+                                      textAlign: 'center',
+                                      fontSize: '12px',
+                                      color: '#2e7d32'
+                                    }}>
+                                      {room}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           )}
 
