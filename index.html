@@ -848,6 +848,12 @@
             border-color: #bd2130;
         }
         
+        .auto-generated {
+            opacity: 0.7;
+            background: #f8f9fa;
+            border-left: 3px solid #6c757d;
+        }
+        
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -966,6 +972,7 @@
           const [editingApplicant, setEditingApplicant] = React.useState(null);
           const [deletingApplicant, setDeletingApplicant] = React.useState(null);
           const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
+          const [searchQuery, setSearchQuery] = React.useState('');
           const [applicants, setApplicants] = React.useState([]);
 
           const [newPost, setNewPost] = React.useState('');
@@ -985,6 +992,7 @@
           const [showEditReplyModal, setShowEditReplyModal] = React.useState(false);
           const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
           const [showActions, setShowActions] = React.useState(true);
+          const [showAdmissionSubMenu, setShowAdmissionSubMenu] = React.useState(false);
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1038,7 +1046,18 @@
               const data = await apiClient.getApplicants();
               setApplicants(data);
             } catch (error) {
-              console.error('Failed to load applicants:', error);
+              console.error('Failed to load applicants from server, trying localStorage:', error);
+              // サーバーエラー時はLocalStorageから読み込み
+              try {
+                const savedData = localStorage.getItem('careFacilityApplicants');
+                if (savedData) {
+                  const applicantData = JSON.parse(savedData);
+                  setApplicants(applicantData);
+                  console.log('Loaded applicants from localStorage for data persistence');
+                }
+              } catch (localError) {
+                console.error('Failed to load from localStorage as well:', localError);
+              }
             }
           };
 
@@ -1156,14 +1175,15 @@
             }));
           };
 
-          // LocalStorage保存は不要（サーバー側で管理）
-          // React.useEffect(() => {
-          //   try {
-          //     localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
-          //   } catch (error) {
-          //     console.error('Failed to save applicants to localStorage', error);
-          //   }
-          // }, [applicants]);
+          // 全データをLocalStorageに保存（ユーザー間同期用）
+          React.useEffect(() => {
+            try {
+              localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+              console.log('Data synced to localStorage for cross-user sharing');
+            } catch (error) {
+              console.error('Failed to save applicants to localStorage', error);
+            }
+          }, [applicants]);
 
           const getStatusColor = (status, applicationDate) => {
             const today = new Date();
@@ -1202,6 +1222,22 @@
 
           const sortedApplicants = React.useMemo(() => {
             let sortableApplicants = [...applicants];
+            
+            // 検索フィルター
+            if (searchQuery) {
+              const searchLower = searchQuery.toLowerCase();
+              sortableApplicants = sortableApplicants.filter(applicant => 
+                applicant.name.toLowerCase().includes(searchLower) ||
+                (applicant.care_level || applicant.careLevel || '').toLowerCase().includes(searchLower) ||
+                (applicant.status || '').toLowerCase().includes(searchLower) ||
+                (applicant.assignee || '').toLowerCase().includes(searchLower) ||
+                (applicant.kp || '').toLowerCase().includes(searchLower) ||
+                (applicant.notes || '').toLowerCase().includes(searchLower) ||
+                (applicant.address || '').toLowerCase().includes(searchLower)
+              );
+            }
+            
+            // ソート
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
@@ -1221,7 +1257,7 @@
               });
             }
             return sortableApplicants;
-          }, [applicants, sortConfig]);
+          }, [applicants, sortConfig, searchQuery]);
 
           // ログインしていない場合はログイン画面を表示
           if (!isLoggedIn) {
@@ -1294,7 +1330,7 @@
               surname: nameParts[0] || '',
               givenName: nameParts[1] || '',
               age: applicant.age.toString(),
-              careLevel: applicant.careLevel,
+              careLevel: applicant.care_level || applicant.careLevel,
               address: applicant.address || '',
               kp: applicant.kp,
               kpRelationship: applicant.kpRelationship || '',
@@ -1431,8 +1467,19 @@
           };
 
           const handleStatusUpdate = (type) => {
+            if (type === '入居可否') {
+              setShowAdmissionSubMenu(true);
+              return;
+            }
             setPostType(type);
             setShowPostForm(true);
+            setReplyTo(null);
+          };
+
+          const handleAdmissionChoice = (choice) => {
+            setPostType(choice);
+            setShowPostForm(true);
+            setShowAdmissionSubMenu(false);
             setReplyTo(null);
           };
 
@@ -1632,21 +1679,43 @@
                     '健康診断書依頼': '健康診断書待ち',
                     '健康診断書受領': '健康診断書受領',
                     '判定会議中': '判定会議中',
-                    '入居決定': '入居決定',
+                    '入居可能': '入居決定',
+                    '入居不可': '入居不可',
                     '入居日調整中': '入居日調整中',
                     '書類送付済': '書類送付済',
                     '入居準備完了': '入居準備完了',
-                    '入居完了': '入居完了'
+                    '入居完了': '入居完了',
+                    'キャンセル': 'キャンセル'
                   };
                   
                   if (statusMapping[postType]) {
                     newStatus = statusMapping[postType];
                   }
                   
+                  // 健康診断書受領時の特別処理
+                  let finalTimeline = [newTimelineItem, ...app.timeline];
+                  if (postType === '健康診断書受領') {
+                    // 既存のタイムラインに「健康診断書依頼」があるかチェック
+                    const hasHealthcheckRequest = app.timeline.some(item => item.action === '健康診断書依頼');
+                    if (!hasHealthcheckRequest) {
+                      // 自動的に「健康診断書依頼」のアクションを追加（影を付ける）
+                      const autoRequestItem = {
+                        id: app.timeline.length + 2,
+                        author: '自動記録',
+                        timestamp: '今',
+                        content: '健康診断書受領のため自動記録されました',
+                        action: '健康診断書依頼',
+                        replies: [],
+                        isAutoGenerated: true
+                      };
+                      finalTimeline = [newTimelineItem, autoRequestItem, ...app.timeline];
+                    }
+                  }
+                  
                   return {
                     ...app,
                     status: newStatus,
-                    timeline: [newTimelineItem, ...app.timeline]
+                    timeline: finalTimeline
                   };
                 }
               }
@@ -1667,7 +1736,7 @@
           if (currentView === 'detail' && selectedApplicant) {
             const allActions = [
               '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
-              '健康診断書受領', '判定会議中', '入居決定', '入居日調整中',
+              '健康診断書受領', '判定会議中', '入居可否', '入居日調整中',
               '書類送付済', '入居準備完了', '入居完了'
             ];
 
@@ -1708,7 +1777,7 @@
                 
                 <div className="detail-header">
                   <h1 className="detail-title">
-                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
+                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.care_level || selectedApplicant.careLevel})
                   </h1>
                   <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
                     {selectedApplicant.status}
@@ -1890,15 +1959,86 @@
                                   color: isCompleted ? '#adb5bd' : '#495057'
                                 }}
                               >
-                                {isCompleted ? '✓ ' : ''}{action}
+                                {action}
                               </button>
                             );
                           })}
+                          
+                          <hr style={{
+                            margin: '15px 0',
+                            border: 'none',
+                            borderTop: '1px solid #dee2e6'
+                          }} />
+                          
+                          <button
+                            onClick={() => handleStatusUpdate('キャンセル')}
+                            className="action-item"
+                            style={{
+                              backgroundColor: '#ffe6e6',
+                              color: '#d63384',
+                              border: '1px solid #f8d7da'
+                            }}
+                          >
+                            キャンセル
+                          </button>
                         </div>
                       ) : (
                         <div className="empty-state">
                           <div className="empty-icon">📋</div>
                           <div>「表示」ボタンでアクション一覧を確認できます</div>
+                        </div>
+                      )}
+                      
+                      {showAdmissionSubMenu && (
+                        <div className="admission-submenu" style={{
+                          marginTop: '10px',
+                          padding: '10px',
+                          backgroundColor: '#f8f9fa',
+                          borderRadius: '5px',
+                          border: '1px solid #dee2e6'
+                        }}>
+                          <div style={{marginBottom: '8px', fontWeight: 'bold'}}>入居可否を選択してください:</div>
+                          <div style={{display: 'flex', gap: '10px'}}>
+                            <button
+                              onClick={() => handleAdmissionChoice('入居可能')}
+                              style={{
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: '1px solid #28a745',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              入居可能
+                            </button>
+                            <button
+                              onClick={() => handleAdmissionChoice('入居不可')}
+                              style={{
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: '1px solid #dc3545',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              入居不可
+                            </button>
+                            <button
+                              onClick={() => setShowAdmissionSubMenu(false)}
+                              style={{
+                                backgroundColor: '#6c757d',
+                                color: 'white',
+                                border: '1px solid #6c757d',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              キャンセル
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2055,17 +2195,35 @@
                           申込日
                           <span className="sort-icon">{getSortIcon('applicationDate')}</span>
                         </th>
-                        <th onClick={() => handleSort('name')}>
+                        <th onClick={() => handleSort('name')} style={{position: 'relative'}}>
                           名前
                           <span className="sort-icon">{getSortIcon('name')}</span>
+                          <input
+                            type="text"
+                            placeholder="必要な情報を探し出す"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position: 'absolute',
+                              right: '10px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              width: '150px',
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              border: '1px solid #ddd',
+                              borderRadius: '4px'
+                            }}
+                          />
                         </th>
                         <th onClick={() => handleSort('age')}>
                           年齢
                           <span className="sort-icon">{getSortIcon('age')}</span>
                         </th>
-                        <th onClick={() => handleSort('careLevel')}>
+                        <th onClick={() => handleSort('care_level')}>
                           要介護度
-                          <span className="sort-icon">{getSortIcon('careLevel')}</span>
+                          <span className="sort-icon">{getSortIcon('care_level')}</span>
                         </th>
                         <th onClick={() => handleSort('status')}>
                           ステータス
@@ -2090,7 +2248,7 @@
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
                           <td>{applicant.age}歳</td>
-                          <td>{applicant.careLevel}</td>
+                          <td>{applicant.care_level || applicant.careLevel}</td>
                           <td>
                             <span className={`status-badge ${getStatusColor(applicant.status, applicant.applicationDate)}`}>
                               {applicant.status}
