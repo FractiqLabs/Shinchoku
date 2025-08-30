@@ -854,6 +854,10 @@
             border-left: 3px solid #6c757d;
         }
         
+        body {
+            font-size: 90%;
+        }
+        
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -973,6 +977,7 @@
           const [deletingApplicant, setDeletingApplicant] = React.useState(null);
           const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
           const [searchQuery, setSearchQuery] = React.useState('');
+          const [detailSearchQuery, setDetailSearchQuery] = React.useState('');
           const [applicants, setApplicants] = React.useState([]);
 
           const [newPost, setNewPost] = React.useState('');
@@ -1044,7 +1049,10 @@
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
-              setApplicants(data);
+              if (data && data.length >= 0) {
+                setApplicants(data);
+                console.log('Loaded applicants from server:', data.length, 'applicants');
+              }
             } catch (error) {
               console.error('Failed to load applicants from server, trying localStorage:', error);
               // サーバーエラー時はLocalStorageから読み込み
@@ -1052,8 +1060,10 @@
                 const savedData = localStorage.getItem('careFacilityApplicants');
                 if (savedData) {
                   const applicantData = JSON.parse(savedData);
-                  setApplicants(applicantData);
-                  console.log('Loaded applicants from localStorage for data persistence');
+                  if (applicantData && applicantData.length > 0) {
+                    setApplicants(applicantData);
+                    console.log('Loaded applicants from localStorage for data persistence:', applicantData.length, 'applicants');
+                  }
                 }
               } catch (localError) {
                 console.error('Failed to load from localStorage as well:', localError);
@@ -1156,14 +1166,28 @@
           };
 
           // ログアウト処理
-          const handleLogout = () => {
-            setIsLoggedIn(false);
-            setCurrentUser(null);
-            localStorage.removeItem('authToken');
-            apiClient.clearToken();
-            apiClient.disconnectSocket();
-            setCurrentView('list');
-            setApplicants([]);
+          const handleLogout = async () => {
+            try {
+              await apiClient.logout();
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              localStorage.removeItem('authToken');
+              apiClient.clearToken();
+              apiClient.disconnectSocket();
+              setCurrentView('list');
+              setApplicants([]);
+              console.log('ログアウトが完了しました');
+            } catch (error) {
+              console.log('API logout failed but local logout successful:', error);
+              // APIが失敗してもローカルログアウトは実行
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              localStorage.removeItem('authToken');
+              apiClient.clearToken();
+              apiClient.disconnectSocket();
+              setCurrentView('list');
+              setApplicants([]);
+            }
           };
 
           // ログインフォームの入力処理
@@ -1177,11 +1201,13 @@
 
           // 全データをLocalStorageに保存（ユーザー間同期用）
           React.useEffect(() => {
-            try {
-              localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
-              console.log('Data synced to localStorage for cross-user sharing');
-            } catch (error) {
-              console.error('Failed to save applicants to localStorage', error);
+            if (applicants.length > 0) {
+              try {
+                localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+                console.log('Data synced to localStorage for cross-user sharing:', applicants.length, 'applicants');
+              } catch (error) {
+                console.error('Failed to save applicants to localStorage', error);
+              }
             }
           }, [applicants]);
 
@@ -1776,9 +1802,25 @@
                 </div>
                 
                 <div className="detail-header">
-                  <h1 className="detail-title">
-                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.care_level || selectedApplicant.careLevel})
-                  </h1>
+                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <h1 className="detail-title">
+                      {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.care_level || selectedApplicant.careLevel})
+                    </h1>
+                    <input
+                      type="text"
+                      placeholder="必要な情報を探し出す"
+                      value={detailSearchQuery}
+                      onChange={(e) => setDetailSearchQuery(e.target.value)}
+                      style={{
+                        width: '200px',
+                        padding: '6px 12px',
+                        fontSize: '14px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        marginLeft: '20px'
+                      }}
+                    />
+                  </div>
                   <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
                     {selectedApplicant.status}
                   </div>
@@ -1824,7 +1866,6 @@
                 <div className="grid-layout">
                   <div className="timeline-panel">
                     <div className="timeline-header">
-                      <h2 className="section-title">タイムライン</h2>
                       <button onClick={handleFreePost} className="btn btn-primary">
                         投稿
                       </button>
@@ -1934,7 +1975,6 @@
 
                   <div className="actions-panel">
                     <div className="actions-header">
-                      <h2 className="section-title">アクション</h2>
                       <button
                         onClick={() => setShowActions(!showActions)}
                         className="btn btn-ghost"
@@ -1949,18 +1989,76 @@
                           {allActions.map((action, index) => {
                             const isCompleted = completedActions.includes(action);
                             return (
-                              <button
-                                key={index}
-                                onClick={() => handleStatusUpdate(action)}
-                                disabled={isCompleted}
-                                className="action-item"
-                                style={{
-                                  backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
-                                  color: isCompleted ? '#adb5bd' : '#495057'
-                                }}
-                              >
-                                {action}
-                              </button>
+                              <div key={index}>
+                                <button
+                                  onClick={() => handleStatusUpdate(action)}
+                                  disabled={isCompleted}
+                                  className="action-item"
+                                  style={{
+                                    backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
+                                    color: isCompleted ? '#adb5bd' : '#495057'
+                                  }}
+                                >
+                                  {action === '入居可否' ? action + ' :' : action}
+                                </button>
+                                {action === '入居可否' && showAdmissionSubMenu && (
+                                  <div className="admission-submenu" style={{
+                                    marginTop: '5px',
+                                    marginBottom: '10px',
+                                    marginLeft: '20px',
+                                    padding: '10px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '5px',
+                                    border: '1px solid #dee2e6'
+                                  }}>
+                                    <div style={{marginBottom: '8px', fontWeight: 'bold', fontSize: '14px'}}>選択してください:</div>
+                                    <div style={{display: 'flex', gap: '8px'}}>
+                                      <button
+                                        onClick={() => handleAdmissionChoice('入居可能')}
+                                        style={{
+                                          backgroundColor: '#28a745',
+                                          color: 'white',
+                                          border: '1px solid #28a745',
+                                          padding: '6px 12px',
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        入居可能
+                                      </button>
+                                      <button
+                                        onClick={() => handleAdmissionChoice('入居不可')}
+                                        style={{
+                                          backgroundColor: '#dc3545',
+                                          color: 'white',
+                                          border: '1px solid #dc3545',
+                                          padding: '6px 12px',
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        入居不可
+                                      </button>
+                                      <button
+                                        onClick={() => setShowAdmissionSubMenu(false)}
+                                        style={{
+                                          backgroundColor: '#6c757d',
+                                          color: 'white',
+                                          border: '1px solid #6c757d',
+                                          padding: '6px 12px',
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        キャンセル
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                           
@@ -1986,59 +2084,6 @@
                         <div className="empty-state">
                           <div className="empty-icon">📋</div>
                           <div>「表示」ボタンでアクション一覧を確認できます</div>
-                        </div>
-                      )}
-                      
-                      {showAdmissionSubMenu && (
-                        <div className="admission-submenu" style={{
-                          marginTop: '10px',
-                          padding: '10px',
-                          backgroundColor: '#f8f9fa',
-                          borderRadius: '5px',
-                          border: '1px solid #dee2e6'
-                        }}>
-                          <div style={{marginBottom: '8px', fontWeight: 'bold'}}>入居可否を選択してください:</div>
-                          <div style={{display: 'flex', gap: '10px'}}>
-                            <button
-                              onClick={() => handleAdmissionChoice('入居可能')}
-                              style={{
-                                backgroundColor: '#28a745',
-                                color: 'white',
-                                border: '1px solid #28a745',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              入居可能
-                            </button>
-                            <button
-                              onClick={() => handleAdmissionChoice('入居不可')}
-                              style={{
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                border: '1px solid #dc3545',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              入居不可
-                            </button>
-                            <button
-                              onClick={() => setShowAdmissionSubMenu(false)}
-                              style={{
-                                backgroundColor: '#6c757d',
-                                color: 'white',
-                                border: '1px solid #6c757d',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              キャンセル
-                            </button>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -2195,27 +2240,9 @@
                           申込日
                           <span className="sort-icon">{getSortIcon('applicationDate')}</span>
                         </th>
-                        <th onClick={() => handleSort('name')} style={{position: 'relative'}}>
+                        <th onClick={() => handleSort('name')}>
                           名前
                           <span className="sort-icon">{getSortIcon('name')}</span>
-                          <input
-                            type="text"
-                            placeholder="必要な情報を探し出す"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              position: 'absolute',
-                              right: '10px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              width: '150px',
-                              padding: '4px 8px',
-                              fontSize: '12px',
-                              border: '1px solid #ddd',
-                              borderRadius: '4px'
-                            }}
-                          />
                         </th>
                         <th onClick={() => handleSort('age')}>
                           年齢
