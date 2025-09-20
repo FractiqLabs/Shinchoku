@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>シンチョク. | 特養入居進捗管理アプリ</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
@@ -10,16 +13,33 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="api-client.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyBIZ-gnfpx3rXoMokXJLsH_SO3oxyGK6EY",
+        authDomain: "shinchoku-app-fd51e.firebaseapp.com",
+        projectId: "shinchoku-app-fd51e",
+        storageBucket: "shinchoku-app-fd51e.firebasestorage.app",
+        messagingSenderId: "1012315112472",
+        appId: "1:1012315112472:web:9516848f942d96921daf6d"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      
+      // グローバルに利用可能にする
+      window.firebase = { app, db };
+    </script>
+    
+    <script src="api-client.js?v=2025010701"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
             src: url('fonts/kirin-Regular.ttf') format('truetype');
-        }
-        @font-face {
-            font-family: 'Bokutoh';
-            src: url('fonts/BokutohRuikaMonoSeikyo-01.TTF') format('truetype');
         }
         * {
             box-sizing: border-box;
@@ -33,6 +53,8 @@
             color: #1a1a1a;
             line-height: 1.6;
             min-height: 100vh;
+            font-size: 90%;
+            zoom: 90%;
         }
         
         .container {
@@ -85,7 +107,8 @@
         }
         
         .section-title {
-            font-size: 20px;
+            font-family: 'kirin-Regular';
+            font-size: 18px;
             font-weight: 500;
             color: #2c3e50;
             margin: 0;
@@ -367,7 +390,7 @@
             padding: 20px 24px;
             border-bottom: 1px solid #e9ecef;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
         }
         
@@ -513,7 +536,7 @@
             padding: 20px 24px;
             border-bottom: 1px solid #e9ecef;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
         }
         
@@ -551,6 +574,43 @@
             background: #f8f9fa;
             color: #adb5bd;
             cursor: not-allowed;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                max-height: 200px;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                max-height: 200px;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-10px);
+            }
         }
         
         .modal-overlay {
@@ -848,33 +908,30 @@
             border-color: #bd2130;
         }
         
-        .auto-generated {
-            opacity: 0.7;
-            background: #f8f9fa;
-            border-left: 3px solid #6c757d;
-        }
-        
-        body {
-            font-size: 90%;
-        }
-        
         .login-container {
-            min-height: 100vh;
+            min-height: calc(100vh + 19px);
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background-image: url('images/background.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
             padding: 16px;
         }
         
         .login-card {
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.95);
             border: 1px solid #e9ecef;
             border-radius: 16px;
             padding: 48px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            z-index: 10;
+            transform: translateY(-20px);
         }
         
         .login-header {
@@ -957,6 +1014,8 @@
         .reply-item:hover .post-hover-actions {
             opacity: 1;
         }
+
+        
     </style>
 </head>
 <body>
@@ -974,16 +1033,18 @@
           const [showEditModal, setShowEditModal] = React.useState(false);
           const [showDeleteModal, setShowDeleteModal] = React.useState(false);
           const [editingApplicant, setEditingApplicant] = React.useState(null);
+          const [hoveredAction, setHoveredAction] = React.useState(null);
+          const [expandedSubMenu, setExpandedSubMenu] = React.useState(null);
           const [deletingApplicant, setDeletingApplicant] = React.useState(null);
           const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
-          const [searchQuery, setSearchQuery] = React.useState('');
-          const [detailSearchQuery, setDetailSearchQuery] = React.useState('');
           const [applicants, setApplicants] = React.useState([]);
 
           const [newPost, setNewPost] = React.useState('');
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
+          const [inlineReplyTo, setInlineReplyTo] = React.useState(null);
+          const [inlineReplyContent, setInlineReplyContent] = React.useState('');
           const [likes, setLikes] = React.useState({});
           const [editingPostId, setEditingPostId] = React.useState(null);
           const [editingContent, setEditingContent] = React.useState('');
@@ -997,7 +1058,11 @@
           const [showEditReplyModal, setShowEditReplyModal] = React.useState(false);
           const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
           const [showActions, setShowActions] = React.useState(true);
-          const [showAdmissionSubMenu, setShowAdmissionSubMenu] = React.useState(false);
+          const [currentMemo, setCurrentMemo] = React.useState('');
+          const [isSavingMemo, setIsSavingMemo] = React.useState(false);
+
+          
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1028,7 +1093,15 @@
             if (token) {
               // トークンの検証とユーザー情報の取得
               try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                let payload;
+                try {
+                  // まずシンプルなbase64エンコード形式を試す（日本語文字対応）
+                  payload = JSON.parse(decodeURIComponent(escape(atob(token))));
+                } catch (error) {
+                  // 失敗したら単純なatobを試す
+                  payload = JSON.parse(atob(token));
+                }
+                
                 if (payload.exp * 1000 > Date.now()) {
                   setCurrentUser({ id: payload.id, name: payload.name });
                   setIsLoggedIn(true);
@@ -1045,29 +1118,37 @@
             }
           }, []);
 
+          // メモ内容の初期化
+          React.useEffect(() => {
+            const savedMemo = localStorage.getItem('shinchoku-memo');
+            if (savedMemo) {
+              setCurrentMemo(savedMemo);
+            }
+          }, []);
+
+          // メモ内容の自動保存
+          React.useEffect(() => {
+            localStorage.setItem('shinchoku-memo', currentMemo);
+          }, [currentMemo]);
+
+          // デバッグ用: currentViewの変更を監視
+          React.useEffect(() => {
+            console.log('🟢 currentView changed to:', currentView);
+          }, [currentView]);
+
+          // デバッグ用: selectedApplicantの変更を監視
+          React.useEffect(() => {
+            console.log('🟣 selectedApplicant changed to:', selectedApplicant?.name || 'null');
+          }, [selectedApplicant]);
+
+
           // 申込者データを読み込み
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
-              if (data && data.length >= 0) {
-                setApplicants(data);
-                console.log('Loaded applicants from server:', data.length, 'applicants');
-              }
+              setApplicants(data);
             } catch (error) {
-              console.error('Failed to load applicants from server, trying localStorage:', error);
-              // サーバーエラー時はLocalStorageから読み込み
-              try {
-                const savedData = localStorage.getItem('careFacilityApplicants');
-                if (savedData) {
-                  const applicantData = JSON.parse(savedData);
-                  if (applicantData && applicantData.length > 0) {
-                    setApplicants(applicantData);
-                    console.log('Loaded applicants from localStorage for data persistence:', applicantData.length, 'applicants');
-                  }
-                }
-              } catch (localError) {
-                console.error('Failed to load from localStorage as well:', localError);
-              }
+              console.error('Failed to load applicants:', error);
             }
           };
 
@@ -1121,6 +1202,8 @@
             try {
               const data = await apiClient.getApplicant(applicantId);
               setSelectedApplicant(data);
+              // メモを読み込み（memoフィールドを使用）
+              setCurrentMemo(data.memo || '');
             } catch (error) {
               console.error('Failed to load applicant detail:', error);
             }
@@ -1147,11 +1230,11 @@
               setIsLoggedIn(true);
               
               // 仮のトークンを作成（実際のサーバー実装時は削除）
-              const mockToken = btoa(JSON.stringify({
+              const mockToken = btoa(unescape(encodeURIComponent(JSON.stringify({
                 id: userId,
                 name: user.name,
                 exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24時間
-              }));
+              }))));
               
               localStorage.setItem('authToken', mockToken);
               apiClient.setToken(mockToken);
@@ -1166,29 +1249,17 @@
           };
 
           // ログアウト処理
-          const handleLogout = async () => {
-            try {
-              await apiClient.logout();
-              setIsLoggedIn(false);
-              setCurrentUser(null);
-              localStorage.removeItem('authToken');
-              apiClient.clearToken();
-              apiClient.disconnectSocket();
-              setCurrentView('list');
-              setApplicants([]);
-              console.log('ログアウトが完了しました');
-            } catch (error) {
-              console.log('API logout failed but local logout successful:', error);
-              // APIが失敗してもローカルログアウトは実行
-              setIsLoggedIn(false);
-              setCurrentUser(null);
-              localStorage.removeItem('authToken');
-              apiClient.clearToken();
-              apiClient.disconnectSocket();
-              setCurrentView('list');
-              setApplicants([]);
-            }
+          const handleLogout = () => {
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            localStorage.removeItem('authToken');
+            apiClient.clearToken();
+            apiClient.disconnectSocket();
+            setCurrentView('list');
+            setApplicants([]);
           };
+
+          
 
           // ログインフォームの入力処理
           const handleLoginInputChange = (e) => {
@@ -1199,17 +1270,14 @@
             }));
           };
 
-          // 全データをLocalStorageに保存（ユーザー間同期用）
-          React.useEffect(() => {
-            if (applicants.length > 0) {
-              try {
-                localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
-                console.log('Data synced to localStorage for cross-user sharing:', applicants.length, 'applicants');
-              } catch (error) {
-                console.error('Failed to save applicants to localStorage', error);
-              }
-            }
-          }, [applicants]);
+          // LocalStorage保存は不要（サーバー側で管理）
+          // React.useEffect(() => {
+          //   try {
+          //     localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+          //   } catch (error) {
+          //     console.error('Failed to save applicants to localStorage', error);
+          //   }
+          // }, [applicants]);
 
           const getStatusColor = (status, applicationDate) => {
             const today = new Date();
@@ -1248,22 +1316,6 @@
 
           const sortedApplicants = React.useMemo(() => {
             let sortableApplicants = [...applicants];
-            
-            // 検索フィルター
-            if (searchQuery) {
-              const searchLower = searchQuery.toLowerCase();
-              sortableApplicants = sortableApplicants.filter(applicant => 
-                applicant.name.toLowerCase().includes(searchLower) ||
-                (applicant.care_level || applicant.careLevel || '').toLowerCase().includes(searchLower) ||
-                (applicant.status || '').toLowerCase().includes(searchLower) ||
-                (applicant.assignee || '').toLowerCase().includes(searchLower) ||
-                (applicant.kp || '').toLowerCase().includes(searchLower) ||
-                (applicant.notes || '').toLowerCase().includes(searchLower) ||
-                (applicant.address || '').toLowerCase().includes(searchLower)
-              );
-            }
-            
-            // ソート
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
@@ -1283,7 +1335,7 @@
               });
             }
             return sortableApplicants;
-          }, [applicants, sortConfig, searchQuery]);
+          }, [applicants, sortConfig]);
 
           // ログインしていない場合はログイン画面を表示
           if (!isLoggedIn) {
@@ -1356,7 +1408,7 @@
               surname: nameParts[0] || '',
               givenName: nameParts[1] || '',
               age: applicant.age.toString(),
-              careLevel: applicant.care_level || applicant.careLevel,
+              careLevel: applicant.careLevel,
               address: applicant.address || '',
               kp: applicant.kp,
               kpRelationship: applicant.kpRelationship || '',
@@ -1399,7 +1451,8 @@
                 careManagerName: formData.careManagerName,
                 cmContact: formData.cmContact,
                 assignee: formData.assignee,
-                notes: formData.notes
+                notes: formData.notes,
+                memo: editingApplicant.memo || ''
               };
 
               await apiClient.updateApplicant(editingApplicant.id, applicantData);
@@ -1463,7 +1516,8 @@
                 careManagerName: formData.careManagerName,
                 cmContact: formData.cmContact,
                 assignee: formData.assignee || '担当者未定',
-                notes: formData.notes
+                notes: formData.notes,
+                memo: ''
               };
 
               await apiClient.createApplicant(applicantData);
@@ -1493,26 +1547,122 @@
           };
 
           const handleStatusUpdate = (type) => {
-            if (type === '入居可否') {
-              setShowAdmissionSubMenu(true);
-              return;
-            }
             setPostType(type);
             setShowPostForm(true);
             setReplyTo(null);
-          };
 
-          const handleAdmissionChoice = (choice) => {
-            setPostType(choice);
-            setShowPostForm(true);
-            setShowAdmissionSubMenu(false);
-            setReplyTo(null);
+            if (type === '健康診断書受領') {
+              const hasRequestPost = selectedApplicant.timeline.some(p => p.type === '健康診断書依頼' && !p.is_deleted);
+              if (!hasRequestPost) {
+                // 「健康診断書依頼」の投稿も作成する
+                apiClient.createPost(
+                  selectedApplicant.id,
+                  `担当者: ${currentUser.name} (自動登録)`,
+                  '健康診断書依頼',
+                  null
+                ).then(() => {
+                  loadApplicantDetail(selectedApplicant.id);
+                  loadApplicants();
+                });
+              }
+            }
           };
 
           const handleReply = (postId) => {
-            setReplyTo(postId);
-            setShowPostForm(true);
-            setPostType('');
+            setInlineReplyTo(postId);
+            setInlineReplyContent('');
+          };
+
+          const submitInlineReply = async (postId) => {
+            if (!inlineReplyContent.trim()) return;
+            
+            try {
+              await apiClient.createPost(
+                selectedApplicant.id,
+                inlineReplyContent,
+                null,
+                postId
+              );
+              
+              // ローカル状態を即座に更新
+              const updatedTimeline = selectedApplicant.timeline.map(post => {
+                if (post.id === postId) {
+                  return {
+                    ...post,
+                    replies: [...(post.replies || []), {
+                      id: Date.now(),
+                      author: currentUser.name,
+                      timestamp: new Date().toISOString(),
+                      content: inlineReplyContent
+                    }]
+                  };
+                }
+                return post;
+              });
+
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return { ...app, timeline: updatedTimeline };
+                }
+                return app;
+              });
+
+              setApplicants(updatedApplicants);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setInlineReplyTo(null);
+              setInlineReplyContent('');
+              
+            } catch (error) {
+              console.error('Failed to send inline reply:', error);
+              alert('返信の送信に失敗しました。');
+            }
+          };
+
+          // メモ保存機能
+          const handleSaveMemo = async () => {
+            if (!selectedApplicant || isSavingMemo) return;
+            
+            setIsSavingMemo(true);
+            try {
+              // 申込者データにメモを追加して更新
+              const updatedData = {
+                surname: selectedApplicant.surname,
+                givenName: selectedApplicant.given_name,
+                age: selectedApplicant.age,
+                careLevel: selectedApplicant.careLevel,
+                address: selectedApplicant.address,
+                kp: selectedApplicant.kp,
+                kpRelationship: selectedApplicant.kpRelationship,
+                kpContact: selectedApplicant.kpContact,
+                kpAddress: selectedApplicant.kpAddress,
+                careManager: selectedApplicant.careManager,
+                careManagerName: selectedApplicant.careManagerName,
+                cmContact: selectedApplicant.cmContact,
+                assignee: selectedApplicant.assignee,
+                notes: selectedApplicant.notes,
+                memo: currentMemo
+              };
+              
+              await apiClient.updateApplicant(selectedApplicant.id, updatedData);
+              
+              // ローカル状態も更新
+              const updatedApplicant = { ...selectedApplicant, memo: currentMemo };
+              setSelectedApplicant(updatedApplicant);
+              
+              // 申込者リストも更新
+              const updatedApplicants = applicants.map(app => 
+                app.id === selectedApplicant.id ? { ...app, memo: currentMemo } : app
+              );
+              setApplicants(updatedApplicants);
+              
+            } catch (error) {
+              console.error('Failed to save memo:', error);
+              alert('メモの保存に失敗しました。');
+            } finally {
+              setIsSavingMemo(false);
+            }
           };
 
           const handleFreePost = () => {
@@ -1535,29 +1685,48 @@
             setShowEditPostModal(true);
           };
 
-          const handleSaveEditPost = () => {
+          const handleSaveEditPost = async () => {
             if (!editingContent.trim()) return;
 
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingPostId) {
-                    return { ...post, content: editingContent };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
+            try {
+              const currentApplicant = await apiClient.getApplicant(selectedApplicant.id);
+              if (!currentApplicant) {
+                console.error('Applicant not found');
+                return;
               }
-              return app;
-            });
 
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
+              const updatedTimeline = currentApplicant.timeline.map(post => {
+                if (post.id === editingPostId) {
+                  return { ...post, content: editingContent };
+                }
+                return post;
+              });
 
-            setEditingPostId(null);
-            setEditingContent('');
-            setShowEditPostModal(false);
+              // Firestoreに保存
+              await apiClient.updateFirestoreDocument('applicants', selectedApplicant.id, {
+                timeline: updatedTimeline
+              });
+
+              // ローカル状態を更新
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return { ...app, timeline: updatedTimeline };
+                }
+                return app;
+              });
+
+              setApplicants(updatedApplicants);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setEditingPostId(null);
+              setEditingContent('');
+              setShowEditPostModal(false);
+              
+            } catch (error) {
+              console.error('Failed to edit post:', error);
+              alert('投稿の編集に失敗しました。');
+            }
           };
 
           const handleCancelEditPost = () => {
@@ -1584,36 +1753,55 @@
             setShowDeleteReplyModal(true);
           };
 
-          const handleSaveEditReply = () => {
+          const handleSaveEditReply = async () => {
             if (!editingReplyContent.trim()) return;
 
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingReplyPostId) {
-                    const updatedReplies = post.replies.map(reply => {
-                      if (reply.id === editingReplyId) {
-                        return { ...reply, content: editingReplyContent };
-                      }
-                      return reply;
-                    });
-                    return { ...post, replies: updatedReplies };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
+            try {
+              const currentApplicant = await apiClient.getApplicant(selectedApplicant.id);
+              if (!currentApplicant) {
+                console.error('Applicant not found');
+                return;
               }
-              return app;
-            });
 
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
+              const updatedTimeline = currentApplicant.timeline.map(post => {
+                if (post.id === editingReplyPostId) {
+                  const updatedReplies = post.replies.map(reply => {
+                    if (reply.id === editingReplyId) {
+                      return { ...reply, content: editingReplyContent };
+                    }
+                    return reply;
+                  });
+                  return { ...post, replies: updatedReplies };
+                }
+                return post;
+              });
 
-            setEditingReplyId(null);
-            setEditingReplyContent('');
-            setEditingReplyPostId(null);
-            setShowEditReplyModal(false);
+              // Firestoreに保存
+              await apiClient.updateFirestoreDocument('applicants', selectedApplicant.id, {
+                timeline: updatedTimeline
+              });
+
+              // ローカル状態を更新
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return { ...app, timeline: updatedTimeline };
+                }
+                return app;
+              });
+
+              setApplicants(updatedApplicants);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setEditingReplyId(null);
+              setEditingReplyContent('');
+              setEditingReplyPostId(null);
+              setShowEditReplyModal(false);
+              
+            } catch (error) {
+              console.error('Failed to edit reply:', error);
+              alert('返信の編集に失敗しました。');
+            }
           };
 
           const handleCancelEditReply = () => {
@@ -1623,159 +1811,254 @@
             setShowEditReplyModal(false);
           };
 
-          const confirmDeleteReply = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingReplyPostId) {
-                    const updatedReplies = post.replies.filter(reply => reply.id !== deletingReplyId);
-                    return { ...post, replies: updatedReplies };
+          const confirmDeleteReply = async () => {
+            try {
+              const currentApplicant = await apiClient.getApplicant(selectedApplicant.id);
+              if (!currentApplicant) {
+                console.error('Applicant not found');
+                return;
+              }
+
+              const updatedTimeline = currentApplicant.timeline.map(post => {
+                if (post.id === editingReplyPostId) {
+                  const updatedReplies = post.replies.filter(reply => reply.id !== deletingReplyId);
+                  return { ...post, replies: updatedReplies };
+                }
+                return post;
+              });
+
+              // Firestoreに保存
+              await apiClient.updateFirestoreDocument('applicants', selectedApplicant.id, {
+                timeline: updatedTimeline
+              });
+
+              // ローカル状態を更新
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return { ...app, timeline: updatedTimeline };
+                }
+                return app;
+              });
+
+              setApplicants(updatedApplicants);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setDeletingReplyId(null);
+              setEditingReplyPostId(null);
+              setShowDeleteReplyModal(false);
+              
+            } catch (error) {
+              console.error('Failed to delete reply:', error);
+              alert('返信の削除に失敗しました。');
+            }
+          };
+
+          const confirmDeletePost = async () => {
+            try {
+              const currentApplicant = await apiClient.getApplicant(selectedApplicant.id);
+              if (!currentApplicant) {
+                console.error('Applicant not found');
+                return;
+              }
+
+              const updatedTimeline = currentApplicant.timeline.filter(post => post.id !== deletingPostId);
+
+              // 削除後の最新アクション投稿からステータスを決定
+              const latestActionPost = updatedTimeline
+                .filter(post => post.action)
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+              const statusMapping = {
+                '申込書受領': '申込書受領',
+                '実調日程調整中': '実調日程調整中',
+                '実調完了': '実調完了',
+                '健康診断書依頼': '健康診断書待ち',
+                '健康診断書受領': '健康診断書受領',
+                '判定会議中': '判定会議中',
+                '入居決定': '入居決定',
+                '入居不可': '入居不可',
+                '入居日調整中': '入居日調整中',
+                '書類送付済': '書類送付済',
+                '入居準備完了': '入居準備完了',
+                '入居完了': '入居完了',
+                'キャンセル': 'キャンセル'
+              };
+
+              const newStatus = latestActionPost && statusMapping[latestActionPost.action] 
+                ? statusMapping[latestActionPost.action]
+                : '申込書受領'; // デフォルトステータス
+
+              // Firestoreに保存（タイムラインとステータス両方更新）
+              await apiClient.updateFirestoreDocument('applicants', selectedApplicant.id, {
+                timeline: updatedTimeline,
+                status: newStatus
+              });
+
+              // ローカル状態を更新
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return { 
+                    ...app, 
+                    timeline: updatedTimeline,
+                    status: newStatus
+                  };
+                }
+                return app;
+              });
+
+              setApplicants(updatedApplicants);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setDeletingPostId(null);
+              setShowDeletePostModal(false);
+              
+            } catch (error) {
+              console.error('Failed to delete post:', error);
+              alert('投稿の削除に失敗しました。');
+            }
+          };
+
+          const submitPost = async () => {
+            if (!newPost.trim()) return;
+            
+            try {
+              // 新しいAPIClient.createPostメソッドを使用
+              await apiClient.createPost(
+                selectedApplicant.id,
+                newPost,
+                postType || null,
+                replyTo
+              );
+              
+              // 即座にローカル状態を更新
+              const newTimelineItem = {
+                id: Date.now(),
+                author: currentUser.name,
+                timestamp: new Date().toISOString(),
+                content: newPost,
+                action: postType || null,
+                replies: []
+              };
+              
+              let updatedTimeline;
+              let newStatus = selectedApplicant.status;
+              
+              if (replyTo) {
+                // 返信の場合
+                updatedTimeline = selectedApplicant.timeline.map(post => {
+                  if (post.id === replyTo) {
+                    return {
+                      ...post,
+                      replies: [...(post.replies || []), {
+                        id: Date.now(),
+                        author: currentUser.name,
+                        timestamp: new Date().toISOString(),
+                        content: newPost
+                      }]
+                    };
                   }
                   return post;
                 });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setDeletingReplyId(null);
-            setEditingReplyPostId(null);
-            setShowDeleteReplyModal(false);
-          };
-
-          const confirmDeletePost = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setDeletingPostId(null);
-            setShowDeletePostModal(false);
-          };
-
-          const submitPost = () => {
-            if (!newPost.trim()) return;
-            
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                if (replyTo) {
-                  const updatedTimeline = app.timeline.map(post => {
-                    if (post.id === replyTo) {
-                      return {
-                        ...post,
-                        replies: [...(post.replies || []), {
-                          id: Date.now(),
-                          author: currentUser.name,
-                          timestamp: '今',
-                          content: newPost
-                        }]
-                      };
-                    }
-                    return post;
-                  });
-                  return { ...app, timeline: updatedTimeline };
-                } else {
-                  const newTimelineItem = {
-                    id: app.timeline.length + 1,
-                    author: currentUser.name,
-                    timestamp: '今',
-                    content: newPost,
-                    action: postType || null,
-                    replies: []
-                  };
-                  
-                  let newStatus = app.status;
-                  
-                  // アクションに応じてステータスを更新
-                  const statusMapping = {
-                    '申込書受領': '申込書受領',
-                    '実調日程調整中': '実調日程調整中',
-                    '実調完了': '実調完了',
-                    '健康診断書依頼': '健康診断書待ち',
-                    '健康診断書受領': '健康診断書受領',
-                    '判定会議中': '判定会議中',
-                    '入居可能': '入居決定',
-                    '入居不可': '入居不可',
-                    '入居日調整中': '入居日調整中',
-                    '書類送付済': '書類送付済',
-                    '入居準備完了': '入居準備完了',
-                    '入居完了': '入居完了',
-                    'キャンセル': 'キャンセル'
-                  };
-                  
-                  if (statusMapping[postType]) {
-                    newStatus = statusMapping[postType];
-                  }
-                  
-                  // 健康診断書受領時の特別処理
-                  let finalTimeline = [newTimelineItem, ...app.timeline];
-                  if (postType === '健康診断書受領') {
-                    // 既存のタイムラインに「健康診断書依頼」があるかチェック
-                    const hasHealthcheckRequest = app.timeline.some(item => item.action === '健康診断書依頼');
-                    if (!hasHealthcheckRequest) {
-                      // 自動的に「健康診断書依頼」のアクションを追加（影を付ける）
-                      const autoRequestItem = {
-                        id: app.timeline.length + 2,
-                        author: '自動記録',
-                        timestamp: '今',
-                        content: '健康診断書受領のため自動記録されました',
-                        action: '健康診断書依頼',
-                        replies: [],
-                        isAutoGenerated: true
-                      };
-                      finalTimeline = [newTimelineItem, autoRequestItem, ...app.timeline];
-                    }
-                  }
-                  
-                  return {
-                    ...app,
-                    status: newStatus,
-                    timeline: finalTimeline
-                  };
+              } else {
+                // 新規投稿の場合
+                updatedTimeline = [newTimelineItem, ...selectedApplicant.timeline];
+                
+                // アクションに応じてステータスを更新
+                const statusMapping = {
+                  '申込書受領': '申込書受領',
+                  '実調日程調整中': '実調日程調整中',
+                  '実調完了': '実調完了',
+                  '健康診断書依頼': '健康診断書待ち',
+                  '健康診断書受領': '健康診断書受領',
+                  '判定会議中': '判定会議中',
+                  '入居決定': '入居決定',
+                  '入居不可': '入居不可',
+                  '入居日調整中': '入居日調整中',
+                  '書類送付済': '書類送付済',
+                  '入居準備完了': '入居準備完了',
+                  '入居完了': '入居完了',
+                  'キャンセル': 'キャンセル'
+                };
+                
+                if (statusMapping[postType]) {
+                  newStatus = statusMapping[postType];
                 }
               }
-              return app;
-            });
-            
-            setApplicants(updatedApplicants);
-            
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-            
-            setNewPost('');
-            setShowPostForm(false);
-            setPostType('');
-            setReplyTo(null);
+              
+              // 即座にローカル状態を更新
+              const updatedApplicant = {
+                ...selectedApplicant,
+                timeline: updatedTimeline,
+                status: newStatus
+              };
+              
+              setSelectedApplicant(updatedApplicant);
+              
+              // 申込者リストも更新
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  return updatedApplicant;
+                }
+                return app;
+              });
+              setApplicants(updatedApplicants);
+              
+              // フォームをリセット
+              setNewPost('');
+              setShowPostForm(false);
+              setPostType('');
+              setReplyTo(null);
+              
+              // バックグラウンドで最新データを同期（エラーが発生しても無視）
+              try {
+                await loadApplicantDetail(selectedApplicant.id);
+                await loadApplicants();
+              } catch (syncError) {
+                console.warn('Background sync failed:', syncError);
+              }
+              
+            } catch (error) {
+              console.error('Failed to submit post:', error);
+              alert('投稿の送信に失敗しました。');
+            }
           };
 
           if (currentView === 'detail' && selectedApplicant) {
             const allActions = [
               '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
               '健康診断書受領', '判定会議中', '入居可否', '入居日調整中',
-              '書類送付済', '入居準備完了', '入居完了'
+              '書類送付済', '入居準備完了', '入居完了', 'キャンセル'
             ];
 
             const completedActions = selectedApplicant.timeline
               .filter(item => item.action)
               .map(item => item.action);
+            
+            // 「入居不可」「キャンセル」が投稿されている場合の判定
+            const hasRejection = completedActions.includes('入居不可');
+            const hasCancel = completedActions.includes('キャンセル');
+            
+            // 「入居不可」時の無効化対象（入居可否を含む全後続アクション）
+            const actionsAfterRejection = hasRejection ? [
+              '入居可否', '入居日調整中', '書類送付済', '入居準備完了', '入居完了'
+            ] : [];
+            
+            // 「キャンセル」時の無効化対象（キャンセル以外の全アクション）
+            const actionsDisabledByCancel = hasCancel ? 
+              allActions.filter(action => action !== 'キャンセル') : [];
 
             return (
               <div className="container">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                   <div style={{display: 'flex', alignItems: 'center'}}>
                     <div 
-                      onClick={() => setCurrentView('list')}
+                      onClick={() => {
+                        console.log('🔴 Header clicked, returning to list');
+                        setCurrentView('list');
+                        setSelectedApplicant(null);
+                      }}
                       style={{
                         fontFamily: 'kirin-Regular',
                         fontSize: '28px',
@@ -1802,25 +2085,9 @@
                 </div>
                 
                 <div className="detail-header">
-                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <h1 className="detail-title">
-                      {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.care_level || selectedApplicant.careLevel})
-                    </h1>
-                    <input
-                      type="text"
-                      placeholder="必要な情報を探し出す"
-                      value={detailSearchQuery}
-                      onChange={(e) => setDetailSearchQuery(e.target.value)}
-                      style={{
-                        width: '200px',
-                        padding: '6px 12px',
-                        fontSize: '14px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        marginLeft: '20px'
-                      }}
-                    />
-                  </div>
+                  <h1 className="detail-title">
+                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
+                  </h1>
                   <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
                     {selectedApplicant.status}
                   </div>
@@ -1834,7 +2101,7 @@
                     </div>
                     <div className="info-section">
                       <h3>KP情報</h3>
-                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}</div>}
+                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}{selectedApplicant.kpRelationship && `（${selectedApplicant.kpRelationship}）`}</div>}
                       {selectedApplicant.kpContact && <div className="info-item">連絡先: {selectedApplicant.kpContact}</div>}
                       {selectedApplicant.kpAddress && <div className="info-item">住所: {selectedApplicant.kpAddress}</div>}
                     </div>
@@ -1847,7 +2114,7 @@
                   </div>
                   
                   <div className="info-section" style={{marginTop: '24px'}}>
-                    <h3>特記・メモ</h3>
+                    <h3>特記</h3>
                     <div className="info-item" style={{
                       backgroundColor: '#f8f9fa',
                       padding: '12px',
@@ -1858,7 +2125,7 @@
                       fontStyle: selectedApplicant.notes ? 'normal' : 'italic',
                       color: selectedApplicant.notes ? '#495057' : '#6c757d'
                     }}>
-                      {selectedApplicant.notes || 'メモはありません'}
+                      {selectedApplicant.notes || '特記事項はありません'}
                     </div>
                   </div>
                 </div>
@@ -1878,13 +2145,13 @@
                           {replyTo && <div style={{fontSize: '14px', color: '#6c757d', marginBottom: '8px'}}>
                             返信先: {selectedApplicant.timeline.find(t => t.id === replyTo)?.author}
                           </div>}
-                          {!postType && !replyTo && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
+                          {!postType && !replyTo && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>投稿を追加</div>}
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
                             className="form-textarea"
                             rows="3"
-                            placeholder="メモを入力するかアクションを追加..."
+                            placeholder="投稿を入力するかアクションを追加..."
                           />
                           <div className="form-actions">
                             <button
@@ -1918,10 +2185,12 @@
                                 </span>
                               )}
                             </div>
-                            <div className="post-hover-actions">
-                                <button onClick={() => handleEditPost(item)} className="btn-icon">✏️</button>
-                                <button onClick={() => handleDeletePost(item.id)} className="btn-icon">🗑️</button>
-                            </div>
+                            {item.author === currentUser?.name && (
+                              <div className="post-hover-actions">
+                                <button onClick={() => handleEditPost(item)} className="btn-icon"><img src="icons/enpitsu.png" alt="編集" style={{width: '18px', height: '18px'}} /></button>
+                                <button onClick={() => handleDeletePost(item.id)} className="btn-icon"><img src="icons/gomibako.png" alt="削除" style={{width: '18px', height: '18px'}} /></button>
+                              </div>
+                            )}
                             <div className="post-content">{item.content}</div>
                             
                             <div className="post-actions">
@@ -1936,14 +2205,80 @@
                               </button>
                             </div>
 
+                            {/* インライン返信フォーム */}
+                            {inlineReplyTo === item.id && (
+                              <div style={{
+                                marginTop: '12px',
+                                marginLeft: '20px',
+                                padding: '12px',
+                                backgroundColor: '#f8f9fa',
+                                borderRadius: '8px',
+                                border: '1px solid #dee2e6'
+                              }}>
+                                <div style={{fontSize: '14px', color: '#6c757d', marginBottom: '8px'}}>
+                                  {item.author}さんに返信
+                                </div>
+                                <textarea
+                                  value={inlineReplyContent}
+                                  onChange={(e) => setInlineReplyContent(e.target.value)}
+                                  placeholder="返信を入力してください..."
+                                  style={{
+                                    width: '100%',
+                                    minHeight: '60px',
+                                    padding: '8px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    resize: 'vertical',
+                                    fontSize: '14px'
+                                  }}
+                                />
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'flex-end',
+                                  gap: '8px',
+                                  marginTop: '8px'
+                                }}>
+                                  <button 
+                                    onClick={() => setInlineReplyTo(null)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      border: '1px solid #ccc',
+                                      borderRadius: '4px',
+                                      backgroundColor: 'white',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    キャンセル
+                                  </button>
+                                  <button 
+                                    onClick={() => submitInlineReply(item.id)}
+                                    disabled={!inlineReplyContent.trim()}
+                                    style={{
+                                      padding: '6px 12px',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      cursor: inlineReplyContent.trim() ? 'pointer' : 'not-allowed',
+                                      opacity: inlineReplyContent.trim() ? 1 : 0.6
+                                    }}
+                                  >
+                                    送信
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             {item.replies && item.replies.length > 0 && (
                               <div style={{marginLeft: '20px', marginTop: '16px', paddingLeft: '16px', borderLeft: '1px solid #e9ecef'}}>
                                 {item.replies.map((reply) => (
                                   <div key={reply.id} className="reply-item">
-                                    <div className="post-hover-actions">
-                                      <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon">✏️</button>
-                                      <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon">🗑️</button>
-                                    </div>
+                                    {reply.author === currentUser?.name && (
+                                      <div className="post-hover-actions">
+                                        <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon"><img src="icons/enpitsu.png" alt="編集" style={{width: '18px', height: '18px'}} /></button>
+                                        <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon"><img src="icons/gomibako.png" alt="削除" style={{width: '18px', height: '18px'}} /></button>
+                                      </div>
+                                    )}
                                     <div style={{fontSize: '14px', marginBottom: '4px'}}>
                                       <span style={{fontWeight: '500', color: '#2c3e50'}}>{reply.author}</span>
                                       <span style={{color: '#6c757d', marginLeft: '8px'}}>
@@ -1973,6 +2308,7 @@
                     </div>
                   </div>
 
+
                   <div className="actions-panel">
                     <div className="actions-header">
                       <button
@@ -1987,103 +2323,140 @@
                       {showActions ? (
                         <div className="action-list">
                           {allActions.map((action, index) => {
-                            const isCompleted = completedActions.includes(action);
+                            const isCompleted = completedActions.includes(action) || 
+                                              completedActions.includes('入居決定') && action === '入居可否';
+                            const isSubMenuAction = action === '入居可否';
+                            const isCancelAction = action === 'キャンセル';
+                            const isExpanded = expandedSubMenu === action;
+                            const showDivider = action === 'キャンセル';
+                            const isDisabledByRejection = hasRejection && actionsAfterRejection.includes(action);
+                            const isDisabledByCancel = hasCancel && actionsDisabledByCancel.includes(action);
+                            const isDisabled = isDisabledByRejection || isDisabledByCancel;
+                            
                             return (
                               <div key={index}>
-                                <button
-                                  onClick={() => handleStatusUpdate(action)}
-                                  disabled={isCompleted}
-                                  className="action-item"
-                                  style={{
-                                    backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
-                                    color: isCompleted ? '#adb5bd' : '#495057'
-                                  }}
-                                >
-                                  {action === '入居可否' ? action + ' :' : action}
-                                </button>
-                                {action === '入居可否' && showAdmissionSubMenu && (
-                                  <div className="admission-submenu" style={{
-                                    marginTop: '5px',
-                                    marginBottom: '10px',
-                                    marginLeft: '20px',
-                                    padding: '10px',
-                                    backgroundColor: '#f8f9fa',
-                                    borderRadius: '5px',
-                                    border: '1px solid #dee2e6'
+                                {showDivider && (
+                                  <div style={{
+                                    margin: '16px 0',
+                                    borderTop: '1px solid #dee2e6'
                                   }}>
-                                    <div style={{marginBottom: '8px', fontWeight: 'bold', fontSize: '14px'}}>選択してください:</div>
-                                    <div style={{display: 'flex', gap: '8px'}}>
-                                      <button
-                                        onClick={() => handleAdmissionChoice('入居可能')}
-                                        style={{
-                                          backgroundColor: '#28a745',
-                                          color: 'white',
-                                          border: '1px solid #28a745',
-                                          padding: '6px 12px',
-                                          borderRadius: '4px',
-                                          cursor: 'pointer',
-                                          fontSize: '12px'
-                                        }}
-                                      >
-                                        入居可能
-                                      </button>
-                                      <button
-                                        onClick={() => handleAdmissionChoice('入居不可')}
-                                        style={{
-                                          backgroundColor: '#dc3545',
-                                          color: 'white',
-                                          border: '1px solid #dc3545',
-                                          padding: '6px 12px',
-                                          borderRadius: '4px',
-                                          cursor: 'pointer',
-                                          fontSize: '12px'
-                                        }}
-                                      >
-                                        入居不可
-                                      </button>
-                                      <button
-                                        onClick={() => setShowAdmissionSubMenu(false)}
-                                        style={{
-                                          backgroundColor: '#6c757d',
-                                          color: 'white',
-                                          border: '1px solid #6c757d',
-                                          padding: '6px 12px',
-                                          borderRadius: '4px',
-                                          cursor: 'pointer',
-                                          fontSize: '12px'
-                                        }}
-                                      >
-                                        キャンセル
-                                      </button>
-                                    </div>
+                                  </div>
+                                )}
+                                
+                                {isSubMenuAction && !isCompleted ? (
+                                  <div>
+                                    <button
+                                      onClick={() => setExpandedSubMenu(isExpanded ? null : action)}
+                                      disabled={isCompleted || isDisabled}
+                                      className="action-item"
+                                      style={{
+                                        backgroundColor: isExpanded ? '#ffffff' : (isCompleted || isDisabled ? '#f8f9fa' : '#ffffff'),
+                                        color: isCompleted || isDisabled ? '#adb5bd' : '#495057',
+                                        borderColor: isExpanded ? '#2c3e50' : '#dee2e6',
+                                        margin: '0',
+                                        opacity: isCompleted || isDisabled ? 0.5 : 1
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span>
+                                          {isCompleted ? '✓ ' : ''}{action}
+                                        </span>
+                                        <span style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                                          …
+                                        </span>
+                                      </div>
+                                    </button>
+                                    
+                                    {isExpanded && (
+                                      <div style={{
+                                        marginTop: '8px',
+                                        animation: 'slideDown 0.2s ease-out',
+                                        overflow: 'hidden',
+                                        paddingLeft: '16px'
+                                      }}>
+                                        <button
+                                          onClick={() => {
+                                            handleStatusUpdate('入居決定');
+                                            setExpandedSubMenu(null);
+                                          }}
+                                          className="action-item"
+                                          style={{
+                                            margin: '0 0 6px 0'
+                                          }}
+                                        >
+                                          入居決定
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleStatusUpdate('入居不可');
+                                            setExpandedSubMenu(null);
+                                          }}
+                                          className="action-item"
+                                          style={{
+                                            margin: '0'
+                                          }}
+                                        >
+                                          入居不可
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div style={{ position: 'relative' }}>
+                                    <button
+                                      onClick={() => handleStatusUpdate(action)}
+                                      disabled={isCompleted || isDisabled}
+                                      className="action-item"
+                                      style={{
+                                        backgroundColor: isCompleted || isDisabled ? '#f8f9fa' : '#ffffff',
+                                        color: isCompleted || isDisabled ? '#adb5bd' : (isCancelAction ? '#dc3545' : '#495057'),
+                                        borderColor: isCancelAction && !isCompleted && !isDisabled ? '#dc3545' : '#dee2e6',
+                                        opacity: isCompleted || isDisabled ? 0.5 : 1
+                                      }}
+                                    >
+                                      {isCompleted ? '✓ ' : ''}{action}
+                                    </button>
                                   </div>
                                 )}
                               </div>
                             );
                           })}
-                          
-                          <hr style={{
-                            margin: '15px 0',
-                            border: 'none',
-                            borderTop: '1px solid #dee2e6'
-                          }} />
-                          
-                          <button
-                            onClick={() => handleStatusUpdate('キャンセル')}
-                            className="action-item"
-                            style={{
-                              backgroundColor: '#ffe6e6',
-                              color: '#d63384',
-                              border: '1px solid #f8d7da'
-                            }}
-                          >
-                            キャンセル
-                          </button>
                         </div>
                       ) : (
                         <div className="empty-state">
-                          <div className="empty-icon">📋</div>
-                          <div>「表示」ボタンでアクション一覧を確認できます</div>
+                          <div className="empty-icon"><img src="icons/mouse.png" alt="mouse" style={{width: '144px', height: '144px'}} /></div>
+                          <div style={{textAlign: 'left', marginBottom: '16px'}}>タイムラインに投稿するほどでもないことは…<br />ここでつぶやいてね</div>
+                          <div className="memo-window">
+                            <textarea
+                              placeholder="一時的なメモや備忘録など"
+                              className="form-textarea"
+                              rows="7"
+                              value={currentMemo}
+                              onChange={(e) => setCurrentMemo(e.target.value)}
+                              onBlur={handleSaveMemo}
+                              disabled={isSavingMemo}
+                              style={{
+                                width: '100%',
+                                marginBottom: '12px',
+                                fontSize: '14px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                backgroundColor: isSavingMemo ? '#f8f9fa' : '#ffffff'
+                              }}
+                            />
+                            {isSavingMemo && (
+                              <div style={{
+                                fontSize: '12px',
+                                color: '#6c757d',
+                                marginTop: '-8px',
+                                marginBottom: '8px',
+                                textAlign: 'center'
+                              }}>
+                                保存中...
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2125,7 +2498,7 @@
                         <button className="modal-close" onClick={() => setShowDeletePostModal(false)}>×</button>
                       </div>
                       <div className="modal-body">
-                        <div className="delete-icon">⚠️</div>
+                        <div className="delete-icon"><img src="icons/patoranpu.png" alt="削除" style={{width: '48px', height: '48px'}} /></div>
                         <div className="delete-message">
                           この投稿を削除しますか？
                         </div>
@@ -2180,7 +2553,7 @@
                         <button className="modal-close" onClick={() => setShowDeleteReplyModal(false)}>×</button>
                       </div>
                       <div className="modal-body">
-                        <div className="delete-icon">⚠️</div>
+                        <div className="delete-icon"><img src="icons/patoranpu.png" alt="削除" style={{width: '48px', height: '48px'}} /></div>
                         <div className="delete-message">
                           この返信を削除しますか？
                         </div>
@@ -2248,13 +2621,17 @@
                           年齢
                           <span className="sort-icon">{getSortIcon('age')}</span>
                         </th>
-                        <th onClick={() => handleSort('care_level')}>
+                        <th onClick={() => handleSort('careLevel')}>
                           要介護度
-                          <span className="sort-icon">{getSortIcon('care_level')}</span>
+                          <span className="sort-icon">{getSortIcon('careLevel')}</span>
                         </th>
                         <th onClick={() => handleSort('status')}>
                           ステータス
                           <span className="sort-icon">{getSortIcon('status')}</span>
+                        </th>
+                        <th onClick={() => handleSort('kp')}>
+                          KP
+                          <span className="sort-icon">{getSortIcon('kp')}</span>
                         </th>
                         <th onClick={() => handleSort('assignee')}>
                           担当CM
@@ -2268,18 +2645,30 @@
                         <tr 
                           key={applicant.id}
                           onClick={() => {
-                            setSelectedApplicant(applicant);
+                            console.log('🔸 Row clicked, setting:', applicant.name);
+                            // 状態を順序立てて更新
                             setCurrentView('detail');
+                            setSelectedApplicant(applicant);
+                            setCurrentMemo(applicant.memo || '');
+                            console.log('🔹 States updated: detail, applicant set');
+                            
+                            // 強制再レンダリングのため少し遅延
+                            setTimeout(() => {
+                              console.log('🔄 Force re-render check');
+                            }, 10);
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
                           <td>{applicant.age}歳</td>
-                          <td>{applicant.care_level || applicant.careLevel}</td>
+                          <td>{applicant.careLevel}</td>
                           <td>
                             <span className={`status-badge ${getStatusColor(applicant.status, applicant.applicationDate)}`}>
                               {applicant.status}
                             </span>
+                          </td>
+                          <td style={{fontWeight: '500', color: '#495057'}}>
+                            {applicant.kp}{applicant.kpRelationship && `（${applicant.kpRelationship}）`}
                           </td>
                           <td style={{fontWeight: '500', color: '#495057'}}>{applicant.assignee}</td>
                           <td onClick={(e) => e.stopPropagation()}>
@@ -2288,13 +2677,13 @@
                                 className="btn btn-small btn-edit"
                                 onClick={(e) => handleEdit(applicant, e)}
                               >
-                                編集
+                                <img src="icons/enpitsu.png" alt="編集" style={{width: '20px', height: '20px'}} />
                               </button>
                               <button 
                                 className="btn btn-small btn-delete"
                                 onClick={(e) => handleDelete(applicant, e)}
                               >
-                                削除
+                                <img src="icons/gomibako.png" alt="削除" style={{width: '20px', height: '20px'}} />
                               </button>
                             </div>
                           </td>
@@ -2479,14 +2868,14 @@
                           </select>
                         </div>
                         <div className="form-group">
-                          <label className="form-label">特記・メモ</label>
+                          <label className="form-label">特記</label>
                           <textarea
                             name="notes"
                             value={formData.notes}
                             onChange={handleInputChange}
                             className="form-textarea"
                             rows="3"
-                            placeholder="特記事項やメモを入力してください..."
+                            placeholder="特記事項を入力してください..."
                           />
                         </div>
                       </form>
@@ -2677,14 +3066,14 @@
                           </select>
                         </div>
                         <div className="form-group">
-                          <label className="form-label">特記・メモ</label>
+                          <label className="form-label">特記</label>
                           <textarea
                             name="notes"
                             value={formData.notes}
                             onChange={handleInputChange}
                             className="form-textarea"
                             rows="3"
-                            placeholder="特記事項やメモを入力してください..."
+                            placeholder="特記事項を入力してください..."
                           />
                         </div>
                       </form>
@@ -2709,7 +3098,7 @@
                       <button className="modal-close" onClick={() => setShowDeleteModal(false)}>×</button>
                     </div>
                     <div className="modal-body">
-                      <div className="delete-icon">⚠️</div>
+                      <div className="delete-icon"><img src="icons/patoranpu.png" alt="削除" style={{width: '48px', height: '48px'}} /></div>
                       <div className="delete-message">
                         {deletingApplicant?.name}さんを削除しますか？
                       </div>
@@ -2728,19 +3117,34 @@
                   </div>
                 </div>
               )}
+
+
+              
+
+              {/* AIチャットボタン */}
+              {currentView === 'detail' && selectedApplicant && (
+                <button
+                  className="ai-chat-button"
+                  title="AIに聞いてみる？"
+                  onClick={openAIChat}
+                >
+                  AI
+                </button>
+              )}
             </div>
           );
         };
 
         ReactDOM.render(<CareFacilityApp />, document.getElementById('root'));
+        // Cache buster: v2025010702
     </script>
     
     <footer style="margin-top: 40px; padding: 20px 0; border-top: 1px solid #e9ecef; text-align: center; background: #f8f9fa;">
         <div style="max-width: 800px; margin: 0 auto;">
             <div style="margin-bottom: 16px;">
-                <a href="/disclaimer.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">免責事項</a>
-                <a href="/privacy.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">プライバシーポリシー</a>
-                <a href="/credits.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">著作権・クレジット</a>
+                <a href="disclaimer.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">免責事項</a>
+                <a href="privacy.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">プライバシーポリシー</a>
+                <a href="credits.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">著作権・クレジット</a>
             </div>
             <div style="color: #adb5bd; font-size: 12px;">
                 © 2025 FractiqLabs. All rights reserved.
