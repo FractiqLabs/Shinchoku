@@ -54,6 +54,29 @@ class APIClient {
   handleLocalStorageFallback(endpoint, options) {
     const method = options.method || 'GET';
     const applicantsKey = 'careFacilityApplicants';
+
+    if (endpoint === '/auth/login') {
+        const { username, password } = JSON.parse(options.body);
+        const users = {
+            'a': { password: 'admin1', name: '藤堂　友未枝' },
+            'b': { password: 'admin2', name: '吉野　隼人' },
+            'c': { password: 'admin3', name: '田中　慎治' }
+        };
+        const user = users[username];
+        if (user && user.password === password) {
+            const mockToken = btoa(JSON.stringify({
+                id: username,
+                name: user.name,
+                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+            }));
+            return {
+                token: mockToken,
+                user: { id: username, name: user.name }
+            };
+        } else {
+            throw new Error('ユーザーまたはパスワードが正しくありません。');
+        }
+    }
     
     // ローカルストレージからデータを取得
     const getLocalData = () => {
