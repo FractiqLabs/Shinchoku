@@ -1,6 +1,6 @@
 class APIClient {
   constructor() {
-    this.baseURL = window.location.origin + '/api';
+    this.baseURL = 'http://localhost:3001/api';
     this.token = localStorage.getItem('authToken');
     this.socket = null;
     this.eventHandlers = {};
