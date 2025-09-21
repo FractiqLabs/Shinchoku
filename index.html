@@ -1132,36 +1132,24 @@
             setLoginError('');
             
             try {
-              // 名前からIDを逆引き
-              const userId = Object.keys(users).find(id => users[id].name === loginForm.id);
-              const user = userId ? users[userId] : null;
-              
-              if (!user || user.password !== loginForm.password) {
-                setLoginError('ユーザーまたはパスワードが正しくありません。');
-                return;
+              // ユーザーデータからユーザー名を取得
+              const username = Object.keys(users).find(id => users[id].name === loginForm.id);
+              if (!username) {
+                  setLoginError('ユーザーが見つかりません。');
+                  return;
               }
 
-              // サーバーサイド認証は一時的にスキップして、クライアント側で認証
-              const userData = { id: userId, name: user.name };
-              setCurrentUser(userData);
+              const response = await apiClient.login(username, loginForm.password);
+              
+              setCurrentUser(response.user);
               setIsLoggedIn(true);
-              
-              // 仮のトークンを作成（実際のサーバー実装時は削除）
-              const mockToken = btoa(JSON.stringify({
-                id: userId,
-                name: user.name,
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24時間
-              }));
-              
-              localStorage.setItem('authToken', mockToken);
-              apiClient.setToken(mockToken);
               apiClient.connectSocket();
-              
               setLoginForm({ id: '', password: '' });
               await loadApplicants();
+
             } catch (error) {
               console.error('Login failed:', error);
-              setLoginError('ログインに失敗しました。');
+              setLoginError(error.message || 'ログイン中にエラーが発生しました。');
             }
           };
 
