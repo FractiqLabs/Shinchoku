@@ -964,6 +964,7 @@
     
     <script type="text/babel">
         const CareFacilityApp = () => {
+          const apiClient = window.apiClient;
           const [isLoggedIn, setIsLoggedIn] = React.useState(false);
           const [currentUser, setCurrentUser] = React.useState(null);
           const [loginForm, setLoginForm] = React.useState({ id: '', password: '' });
