@@ -1339,6 +1339,36 @@ window.apiClient = new APIClient();
           const [showEditReplyModal, setShowEditReplyModal] = React.useState(false);
           const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
           const [showActions, setShowActions] = React.useState(true);
+
+          const displayStatus = React.useMemo(() => {
+            if (!selectedApplicant || !selectedApplicant.timeline || selectedApplicant.timeline.length === 0) {
+              return '不明'; // Default status if no timeline or applicant
+            }
+
+            const latestPost = selectedApplicant.timeline[0];
+            const statusMapping = {
+              '申込書受領': '申込書受領',
+              '実調日程調整中': '実調日程調整中',
+              '実調完了': '実調完了',
+              '健康診断書依頼': '健康診断書待ち',
+              '健康診断書受領': '健康診断書受領',
+              '判定会議中': '判定会議中',
+              '入居可能': '入居決定',
+              '入居不可': '入居不可',
+              '入居日調整中': '入居日調整中',
+              '書類送付済': '書類送付済',
+              '入居準備完了': '入居準備完了',
+              '入居完了': '入居完了',
+              'キャンセル': 'キャンセル'
+            };
+
+            // If the latest post has an action, use its mapped status
+            if (latestPost.action && statusMapping[latestPost.action]) {
+              return statusMapping[latestPost.action];
+            }
+            // Otherwise, use the status stored in the applicant object (fallback)
+            return selectedApplicant.status;
+          }, [selectedApplicant]);
           const [showAdmissionSubMenu, setShowAdmissionSubMenu] = React.useState(false);
           const [formData, setFormData] = React.useState({
             surname: '',
@@ -2151,8 +2181,8 @@ window.apiClient = new APIClient();
                       }}
                     />
                   </div>
-                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
-                    {selectedApplicant.status}
+                  <div className={`status-badge ${getStatusColor(displayStatus, selectedApplicant.applicationDate)}`}>
+                    {displayStatus}
                   </div>
 
                   <div className="detail-info">
