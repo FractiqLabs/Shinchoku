@@ -56,7 +56,7 @@ class APIClient {
     const applicantsKey = 'careFacilityApplicants';
 
     if (endpoint === '/auth/login') {
-        const { username, password } = JSON.parse(options.body);
+        const { username, password } = options.body;
         const users = {
             'a': { password: 'admin1', name: '藤堂　友未枝' },
             'b': { password: 'admin2', name: '吉野　隼人' },
