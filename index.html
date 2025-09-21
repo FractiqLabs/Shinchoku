@@ -1028,7 +1028,7 @@
             if (token) {
               // トークンの検証とユーザー情報の取得
               try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                const payload = JSON.parse(decodeURIComponent(escape(atob(token.split('.')[1]))));
                 if (payload.exp * 1000 > Date.now()) {
                   setCurrentUser({ id: payload.id, name: payload.name });
                   setIsLoggedIn(true);

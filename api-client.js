@@ -64,7 +64,7 @@ class APIClient {
         };
         const user = users[username];
         if (user && user.password === password) {
-            const mockToken = btoa(JSON.stringify({
+            const mockToken = btoa(unescape(encodeURIComponent(JSON.stringify({
                 id: username,
                 name: user.name,
                 exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
