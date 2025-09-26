@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <!-- <script src="api-client.js"></script> -->
+    <script src="api-client.js"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
@@ -963,348 +963,6 @@
     <div id="root"></div>
     
     <script type="text/babel">
-        class APIClient {
-  constructor() {
-    this.baseURL = 'http://localhost:3001/api';
-    this.token = localStorage.getItem('authToken');
-    this.socket = null;
-    this.eventHandlers = {};
-  }
-
-  setToken(token) {
-    this.token = token;
-    localStorage.setItem('authToken', token);
-  }
-
-  clearToken() {
-    this.token = null;
-    localStorage.removeItem('authToken');
-  }
-
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
-
-    if (this.token) {
-      config.headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    if (config.body && typeof config.body === 'object') {
-      config.body = JSON.stringify(config.body);
-    }
-
-    try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('API request failed, using localStorage fallback:', error);
-      
-      // サーバーが利用できない場合はローカルストレージを使用
-      return this.handleLocalStorageFallback(endpoint, options);
-    }
-  }
-
-  handleLocalStorageFallback(endpoint, options) {
-    const method = options.method || 'GET';
-    const applicantsKey = 'careFacilityApplicants';
-
-    if (endpoint === '/auth/login') {
-        const { username, password } = options.body;
-        const users = {
-            'a': { password: 'admin1', name: '藤堂　友未枝' },
-            'b': { password: 'admin2', name: '吉野　隼人' },
-            'c': { password: 'admin3', name: '田中　慎治' }
-        };
-        const user = users[username];
-        if (user && user.password === password) {
-            const mockToken = btoa(unescape(encodeURIComponent(JSON.stringify({
-                id: username,
-                name: user.name,
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
-            }))));
-            return {
-                token: mockToken,
-                user: { id: username, name: user.name }
-            };
-        } else {
-            throw new Error('ユーザーまたはパスワードが正しくありません。');
-        }
-    }
-    
-    // ローカルストレージからデータを取得
-    const getLocalData = () => {
-      try {
-        const data = localStorage.getItem(applicantsKey);
-        return data ? JSON.parse(data) : this.getDefaultApplicants();
-      } catch (error) {
-        return this.getDefaultApplicants();
-      }
-    };
-    
-    // ローカルストレージにデータを保存
-    const saveLocalData = (data) => {
-      try {
-        localStorage.setItem(applicantsKey, JSON.stringify(data));
-      } catch (error) {
-        console.error('Failed to save to localStorage:', error);
-      }
-    };
-    
-    if (endpoint === '/applicants') {
-      if (method === 'GET') {
-        return getLocalData();
-      } else if (method === 'POST') {
-        const data = getLocalData();
-        const newApplicant = {
-          id: Date.now(),
-          applicationDate: new Date().toISOString().split('T')[0],
-          name: `${options.body.surname}　${options.body.givenName}`,
-          surname: options.body.surname,
-          given_name: options.body.givenName,
-          age: options.body.age,
-          care_level: options.body.careLevel,
-          address: options.body.address,
-          kp: options.body.kp,
-          kp_relationship: options.body.kpRelationship,
-          kp_contact: options.body.kpContact,
-          kp_address: options.body.kpAddress,
-          care_manager: options.body.careManager,
-          care_manager_name: options.body.careManagerName,
-          cm_contact: options.body.cmContact,
-          assignee: options.body.assignee,
-          notes: options.body.notes,
-          status: '申込書受領',
-          timeline: []
-        };
-        data.push(newApplicant);
-        saveLocalData(data);
-        return { id: newApplicant.id, message: '申込者が登録されました' };
-      }
-    } else if (endpoint.startsWith('/applicants/')) {
-      const id = parseInt(endpoint.split('/')[2]);
-      const data = getLocalData();
-      
-      if (method === 'PUT') {
-        const index = data.findIndex(app => app.id === id);
-        if (index !== -1) {
-          data[index] = {
-            ...data[index],
-            name: `${options.body.surname}　${options.body.givenName}`,
-            surname: options.body.surname,
-            given_name: options.body.givenName,
-            age: options.body.age,
-            care_level: options.body.careLevel,
-            address: options.body.address,
-            kp: options.body.kp,
-            kp_relationship: options.body.kpRelationship,
-            kp_contact: options.body.kpContact,
-            kp_address: options.body.kpAddress,
-            care_manager: options.body.careManager,
-            care_manager_name: options.body.careManagerName,
-            cm_contact: options.body.cmContact,
-            assignee: options.body.assignee,
-            notes: options.body.notes
-          };
-          saveLocalData(data);
-          return { message: '申込者情報が更新されました' };
-        }
-      } else if (method === 'DELETE') {
-        const filteredData = data.filter(app => app.id !== id);
-        saveLocalData(filteredData);
-        return { message: '申込者が削除されました' };
-      }
-    }
-    
-    throw new Error('Unsupported operation in localStorage fallback');
-  }
-
-  getDefaultApplicants() {
-    return [
-      {
-        id: 1,
-        applicationDate: '2024-12-15',
-        name: '田中太郎',
-        surname: '田中',
-        given_name: '太郎',
-        age: 85,
-        care_level: '要介護3',
-        status: '実調完了',
-        assignee: '藤堂　友未枝',
-        kp: '田中花子（長女）',
-        kp_contact: '090-1234-5678',
-        care_manager: '山田ケアマネ',
-        cm_contact: '048-123-4567',
-        notes: '夜間のトイレ介助が必要。家族の協力体制は良好。',
-        timeline: []
-      },
-      {
-        id: 2,
-        applicationDate: '2024-12-20',
-        name: '山田花子',
-        surname: '山田',
-        given_name: '花子',
-        age: 78,
-        care_level: '要介護4',
-        status: '申込書受領',
-        assignee: '吉野　隼人',
-        kp: '山田太郎（長男）',
-        kp_contact: '080-9876-5432',
-        care_manager: '佐藤ケアマネ',
-        cm_contact: '048-987-6543',
-        timeline: []
-      }
-    ];
-  }
-
-  // 認証関連
-  async login(username, password) {
-    const response = await this.request('/auth/login', {
-      method: 'POST',
-      body: { username, password },
-    });
-    
-    if (response.token) {
-      this.setToken(response.token);
-    }
-    
-    return response;
-  }
-
-  logout() {
-    this.clearToken();
-  }
-
-  // 申込者関連
-  async getApplicants() {
-    return await this.request('/applicants');
-  }
-
-  async getApplicant(id) {
-    return await this.request(`/applicants/${id}`);
-  }
-
-  async createApplicant(data) {
-    return await this.request('/applicants', {
-      method: 'POST',
-      body: data,
-    });
-  }
-
-  async updateApplicant(id, data) {
-    return await this.request(`/applicants/${id}`, {
-      method: 'PUT',
-      body: data,
-    });
-  }
-
-  async deleteApplicant(id) {
-    return await this.request(`/applicants/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // 投稿関連
-  async createPost(applicantId, content, action = null, parentPostId = null) {
-    return await this.request(`/applicants/${applicantId}/posts`, {
-      method: 'POST',
-      body: { content, action, parentPostId },
-    });
-  }
-
-  // WebSocket関連
-  connectSocket() {
-    if (this.socket && this.socket.connected) {
-      return;
-    }
-
-    this.socket = io();
-    
-    this.socket.on('connect', () => {
-      console.log('WebSocketに接続しました');
-      if (this.token) {
-        this.socket.emit('authenticate', this.token);
-      }
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('WebSocketから切断されました');
-    });
-
-    this.socket.on('authError', (message) => {
-      console.error('認証エラー:', message);
-    });
-
-    // リアルタイム同期イベント
-    this.socket.on('newPost', (post) => {
-      if (this.eventHandlers.newPost) {
-        this.eventHandlers.newPost(post);
-      }
-    });
-
-    this.socket.on('statusUpdate', (data) => {
-      if (this.eventHandlers.statusUpdate) {
-        this.eventHandlers.statusUpdate(data);
-      }
-    });
-
-    this.socket.on('newApplicant', (data) => {
-      if (this.eventHandlers.newApplicant) {
-        this.eventHandlers.newApplicant(data);
-      }
-    });
-
-    this.socket.on('applicantUpdate', (data) => {
-      if (this.eventHandlers.applicantUpdate) {
-        this.eventHandlers.applicantUpdate(data);
-      }
-    });
-
-    return this.socket;
-  }
-
-  disconnectSocket() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  joinApplicantPage(applicantId) {
-    if (this.socket) {
-      this.socket.emit('joinApplicant', applicantId);
-    }
-  }
-
-  leaveApplicantPage(applicantId) {
-    if (this.socket) {
-      this.socket.emit('leaveApplicant', applicantId);
-    }
-  }
-
-  on(event, handler) {
-    this.eventHandlers[event] = handler;
-  }
-
-  off(event) {
-    delete this.eventHandlers[event];
-  }
-}
-
-// グローバルに利用可能にする
-window.apiClient = new APIClient();
-
         const CareFacilityApp = () => {
           const [isLoggedIn, setIsLoggedIn] = React.useState(false);
           const [currentUser, setCurrentUser] = React.useState(null);
@@ -1322,10 +980,8 @@ window.apiClient = new APIClient();
           const [detailSearchQuery, setDetailSearchQuery] = React.useState('');
           const [applicants, setApplicants] = React.useState([]);
 
-          const [showPostForm, setShowPostForm] = React.useState(false);
-          const [showReplyFormForPostId, setShowReplyFormForPostId] = React.useState(null);
-
           const [newPost, setNewPost] = React.useState('');
+          const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
           const [likes, setLikes] = React.useState({});
@@ -1342,11 +998,765 @@ window.apiClient = new APIClient();
           const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
           const [showActions, setShowActions] = React.useState(true);
           const [showAdmissionSubMenu, setShowAdmissionSubMenu] = React.useState(false);
+          const [formData, setFormData] = React.useState({
+            surname: '',
+            givenName: '',
+            age: '',
+            careLevel: '',
+            address: '',
+            kp: '',
+            kpRelationship: '',
+            kpContact: '',
+            kpAddress: '',
+            careManager: '',
+            careManagerName: '',
+            cmContact: '',
+            assignee: '',
+            notes: ''
+          });
+
+          // ユーザーデータ（サーバー側で管理）
+          const users = {
+            'a': { password: 'admin1', name: '藤堂　友未枝' },
+            'b': { password: 'admin2', name: '吉野　隼人' },
+            'c': { password: 'admin3', name: '田中　慎治' }
+          };
+
+          // ログイン状態をチェック
+          React.useEffect(() => {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+              // トークンの検証とユーザー情報の取得
+              try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.exp * 1000 > Date.now()) {
+                  setCurrentUser({ id: payload.id, name: payload.name });
+                  setIsLoggedIn(true);
+                  apiClient.setToken(token);
+                  apiClient.connectSocket();
+                  loadApplicants();
+                } else {
+                  localStorage.removeItem('authToken');
+                }
+              } catch (error) {
+                console.error('Token validation failed:', error);
+                localStorage.removeItem('authToken');
+              }
+            }
+          }, []);
+
+          // 申込者データを読み込み
+          const loadApplicants = async () => {
+            try {
+              const data = await apiClient.getApplicants();
+              if (data && data.length >= 0) {
+                setApplicants(data);
+                console.log('Loaded applicants from server:', data.length, 'applicants');
+              }
+            } catch (error) {
+              console.error('Failed to load applicants from server, trying localStorage:', error);
+              // サーバーエラー時はLocalStorageから読み込み
+              try {
+                const savedData = localStorage.getItem('careFacilityApplicants');
+                if (savedData) {
+                  const applicantData = JSON.parse(savedData);
+                  if (applicantData && applicantData.length > 0) {
+                    setApplicants(applicantData);
+                    console.log('Loaded applicants from localStorage for data persistence:', applicantData.length, 'applicants');
+                  }
+                }
+              } catch (localError) {
+                console.error('Failed to load from localStorage as well:', localError);
+              }
+            }
+          };
+
+          // WebSocketリアルタイム同期の設定
+          React.useEffect(() => {
+            if (isLoggedIn && apiClient.socket) {
+              // 新しい申込者追加の通知
+              apiClient.on('newApplicant', (data) => {
+                console.log('New applicant added:', data);
+                loadApplicants(); // データを再読み込み
+              });
+
+              // 申込者情報更新の通知
+              apiClient.on('applicantUpdate', (data) => {
+                console.log('Applicant updated:', data);
+                loadApplicants(); // データを再読み込み
+              });
+
+              // ステータス更新の通知
+              apiClient.on('statusUpdate', (data) => {
+                console.log('Status updated:', data);
+                if (selectedApplicant && selectedApplicant.id == data.applicantId) {
+                  // 詳細ページが開いている場合は最新データを取得
+                  loadApplicantDetail(data.applicantId);
+                }
+                loadApplicants(); // 一覧も更新
+              });
+
+              // 新しい投稿の通知
+              apiClient.on('newPost', (post) => {
+                console.log('New post added:', post);
+                if (selectedApplicant && selectedApplicant.id == post.applicant_id) {
+                  // 詳細ページが開いている場合は最新データを取得
+                  loadApplicantDetail(post.applicant_id);
+                }
+              });
+            }
+
+            return () => {
+              if (apiClient) {
+                apiClient.off('newApplicant');
+                apiClient.off('applicantUpdate');
+                apiClient.off('statusUpdate');
+                apiClient.off('newPost');
+              }
+            };
+          }, [isLoggedIn, selectedApplicant]);
+
+          // 申込者詳細データを読み込み
+          const loadApplicantDetail = async (applicantId) => {
+            try {
+              const data = await apiClient.getApplicant(applicantId);
+              setSelectedApplicant(data);
+            } catch (error) {
+              console.error('Failed to load applicant detail:', error);
+            }
+          };
+
+          // ログイン処理
+          const handleLogin = async (e) => {
+            e.preventDefault();
+            setLoginError('');
+            
+            try {
+              // 名前からIDを逆引き
+              const userId = Object.keys(users).find(id => users[id].name === loginForm.id);
+              const user = userId ? users[userId] : null;
+              
+              if (!user || user.password !== loginForm.password) {
+                setLoginError('ユーザーまたはパスワードが正しくありません。');
+                return;
+              }
+
+              // サーバーサイド認証は一時的にスキップして、クライアント側で認証
+              const userData = { id: userId, name: user.name };
+              setCurrentUser(userData);
+              setIsLoggedIn(true);
+              
+              // 仮のトークンを作成（実際のサーバー実装時は削除）
+              const mockToken = btoa(JSON.stringify({
+                id: userId,
+                name: user.name,
+                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24時間
+              }));
+              
+              localStorage.setItem('authToken', mockToken);
+              apiClient.setToken(mockToken);
+              apiClient.connectSocket();
+              
+              setLoginForm({ id: '', password: '' });
+              await loadApplicants();
+            } catch (error) {
+              console.error('Login failed:', error);
+              setLoginError('ログインに失敗しました。');
+            }
+          };
+
+          // ログアウト処理
+          const handleLogout = async () => {
+            try {
+              await apiClient.logout();
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              localStorage.removeItem('authToken');
+              apiClient.clearToken();
+              apiClient.disconnectSocket();
+              setCurrentView('list');
+              setApplicants([]);
+              console.log('ログアウトが完了しました');
+            } catch (error) {
+              console.log('API logout failed but local logout successful:', error);
+              // APIが失敗してもローカルログアウトは実行
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              localStorage.removeItem('authToken');
+              apiClient.clearToken();
+              apiClient.disconnectSocket();
+              setCurrentView('list');
+              setApplicants([]);
+            }
+          };
+
+          // ログインフォームの入力処理
+          const handleLoginInputChange = (e) => {
+            const { name, value } = e.target;
+            setLoginForm(prev => ({
+              ...prev,
+              [name]: value
+            }));
+          };
+
+          // 全データをLocalStorageに保存（ユーザー間同期用）
+          React.useEffect(() => {
+            if (applicants.length > 0) {
+              try {
+                localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+                console.log('Data synced to localStorage for cross-user sharing:', applicants.length, 'applicants');
+              } catch (error) {
+                console.error('Failed to save applicants to localStorage', error);
+              }
+            }
+          }, [applicants]);
+
+          const getStatusColor = (status, applicationDate) => {
+            const today = new Date();
+            const appDate = new Date(applicationDate);
+            const daysPassed = Math.floor((today - appDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysPassed > 10) return 'status-red';
+            if (daysPassed > 5) return 'status-yellow';
+            return 'status-green';
+          };
+
+          const formatTimeAgo = (timestamp) => {
+            const today = new Date();
+            const date = new Date(timestamp);
+            const diffTime = Math.abs(today - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return '今日';
+            if (diffDays === 1) return '1日前';
+            if (diffDays < 7) return `${diffDays}日前`;
+            return timestamp;
+          };
+
+          const handleSort = (key) => {
+            let direction = 'asc';
+            if (sortConfig.key === key && sortConfig.direction === 'asc') {
+              direction = 'desc';
+            }
+            setSortConfig({ key, direction });
+          };
+
+          const getSortIcon = (key) => {
+            if (sortConfig.key !== key) return '↕';
+            return sortConfig.direction === 'asc' ? '↑' : '↓';
+          };
+
+          const sortedApplicants = React.useMemo(() => {
+            let sortableApplicants = [...applicants];
+            
+            // 検索フィルター
+            if (searchQuery) {
+              const searchLower = searchQuery.toLowerCase();
+              sortableApplicants = sortableApplicants.filter(applicant => 
+                applicant.name.toLowerCase().includes(searchLower) ||
+                (applicant.care_level || applicant.careLevel || '').toLowerCase().includes(searchLower) ||
+                (applicant.status || '').toLowerCase().includes(searchLower) ||
+                (applicant.assignee || '').toLowerCase().includes(searchLower) ||
+                (applicant.kp || '').toLowerCase().includes(searchLower) ||
+                (applicant.notes || '').toLowerCase().includes(searchLower) ||
+                (applicant.address || '').toLowerCase().includes(searchLower)
+              );
+            }
+            
+            // ソート
+            if (sortConfig.key) {
+              sortableApplicants.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+                
+                if (sortConfig.key === 'applicationDate') {
+                  aValue = new Date(aValue);
+                  bValue = new Date(bValue);
+                } else if (sortConfig.key === 'age') {
+                  aValue = parseInt(aValue);
+                  bValue = parseInt(bValue);
+                }
+                
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+              });
+            }
+            return sortableApplicants;
+          }, [applicants, sortConfig, searchQuery]);
+
+          // ログインしていない場合はログイン画面を表示
+          if (!isLoggedIn) {
+            return (
+              <div className="login-container">
+                <div className="login-card">
+                  <div className="login-header">
+                    <h1 className="login-title">シンチョク.</h1>
+                    <p className="login-subtitle">入居進捗管理支援システム</p>
+                  </div>
+                  
+                  <form className="login-form" onSubmit={handleLogin}>
+                    {loginError && (
+                      <div className="login-error">
+                        {loginError}
+                      </div>
+                    )}
+                    
+                    <div className="form-group">
+                      <label className="form-label">ユーザー選択</label>
+                      <select
+                        name="id"
+                        value={loginForm.id}
+                        onChange={handleLoginInputChange}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">ユーザーを選択してください</option>
+                        <option value="藤堂　友未枝">藤堂　友未枝</option>
+                        <option value="吉野　隼人">吉野　隼人</option>
+                        <option value="田中　慎治">田中　慎治</option>
+                      </select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">パスワード</label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={loginForm.password}
+                        onChange={handleLoginInputChange}
+                        className="form-input"
+                        required
+                        autoComplete="current-password"
+                      />
+                    </div>
+                    
+                    <button type="submit" className="btn btn-primary" style={{marginTop: '8px'}}>
+                      ログイン
+                    </button>
+                  </form>
+                </div>
+              </div>
+            );
+          }
+
+          const handleInputChange = (e) => {
+            const { name, value } = e.target;
+            setFormData(prev => ({
+              ...prev,
+              [name]: value
+            }));
+          };
+
+          const handleEdit = (applicant, e) => {
+            e.stopPropagation();
+            setEditingApplicant(applicant);
+            const nameParts = applicant.name.split('　');
+            setFormData({
+              surname: nameParts[0] || '',
+              givenName: nameParts[1] || '',
+              age: applicant.age.toString(),
+              careLevel: applicant.care_level || applicant.careLevel,
+              address: applicant.address || '',
+              kp: applicant.kp,
+              kpRelationship: applicant.kpRelationship || '',
+              kpContact: applicant.kpContact,
+              kpAddress: applicant.kpAddress || '',
+              careManager: applicant.careManager,
+              careManagerName: applicant.careManagerName || '',
+              cmContact: applicant.cmContact,
+              assignee: applicant.assignee,
+              notes: applicant.notes || ''
+            });
+            setShowEditModal(true);
+          };
+
+          const handleDelete = (applicant, e) => {
+            e.stopPropagation();
+            setDeletingApplicant(applicant);
+            setShowDeleteModal(true);
+          };
+
+          const handleEditSubmit = async (e) => {
+            e.preventDefault();
+            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel) {
+              alert('必須項目を入力してください。');
+              return;
+            }
+            
+            try {
+              const applicantData = {
+                surname: formData.surname,
+                givenName: formData.givenName,
+                age: parseInt(formData.age),
+                careLevel: formData.careLevel,
+                address: formData.address,
+                kp: formData.kp,
+                kpRelationship: formData.kpRelationship,
+                kpContact: formData.kpContact,
+                kpAddress: formData.kpAddress,
+                careManager: formData.careManager,
+                careManagerName: formData.careManagerName,
+                cmContact: formData.cmContact,
+                assignee: formData.assignee,
+                notes: formData.notes
+              };
+
+              await apiClient.updateApplicant(editingApplicant.id, applicantData);
+              await loadApplicants(); // 最新データを再読み込み
+              
+              setFormData({
+                surname: '',
+                givenName: '',
+                age: '',
+                careLevel: '',
+                address: '',
+                kp: '',
+                kpRelationship: '',
+                kpContact: '',
+                kpAddress: '',
+                careManager: '',
+                careManagerName: '',
+                cmContact: '',
+                assignee: '',
+                notes: ''
+              });
+              setEditingApplicant(null);
+              setShowEditModal(false);
+            } catch (error) {
+              console.error('Failed to update applicant:', error);
+              alert('申込者情報の更新に失敗しました。');
+            }
+          };
+
+          const confirmDelete = async () => {
+            try {
+              await apiClient.deleteApplicant(deletingApplicant.id);
+              await loadApplicants(); // 最新データを再読み込み
+              setDeletingApplicant(null);
+              setShowDeleteModal(false);
+            } catch (error) {
+              console.error('Failed to delete applicant:', error);
+              alert('申込者の削除に失敗しました。');
+            }
+          };
+
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel) {
+              alert('必須項目を入力してください。');
+              return;
+            }
+            
+            try {
+              const applicantData = {
+                surname: formData.surname,
+                givenName: formData.givenName,
+                age: parseInt(formData.age),
+                careLevel: formData.careLevel,
+                address: formData.address,
+                kp: formData.kp,
+                kpRelationship: formData.kpRelationship,
+                kpContact: formData.kpContact,
+                kpAddress: formData.kpAddress,
+                careManager: formData.careManager,
+                careManagerName: formData.careManagerName,
+                cmContact: formData.cmContact,
+                assignee: formData.assignee || '担当者未定',
+                notes: formData.notes
+              };
+
+              await apiClient.createApplicant(applicantData);
+              await loadApplicants(); // 最新データを再読み込み
+              
+              setFormData({
+                surname: '',
+                givenName: '',
+                age: '',
+                careLevel: '',
+                address: '',
+                kp: '',
+                kpRelationship: '',
+                kpContact: '',
+                kpAddress: '',
+                careManager: '',
+                careManagerName: '',
+                cmContact: '',
+                assignee: '',
+                notes: ''
+              });
+              setShowModal(false);
+            } catch (error) {
+              console.error('Failed to create applicant:', error);
+              alert('申込者の登録に失敗しました。');
+            }
+          };
+
+          const handleStatusUpdate = (type) => {
+            if (type === '入居可否') {
+              setShowAdmissionSubMenu(true);
+              return;
+            }
+            setPostType(type);
+            setShowPostForm(true);
+            setReplyTo(null);
+          };
+
+          const handleAdmissionChoice = (choice) => {
+            setPostType(choice);
+            setShowPostForm(true);
+            setShowAdmissionSubMenu(false);
+            setReplyTo(null);
+          };
 
           const handleReply = (postId) => {
             setReplyTo(postId);
-            setShowReplyFormForPostId(postId); // Show reply form for this specific post
+            setShowPostForm(true);
             setPostType('');
+          };
+
+          const handleFreePost = () => {
+            setPostType('');
+            setShowPostForm(true);
+            setReplyTo(null);
+          };
+
+          const handleLike = (applicantId, postId) => {
+            const key = `${applicantId}-${postId}`;
+            setLikes(prev => ({
+              ...prev,
+              [key]: !prev[key]
+            }));
+          };
+
+          const handleEditPost = (post) => {
+            setEditingPostId(post.id);
+            setEditingContent(post.content);
+            setShowEditPostModal(true);
+          };
+
+          const handleSaveEditPost = () => {
+            if (!editingContent.trim()) return;
+
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                const updatedTimeline = app.timeline.map(post => {
+                  if (post.id === editingPostId) {
+                    return { ...post, content: editingContent };
+                  }
+                  return post;
+                });
+                return { ...app, timeline: updatedTimeline };
+              }
+              return app;
+            });
+
+            setApplicants(updatedApplicants);
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+
+            setEditingPostId(null);
+            setEditingContent('');
+            setShowEditPostModal(false);
+          };
+
+          const handleCancelEditPost = () => {
+            setEditingPostId(null);
+            setEditingContent('');
+            setShowEditPostModal(false);
+          };
+
+          const handleDeletePost = (postId) => {
+            setDeletingPostId(postId);
+            setShowDeletePostModal(true);
+          };
+
+          const handleEditReply = (reply, postId) => {
+            setEditingReplyId(reply.id);
+            setEditingReplyPostId(postId);
+            setEditingReplyContent(reply.content);
+            setShowEditReplyModal(true);
+          };
+
+          const handleDeleteReply = (replyId, postId) => {
+            setDeletingReplyId(replyId);
+            setEditingReplyPostId(postId);
+            setShowDeleteReplyModal(true);
+          };
+
+          const handleSaveEditReply = () => {
+            if (!editingReplyContent.trim()) return;
+
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                const updatedTimeline = app.timeline.map(post => {
+                  if (post.id === editingReplyPostId) {
+                    const updatedReplies = post.replies.map(reply => {
+                      if (reply.id === editingReplyId) {
+                        return { ...reply, content: editingReplyContent };
+                      }
+                      return reply;
+                    });
+                    return { ...post, replies: updatedReplies };
+                  }
+                  return post;
+                });
+                return { ...app, timeline: updatedTimeline };
+              }
+              return app;
+            });
+
+            setApplicants(updatedApplicants);
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+
+            setEditingReplyId(null);
+            setEditingReplyContent('');
+            setEditingReplyPostId(null);
+            setShowEditReplyModal(false);
+          };
+
+          const handleCancelEditReply = () => {
+            setEditingReplyId(null);
+            setEditingReplyContent('');
+            setEditingReplyPostId(null);
+            setShowEditReplyModal(false);
+          };
+
+          const confirmDeleteReply = () => {
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                const updatedTimeline = app.timeline.map(post => {
+                  if (post.id === editingReplyPostId) {
+                    const updatedReplies = post.replies.filter(reply => reply.id !== deletingReplyId);
+                    return { ...post, replies: updatedReplies };
+                  }
+                  return post;
+                });
+                return { ...app, timeline: updatedTimeline };
+              }
+              return app;
+            });
+
+            setApplicants(updatedApplicants);
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+
+            setDeletingReplyId(null);
+            setEditingReplyPostId(null);
+            setShowDeleteReplyModal(false);
+          };
+
+          const confirmDeletePost = () => {
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
+                return { ...app, timeline: updatedTimeline };
+              }
+              return app;
+            });
+
+            setApplicants(updatedApplicants);
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+
+            setDeletingPostId(null);
+            setShowDeletePostModal(false);
+          };
+
+          const submitPost = () => {
+            if (!newPost.trim()) return;
+            
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                if (replyTo) {
+                  const updatedTimeline = app.timeline.map(post => {
+                    if (post.id === replyTo) {
+                      return {
+                        ...post,
+                        replies: [...(post.replies || []), {
+                          id: Date.now(),
+                          author: currentUser.name,
+                          timestamp: '今',
+                          content: newPost
+                        }]
+                      };
+                    }
+                    return post;
+                  });
+                  return { ...app, timeline: updatedTimeline };
+                } else {
+                  const newTimelineItem = {
+                    id: app.timeline.length + 1,
+                    author: currentUser.name,
+                    timestamp: '今',
+                    content: newPost,
+                    action: postType || null,
+                    replies: []
+                  };
+                  
+                  let newStatus = app.status;
+                  
+                  // アクションに応じてステータスを更新
+                  const statusMapping = {
+                    '申込書受領': '申込書受領',
+                    '実調日程調整中': '実調日程調整中',
+                    '実調完了': '実調完了',
+                    '健康診断書依頼': '健康診断書待ち',
+                    '健康診断書受領': '健康診断書受領',
+                    '判定会議中': '判定会議中',
+                    '入居可能': '入居決定',
+                    '入居不可': '入居不可',
+                    '入居日調整中': '入居日調整中',
+                    '書類送付済': '書類送付済',
+                    '入居準備完了': '入居準備完了',
+                    '入居完了': '入居完了',
+                    'キャンセル': 'キャンセル'
+                  };
+                  
+                  if (statusMapping[postType]) {
+                    newStatus = statusMapping[postType];
+                  }
+                  
+                  // 健康診断書受領時の特別処理
+                  let finalTimeline = [newTimelineItem, ...app.timeline];
+                  if (postType === '健康診断書受領') {
+                    // 既存のタイムラインに「健康診断書依頼」があるかチェック
+                    const hasHealthcheckRequest = app.timeline.some(item => item.action === '健康診断書依頼');
+                    if (!hasHealthcheckRequest) {
+                      // 自動的に「健康診断書依頼」のアクションを追加（影を付ける）
+                      const autoRequestItem = {
+                        id: app.timeline.length + 2,
+                        author: '自動記録',
+                        timestamp: '今',
+                        content: '健康診断書受領のため自動記録されました',
+                        action: '健康診断書依頼',
+                        replies: [],
+                        isAutoGenerated: true
+                      };
+                      finalTimeline = [newTimelineItem, autoRequestItem, ...app.timeline];
+                    }
+                  }
+                  
+                  return {
+                    ...app,
+                    status: newStatus,
+                    timeline: finalTimeline
+                  };
+                }
+              }
+              return app;
+            });
+            
+            setApplicants(updatedApplicants);
+            
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+            
+            setNewPost('');
+            setShowPostForm(false);
+            setPostType('');
+            setReplyTo(null);
           };
 
           if (currentView === 'detail' && selectedApplicant) {
@@ -1411,8 +1821,8 @@ window.apiClient = new APIClient();
                       }}
                     />
                   </div>
-                  <div className={`status-badge ${getStatusColor(displayStatus, selectedApplicant.applicationDate)}`}>
-                    {displayStatus}
+                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
+                    {selectedApplicant.status}
                   </div>
 
                   <div className="detail-info">
@@ -1525,34 +1935,6 @@ window.apiClient = new APIClient();
                                 💬 返信
                               </button>
                             </div>
-
-                          {showReplyFormForPostId === item.id && (
-                            <div className="post-form" style={{marginTop: '16px', marginLeft: '20px', borderLeft: '3px solid #e9ecef', paddingLeft: '16px'}}>
-                              <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>返信を追加</div>
-                              <textarea
-                                value={newPost}
-                                onChange={(e) => setNewPost(e.target.value)}
-                                className="form-textarea"
-                                rows="2"
-                                placeholder="返信を入力..."
-                              />
-                              <div className="form-actions">
-                                <button
-                                  onClick={() => {
-                                    setNewPost('');
-                                    setShowReplyFormForPostId(null); // Hide this reply form
-                                    setReplyTo(null);
-                                  }}
-                                  className="btn btn-secondary"
-                                >
-                                  キャンセル
-                                </button>
-                                <button onClick={() => { submitPost(); setShowReplyFormForPostId(null); }} className="btn btn-primary">
-                                  返信する
-                                </button>
-                              </div>
-                            </div>
-                          )}
 
                             {item.replies && item.replies.length > 0 && (
                               <div style={{marginLeft: '20px', marginTop: '16px', paddingLeft: '16px', borderLeft: '1px solid #e9ecef'}}>
