@@ -4,22 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>シンチョク. | 特養入居進捗管理アプリ</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon.ico">
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="api-client.js"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
             src: url('fonts/kirin-Regular.ttf') format('truetype');
-        }
-        @font-face {
-            font-family: 'Bokutoh';
-            src: url('fonts/BokutohRuikaMonoSeikyo-01.TTF') format('truetype');
         }
         * {
             box-sizing: border-box;
@@ -51,7 +42,7 @@
         }
         
         .main-title {
-            font-family: 'kirin-Regular';
+            font-family: 'kirin-Regular', sans-serif;
             font-size: 28px;
             font-weight: 500;
             color: #2c3e50;
@@ -129,17 +120,6 @@
             border-color: #adb5bd;
         }
         
-        .btn-ghost {
-            background: transparent;
-            color: #6c757d;
-            border: 1px solid #dee2e6;
-        }
-        
-        .btn-ghost:hover {
-            background: #f8f9fa;
-            color: #495057;
-        }
-        
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -214,343 +194,166 @@
             color: #721c24;
         }
         
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-            height: calc(100vh - 200px);
-            max-height: 800px;
-            max-width: 90%;
-            margin: 0 auto;
-        }
-        
-        /* モバイル対応 */
-        @media (max-width: 768px) {
-            .grid-layout {
-                grid-template-columns: 1fr;
-                height: auto;
-                max-height: none;
-                gap: 16px;
-            }
-            
-            .container {
-                max-width: 100%;
-                padding: 16px 12px;
-            }
-            
-            .page-header {
-                padding: 20px 16px;
-                margin-bottom: 16px;
-            }
-            
-            .main-title {
-                font-size: 24px;
-            }
-            
-            .timeline-panel, .actions-panel {
-                max-height: 400px;
-            }
-            
-            .card-content {
-                padding: 16px;
-                overflow-x: auto;
-            }
-            
-            .table {
-                min-width: 600px;
-                font-size: 13px;
-            }
-            
-            .table th, .table td {
-                padding: 12px 8px;
-                white-space: nowrap;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-                gap: 4px;
-            }
-            
-            .btn-small {
-                font-size: 11px;
-                padding: 4px 8px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 12px 8px;
-            }
-            
-            .page-header {
-                padding: 16px 12px;
-            }
-            
-            .main-title {
-                font-size: 20px;
-            }
-            
-            .subtitle {
-                font-size: 12px;
-            }
-            
-            .timeline-panel, .actions-panel {
-                max-height: 300px;
-            }
-            
-            .timeline-content, .actions-content {
-                padding: 16px;
-            }
-            
-            .timeline-header, .actions-header {
-                padding: 16px;
-            }
-            
-            .modal {
-                width: 95%;
-                max-height: 90vh;
-            }
-            
-            .modal-body {
-                padding: 20px;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            
-            .btn {
-                font-size: 13px;
-                padding: 10px 16px;
-            }
-            
-            .header-user-section {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-            
-            .detail-info {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-            
-            .stat-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
-            }
-            
-            .post-header {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            
-            .action-badge {
-                margin-left: 0;
-                margin-top: 4px;
-            }
-        }
-        
-        .timeline-panel {
-            display: flex;
-            flex-direction: column;
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        .timeline-header {
-            background: #f8f9fa;
-            padding: 20px 24px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .timeline-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-        
-        .timeline-item {
-            margin-bottom: 24px;
-            padding-left: 20px;
-            border-left: 2px solid #e9ecef;
-            position: relative;
-        }
-        
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 8px;
-            width: 10px;
-            height: 10px;
-            background: #ffffff;
-            border: 2px solid #2c3e50;
-            border-radius: 50%;
-        }
-        
-        .timeline-post {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        
-        .post-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .post-author {
-            font-weight: 500;
-            color: #2c3e50;
-            margin-right: 12px;
-        }
-        
-        .post-time {
-            color: #6c757d;
-            font-size: 13px;
-        }
-        
-        .post-content {
-            color: #495057;
-            line-height: 1.6;
-            margin-bottom: 16px;
-            white-space: pre-line;
-        }
-        
-        .post-actions {
-            display: flex;
-            gap: 16px;
-        }
-        
-        .post-action {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: none;
-            border: none;
-            color: #6c757d;
-            font-size: 13px;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-        
-        .post-action:hover {
-            color: #495057;
-        }
-        
-        .post-action.liked {
-            color: #dc3545;
-        }
-
-        .timeline-post {
-            position: relative;
-        }
-
-        .post-hover-actions {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            display: flex;
-            gap: 8px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .timeline-post:hover .post-hover-actions {
-            opacity: 1;
-        }
-
-        .btn-icon {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+        .login-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            color: #495057;
-            transition: all 0.2s ease;
-        }
-
-        .btn-icon:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 16px;
         }
         
-        .action-badge {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            margin-left: 12px;
-        }
-        
-        .actions-panel {
-            display: flex;
-            flex-direction: column;
+        .login-card {
             background: #ffffff;
             border: 1px solid #e9ecef;
-            border-radius: 12px;
-            overflow: hidden;
+            border-radius: 16px;
+            padding: 48px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 400px;
         }
         
-        .actions-header {
-            background: #f8f9fa;
-            padding: 20px 24px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
         }
         
-        .actions-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
+        .login-title {
+            font-family: 'kirin-Regular', sans-serif;
+            font-size: 32px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
         }
         
-        .action-list {
+        .login-subtitle {
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        .login-form {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 20px;
         }
         
-        .action-item {
+        .login-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .form-input {
             width: 100%;
             padding: 12px 16px;
             border: 1px solid #dee2e6;
             border-radius: 8px;
-            background: #ffffff;
-            color: #495057;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s ease;
             font-size: 14px;
+            background: #ffffff;
+            transition: all 0.2s ease;
         }
         
-        .action-item:hover:not(:disabled) {
-            background: #f8f9fa;
+        .form-input:focus {
+            outline: none;
             border-color: #2c3e50;
+            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
         }
         
-        .action-item:disabled {
+        .user-greeting {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .logout-btn {
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            margin-left: 16px;
+        }
+        
+        .logout-btn:hover {
+            color: #495057;
+        }
+        
+        .header-user-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .stat-count {
             background: #f8f9fa;
-            color: #adb5bd;
-            cursor: not-allowed;
+            color: #495057;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            min-width: auto;
+        }
+        
+        .btn-edit {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+        
+        .btn-edit:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+        
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .btn-delete:hover {
+            background: #ffcdd2;
+            color: #b71c1c;
         }
         
         .modal-overlay {
@@ -615,46 +418,6 @@
             padding: 32px;
         }
         
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: #495057;
-            font-size: 14px;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #ffffff;
-            transition: all 0.2s ease;
-        }
-        
-        /* モバイル用フォーム入力の最適化 */
-        @media (max-width: 768px) {
-            .form-input, .form-textarea {
-                font-size: 16px; /* iOSでズームを防ぐ */
-                padding: 14px 16px;
-            }
-            
-            .form-input:focus, .form-textarea:focus {
-                transform: none; /* モバイルで不要なアニメーション無効化 */
-            }
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: #2c3e50;
-            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-        }
-        
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -667,63 +430,6 @@
             display: flex;
             gap: 12px;
             justify-content: flex-end;
-        }
-        
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            color: #6c757d;
-            text-decoration: none;
-            margin-bottom: 24px;
-            font-size: 14px;
-            transition: color 0.2s ease;
-        }
-        
-        .back-link:hover {
-            color: #495057;
-        }
-        
-        .detail-header {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            padding: 32px;
-            margin-bottom: 24px;
-        }
-        
-        .detail-title {
-            font-size: 28px;
-            font-weight: 300;
-            color: #2c3e50;
-            margin-bottom: 12px;
-        }
-        
-        .detail-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 32px;
-            margin-top: 24px;
-        }
-        
-        .info-section h3 {
-            font-size: 16px;
-            font-weight: 500;
-            color: #495057;
-            margin-bottom: 12px;
-        }
-        
-        .info-item {
-            color: #6c757d;
-            margin-bottom: 4px;
-            font-size: 14px;
-        }
-        
-        .post-form {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
         }
         
         .form-textarea {
@@ -743,76 +449,6 @@
             outline: none;
             border-color: #2c3e50;
             box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-        }
-        
-        .form-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 16px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            color: #6c757d;
-            padding: 40px 20px;
-        }
-        
-        .empty-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-        
-        .stat-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        
-        .stat-count {
-            background: #f8f9fa;
-            color: #495057;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
-            min-width: auto;
-        }
-        
-        .btn-edit {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #bbdefb;
-        }
-        
-        .btn-edit:hover {
-            background: #bbdefb;
-            color: #0d47a1;
-        }
-        
-        .btn-delete {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-        
-        .btn-delete:hover {
-            background: #ffcdd2;
-            color: #b71c1c;
         }
         
         .delete-modal .modal-body {
@@ -848,104 +484,50 @@
             border-color: #bd2130;
         }
         
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 16px;
-        }
-        
-        .login-card {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 16px;
-            padding: 48px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        
-        .login-title {
-            font-family: 'kirin-Regular';
-            font-size: 32px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-        
-        .login-subtitle {
-            color: #6c757d;
-            font-size: 14px;
-            font-weight: 400;
-        }
-        
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .login-error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 16px;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .user-greeting {
-            color: #6c757d;
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-        
-        .logout-btn {
-            background: transparent;
-            border: none;
-            color: #6c757d;
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: underline;
-            padding: 0;
-            margin-left: 16px;
-        }
-        
-        .logout-btn:hover {
-            color: #495057;
-        }
-        
-        .header-user-section {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-        
-        .reply-item {
-            position: relative;
-            background: #fafafa;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-        }
-        
-        .reply-item .post-hover-actions {
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        
-        .reply-item:hover .post-hover-actions {
-            opacity: 1;
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding: 16px 12px;
+            }
+            
+            .page-header {
+                padding: 20px 16px;
+                margin-bottom: 16px;
+            }
+            
+            .main-title {
+                font-size: 24px;
+            }
+            
+            .card-content {
+                padding: 16px;
+                overflow-x: auto;
+            }
+            
+            .table {
+                min-width: 600px;
+                font-size: 13px;
+            }
+            
+            .table th, .table td {
+                padding: 12px 8px;
+                white-space: nowrap;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .btn-small {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
         }
     </style>
 </head>
@@ -953,6 +535,119 @@
     <div id="root"></div>
     
     <script type="text/babel">
+        // モックAPIクライアント（api-client.jsが無い場合の代替）
+        const createMockApiClient = () => {
+          return {
+            socket: null,
+            token: null,
+            
+            setToken(token) {
+              this.token = token;
+            },
+            
+            clearToken() {
+              this.token = null;
+            },
+            
+            connectSocket() {
+              console.log('WebSocket接続（モック）');
+            },
+            
+            disconnectSocket() {
+              console.log('WebSocket切断（モック）');
+            },
+            
+            on(event, callback) {
+              // イベントリスナーのモック
+            },
+            
+            off(event) {
+              // イベントリスナー削除のモック
+            },
+            
+            async getApplicants() {
+              try {
+                const stored = localStorage.getItem('careFacilityApplicants');
+                return stored ? JSON.parse(stored) : [];
+              } catch (error) {
+                console.error('Failed to load applicants:', error);
+                return [];
+              }
+            },
+            
+            async getApplicant(id) {
+              const applicants = await this.getApplicants();
+              return applicants.find(a => a.id == id);
+            },
+            
+            async createApplicant(data) {
+              const applicants = await this.getApplicants();
+              const newApplicant = {
+                id: Date.now(),
+                name: `${data.surname}　${data.givenName}`,
+                age: data.age,
+                careLevel: data.careLevel,
+                address: data.address || '',
+                kp: data.kp || '',
+                kpRelationship: data.kpRelationship || '',
+                kpContact: data.kpContact || '',
+                kpAddress: data.kpAddress || '',
+                careManager: data.careManager || '',
+                careManagerName: data.careManagerName || '',
+                cmContact: data.cmContact || '',
+                assignee: data.assignee || '担当者未定',
+                notes: data.notes || '',
+                status: '申込受付',
+                applicationDate: new Date().toISOString().split('T')[0],
+                timeline: [{
+                  id: 1,
+                  author: '自動',
+                  timestamp: new Date().toISOString(),
+                  content: '申込を受け付けました',
+                  action: null,
+                  replies: []
+                }]
+              };
+              applicants.push(newApplicant);
+              localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+              return newApplicant;
+            },
+            
+            async updateApplicant(id, data) {
+              const applicants = await this.getApplicants();
+              const index = applicants.findIndex(a => a.id == id);
+              if (index !== -1) {
+                applicants[index] = {
+                  ...applicants[index],
+                  name: `${data.surname}　${data.givenName}`,
+                  age: data.age,
+                  careLevel: data.careLevel,
+                  address: data.address || '',
+                  kp: data.kp || '',
+                  kpRelationship: data.kpRelationship || '',
+                  kpContact: data.kpContact || '',
+                  kpAddress: data.kpAddress || '',
+                  careManager: data.careManager || '',
+                  careManagerName: data.careManagerName || '',
+                  cmContact: data.cmContact || '',
+                  assignee: data.assignee,
+                  notes: data.notes || ''
+                };
+                localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
+              }
+              return applicants[index];
+            },
+            
+            async deleteApplicant(id) {
+              const applicants = await this.getApplicants();
+              const filtered = applicants.filter(a => a.id != id);
+              localStorage.setItem('careFacilityApplicants', JSON.stringify(filtered));
+            }
+          };
+        };
+
+        const apiClient = createMockApiClient();
+
         const CareFacilityApp = () => {
           const [isLoggedIn, setIsLoggedIn] = React.useState(false);
           const [currentUser, setCurrentUser] = React.useState(null);
@@ -967,24 +662,6 @@
           const [deletingApplicant, setDeletingApplicant] = React.useState(null);
           const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
           const [applicants, setApplicants] = React.useState([]);
-
-          const [newPost, setNewPost] = React.useState('');
-          const [showPostForm, setShowPostForm] = React.useState(false);
-          const [postType, setPostType] = React.useState('');
-          const [replyTo, setReplyTo] = React.useState(null);
-          const [likes, setLikes] = React.useState({});
-          const [editingPostId, setEditingPostId] = React.useState(null);
-          const [editingContent, setEditingContent] = React.useState('');
-          const [deletingPostId, setDeletingPostId] = React.useState(null);
-          const [editingReplyId, setEditingReplyId] = React.useState(null);
-          const [editingReplyContent, setEditingReplyContent] = React.useState('');
-          const [deletingReplyId, setDeletingReplyId] = React.useState(null);
-          const [editingReplyPostId, setEditingReplyPostId] = React.useState(null);
-          const [showEditPostModal, setShowEditPostModal] = React.useState(false);
-          const [showDeletePostModal, setShowDeletePostModal] = React.useState(false);
-          const [showEditReplyModal, setShowEditReplyModal] = React.useState(false);
-          const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
-          const [showActions, setShowActions] = React.useState(true);
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1002,7 +679,6 @@
             notes: ''
           });
 
-          // ユーザーデータ（サーバー側で管理）
           const users = {
             'a': { password: 'admin1', name: '藤堂　友未枝' },
             'b': { password: 'admin2', name: '吉野　隼人' },
@@ -1013,9 +689,9 @@
           React.useEffect(() => {
             const token = localStorage.getItem('authToken');
             if (token) {
-              // トークンの検証とユーザー情報の取得
               try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                // UTF-8対応のデコード
+                const payload = JSON.parse(decodeURIComponent(escape(atob(token))));
                 if (payload.exp * 1000 > Date.now()) {
                   setCurrentUser({ id: payload.id, name: payload.name });
                   setIsLoggedIn(true);
@@ -1032,7 +708,6 @@
             }
           }, []);
 
-          // 申込者データを読み込み
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
@@ -1042,68 +717,11 @@
             }
           };
 
-          // WebSocketリアルタイム同期の設定
-          React.useEffect(() => {
-            if (isLoggedIn && apiClient.socket) {
-              // 新しい申込者追加の通知
-              apiClient.on('newApplicant', (data) => {
-                console.log('New applicant added:', data);
-                loadApplicants(); // データを再読み込み
-              });
-
-              // 申込者情報更新の通知
-              apiClient.on('applicantUpdate', (data) => {
-                console.log('Applicant updated:', data);
-                loadApplicants(); // データを再読み込み
-              });
-
-              // ステータス更新の通知
-              apiClient.on('statusUpdate', (data) => {
-                console.log('Status updated:', data);
-                if (selectedApplicant && selectedApplicant.id == data.applicantId) {
-                  // 詳細ページが開いている場合は最新データを取得
-                  loadApplicantDetail(data.applicantId);
-                }
-                loadApplicants(); // 一覧も更新
-              });
-
-              // 新しい投稿の通知
-              apiClient.on('newPost', (post) => {
-                console.log('New post added:', post);
-                if (selectedApplicant && selectedApplicant.id == post.applicant_id) {
-                  // 詳細ページが開いている場合は最新データを取得
-                  loadApplicantDetail(post.applicant_id);
-                }
-              });
-            }
-
-            return () => {
-              if (apiClient) {
-                apiClient.off('newApplicant');
-                apiClient.off('applicantUpdate');
-                apiClient.off('statusUpdate');
-                apiClient.off('newPost');
-              }
-            };
-          }, [isLoggedIn, selectedApplicant]);
-
-          // 申込者詳細データを読み込み
-          const loadApplicantDetail = async (applicantId) => {
-            try {
-              const data = await apiClient.getApplicant(applicantId);
-              setSelectedApplicant(data);
-            } catch (error) {
-              console.error('Failed to load applicant detail:', error);
-            }
-          };
-
-          // ログイン処理
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
             
             try {
-              // 名前からIDを逆引き
               const userId = Object.keys(users).find(id => users[id].name === loginForm.id);
               const user = userId ? users[userId] : null;
               
@@ -1112,17 +730,17 @@
                 return;
               }
 
-              // サーバーサイド認証は一時的にスキップして、クライアント側で認証
               const userData = { id: userId, name: user.name };
               setCurrentUser(userData);
               setIsLoggedIn(true);
               
-              // 仮のトークンを作成（実際のサーバー実装時は削除）
-              const mockToken = btoa(JSON.stringify({
+              // UTF-8対応のトークン生成
+              const tokenData = JSON.stringify({
                 id: userId,
                 name: user.name,
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24時間
-              }));
+                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+              });
+              const mockToken = btoa(unescape(encodeURIComponent(tokenData)));
               
               localStorage.setItem('authToken', mockToken);
               apiClient.setToken(mockToken);
@@ -1136,7 +754,6 @@
             }
           };
 
-          // ログアウト処理
           const handleLogout = () => {
             setIsLoggedIn(false);
             setCurrentUser(null);
@@ -1147,7 +764,6 @@
             setApplicants([]);
           };
 
-          // ログインフォームの入力処理
           const handleLoginInputChange = (e) => {
             const { name, value } = e.target;
             setLoginForm(prev => ({
@@ -1155,15 +771,6 @@
               [name]: value
             }));
           };
-
-          // LocalStorage保存は不要（サーバー側で管理）
-          // React.useEffect(() => {
-          //   try {
-          //     localStorage.setItem('careFacilityApplicants', JSON.stringify(applicants));
-          //   } catch (error) {
-          //     console.error('Failed to save applicants to localStorage', error);
-          //   }
-          // }, [applicants]);
 
           const getStatusColor = (status, applicationDate) => {
             const today = new Date();
@@ -1173,18 +780,6 @@
             if (daysPassed > 10) return 'status-red';
             if (daysPassed > 5) return 'status-yellow';
             return 'status-green';
-          };
-
-          const formatTimeAgo = (timestamp) => {
-            const today = new Date();
-            const date = new Date(timestamp);
-            const diffTime = Math.abs(today - date);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 0) return '今日';
-            if (diffDays === 1) return '1日前';
-            if (diffDays < 7) return `${diffDays}日前`;
-            return timestamp;
           };
 
           const handleSort = (key) => {
@@ -1223,7 +818,6 @@
             return sortableApplicants;
           }, [applicants, sortConfig]);
 
-          // ログインしていない場合はログイン画面を表示
           if (!isLoggedIn) {
             return (
               <div className="login-container">
@@ -1341,7 +935,7 @@
               };
 
               await apiClient.updateApplicant(editingApplicant.id, applicantData);
-              await loadApplicants(); // 最新データを再読み込み
+              await loadApplicants();
               
               setFormData({
                 surname: '',
@@ -1370,7 +964,7 @@
           const confirmDelete = async () => {
             try {
               await apiClient.deleteApplicant(deletingApplicant.id);
-              await loadApplicants(); // 最新データを再読み込み
+              await loadApplicants();
               setDeletingApplicant(null);
               setShowDeleteModal(false);
             } catch (error) {
@@ -1405,7 +999,7 @@
               };
 
               await apiClient.createApplicant(applicantData);
-              await loadApplicants(); // 最新データを再読み込み
+              await loadApplicants();
               
               setFormData({
                 surname: '',
@@ -1429,594 +1023,6 @@
               alert('申込者の登録に失敗しました。');
             }
           };
-
-          const handleStatusUpdate = (type) => {
-            setPostType(type);
-            setShowPostForm(true);
-            setReplyTo(null);
-          };
-
-          const handleReply = (postId) => {
-            setReplyTo(postId);
-            setShowPostForm(true);
-            setPostType('');
-          };
-
-          const handleFreePost = () => {
-            setPostType('');
-            setShowPostForm(true);
-            setReplyTo(null);
-          };
-
-          const handleLike = (applicantId, postId) => {
-            const key = `${applicantId}-${postId}`;
-            setLikes(prev => ({
-              ...prev,
-              [key]: !prev[key]
-            }));
-          };
-
-          const handleEditPost = (post) => {
-            setEditingPostId(post.id);
-            setEditingContent(post.content);
-            setShowEditPostModal(true);
-          };
-
-          const handleSaveEditPost = () => {
-            if (!editingContent.trim()) return;
-
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingPostId) {
-                    return { ...post, content: editingContent };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setEditingPostId(null);
-            setEditingContent('');
-            setShowEditPostModal(false);
-          };
-
-          const handleCancelEditPost = () => {
-            setEditingPostId(null);
-            setEditingContent('');
-            setShowEditPostModal(false);
-          };
-
-          const handleDeletePost = (postId) => {
-            setDeletingPostId(postId);
-            setShowDeletePostModal(true);
-          };
-
-          const handleEditReply = (reply, postId) => {
-            setEditingReplyId(reply.id);
-            setEditingReplyPostId(postId);
-            setEditingReplyContent(reply.content);
-            setShowEditReplyModal(true);
-          };
-
-          const handleDeleteReply = (replyId, postId) => {
-            setDeletingReplyId(replyId);
-            setEditingReplyPostId(postId);
-            setShowDeleteReplyModal(true);
-          };
-
-          const handleSaveEditReply = () => {
-            if (!editingReplyContent.trim()) return;
-
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingReplyPostId) {
-                    const updatedReplies = post.replies.map(reply => {
-                      if (reply.id === editingReplyId) {
-                        return { ...reply, content: editingReplyContent };
-                      }
-                      return reply;
-                    });
-                    return { ...post, replies: updatedReplies };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setEditingReplyId(null);
-            setEditingReplyContent('');
-            setEditingReplyPostId(null);
-            setShowEditReplyModal(false);
-          };
-
-          const handleCancelEditReply = () => {
-            setEditingReplyId(null);
-            setEditingReplyContent('');
-            setEditingReplyPostId(null);
-            setShowEditReplyModal(false);
-          };
-
-          const confirmDeleteReply = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingReplyPostId) {
-                    const updatedReplies = post.replies.filter(reply => reply.id !== deletingReplyId);
-                    return { ...post, replies: updatedReplies };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setDeletingReplyId(null);
-            setEditingReplyPostId(null);
-            setShowDeleteReplyModal(false);
-          };
-
-          const confirmDeletePost = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
-
-            setApplicants(updatedApplicants);
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-
-            setDeletingPostId(null);
-            setShowDeletePostModal(false);
-          };
-
-          const submitPost = () => {
-            if (!newPost.trim()) return;
-            
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                if (replyTo) {
-                  const updatedTimeline = app.timeline.map(post => {
-                    if (post.id === replyTo) {
-                      return {
-                        ...post,
-                        replies: [...(post.replies || []), {
-                          id: Date.now(),
-                          author: currentUser.name,
-                          timestamp: '今',
-                          content: newPost
-                        }]
-                      };
-                    }
-                    return post;
-                  });
-                  return { ...app, timeline: updatedTimeline };
-                } else {
-                  const newTimelineItem = {
-                    id: app.timeline.length + 1,
-                    author: currentUser.name,
-                    timestamp: '今',
-                    content: newPost,
-                    action: postType || null,
-                    replies: []
-                  };
-                  
-                  let newStatus = app.status;
-                  
-                  // アクションに応じてステータスを更新
-                  const statusMapping = {
-                    '申込書受領': '申込書受領',
-                    '実調日程調整中': '実調日程調整中',
-                    '実調完了': '実調完了',
-                    '健康診断書依頼': '健康診断書待ち',
-                    '健康診断書受領': '健康診断書受領',
-                    '判定会議中': '判定会議中',
-                    '入居決定': '入居決定',
-                    '入居日調整中': '入居日調整中',
-                    '書類送付済': '書類送付済',
-                    '入居準備完了': '入居準備完了',
-                    '入居完了': '入居完了'
-                  };
-                  
-                  if (statusMapping[postType]) {
-                    newStatus = statusMapping[postType];
-                  }
-                  
-                  return {
-                    ...app,
-                    status: newStatus,
-                    timeline: [newTimelineItem, ...app.timeline]
-                  };
-                }
-              }
-              return app;
-            });
-            
-            setApplicants(updatedApplicants);
-            
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-            
-            setNewPost('');
-            setShowPostForm(false);
-            setPostType('');
-            setReplyTo(null);
-          };
-
-          if (currentView === 'detail' && selectedApplicant) {
-            const allActions = [
-              '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
-              '健康診断書受領', '判定会議中', '入居決定', '入居日調整中',
-              '書類送付済', '入居準備完了', '入居完了'
-            ];
-
-            const completedActions = selectedApplicant.timeline
-              .filter(item => item.action)
-              .map(item => item.action);
-
-            return (
-              <div className="container">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-                  <div style={{display: 'flex', alignItems: 'center'}}>
-                    <div 
-                      onClick={() => setCurrentView('list')}
-                      style={{
-                        fontFamily: 'kirin-Regular',
-                        fontSize: '28px',
-                        fontWeight: '500',
-                        color: '#2c3e50',
-                        letterSpacing: '-0.5px',
-                        cursor: 'pointer',
-                        transition: 'color 0.2s ease'
-                      }}
-                      onMouseOver={(e) => e.target.style.color = '#34495e'}
-                      onMouseOut={(e) => e.target.style.color = '#2c3e50'}
-                    >
-                      シンチョク.
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div className="user-greeting">
-                      こんにちは、{currentUser?.name}さん
-                    </div>
-                    <button onClick={handleLogout} className="logout-btn">
-                      ログアウト
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="detail-header">
-                  <h1 className="detail-title">
-                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
-                  </h1>
-                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
-                    {selectedApplicant.status}
-                  </div>
-
-                  <div className="detail-info">
-                    <div className="info-section">
-                      <h3>基本情報</h3>
-                      <div className="info-item">申込日: {selectedApplicant.applicationDate}</div>
-                      {selectedApplicant.assignee && <div className="info-item">担当者: {selectedApplicant.assignee}</div>}
-                      {selectedApplicant.address && <div className="info-item">住所: {selectedApplicant.address}</div>}
-                    </div>
-                    <div className="info-section">
-                      <h3>KP情報</h3>
-                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}</div>}
-                      {selectedApplicant.kpContact && <div className="info-item">連絡先: {selectedApplicant.kpContact}</div>}
-                      {selectedApplicant.kpAddress && <div className="info-item">住所: {selectedApplicant.kpAddress}</div>}
-                    </div>
-                    <div className="info-section">
-                      <h3>ケアマネ・SW情報</h3>
-                      {selectedApplicant.careManager && <div className="info-item">居宅介護支援事業所・病院: {selectedApplicant.careManager}</div>}
-                      {selectedApplicant.careManagerName && <div className="info-item">ケアマネ・SW: {selectedApplicant.careManagerName}</div>}
-                      {selectedApplicant.cmContact && <div className="info-item">連絡先: {selectedApplicant.cmContact}</div>}
-                    </div>
-                  </div>
-                  
-                  <div className="info-section" style={{marginTop: '24px'}}>
-                    <h3>特記・メモ</h3>
-                    <div className="info-item" style={{
-                      backgroundColor: '#f8f9fa',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      marginTop: '8px',
-                      minHeight: '40px',
-                      whiteSpace: 'pre-line',
-                      fontStyle: selectedApplicant.notes ? 'normal' : 'italic',
-                      color: selectedApplicant.notes ? '#495057' : '#6c757d'
-                    }}>
-                      {selectedApplicant.notes || 'メモはありません'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid-layout">
-                  <div className="timeline-panel">
-                    <div className="timeline-header">
-                      <h2 className="section-title">タイムライン</h2>
-                      <button onClick={handleFreePost} className="btn btn-primary">
-                        投稿
-                      </button>
-                    </div>
-
-                    <div className="timeline-content">
-                      {showPostForm && (
-                        <div className="post-form">
-                          {postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>{postType}</div>}
-                          {replyTo && <div style={{fontSize: '14px', color: '#6c757d', marginBottom: '8px'}}>
-                            返信先: {selectedApplicant.timeline.find(t => t.id === replyTo)?.author}
-                          </div>}
-                          {!postType && !replyTo && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
-                          <textarea
-                            value={newPost}
-                            onChange={(e) => setNewPost(e.target.value)}
-                            className="form-textarea"
-                            rows="3"
-                            placeholder="メモを入力するかアクションを追加..."
-                          />
-                          <div className="form-actions">
-                            <button
-                              onClick={() => {
-                                setShowPostForm(false);
-                                setPostType('');
-                                setReplyTo(null);
-                              }}
-                              className="btn btn-secondary"
-                            >
-                              キャンセル
-                            </button>
-                            <button onClick={submitPost} className="btn btn-primary">
-                              投稿
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedApplicant.timeline.map((item) => (
-                        <div key={item.id} className="timeline-item">
-                          <div className="timeline-post">
-                            <div className="post-header">
-                              <span className="post-author">{item.author}</span>
-                              <span className="post-time">
-                                {formatTimeAgo(item.timestamp)}
-                              </span>
-                              {item.action && (
-                                <span className="action-badge">
-                                  {item.action}
-                                </span>
-                              )}
-                            </div>
-                            <div className="post-hover-actions">
-                                <button onClick={() => handleEditPost(item)} className="btn-icon">✏️</button>
-                                <button onClick={() => handleDeletePost(item.id)} className="btn-icon">🗑️</button>
-                            </div>
-                            <div className="post-content">{item.content}</div>
-                            
-                            <div className="post-actions">
-                              <button
-                                onClick={() => handleLike(selectedApplicant.id, item.id)}
-                                className={`post-action ${likes[`${selectedApplicant.id}-${item.id}`] ? 'liked' : ''}`}
-                              >
-                                ♡ {likes[`${selectedApplicant.id}-${item.id}`] ? '1' : '0'}
-                              </button>
-                              <button onClick={() => handleReply(item.id)} className="post-action">
-                                💬 返信
-                              </button>
-                            </div>
-
-                            {item.replies && item.replies.length > 0 && (
-                              <div style={{marginLeft: '20px', marginTop: '16px', paddingLeft: '16px', borderLeft: '1px solid #e9ecef'}}>
-                                {item.replies.map((reply) => (
-                                  <div key={reply.id} className="reply-item">
-                                    <div className="post-hover-actions">
-                                      <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon">✏️</button>
-                                      <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon">🗑️</button>
-                                    </div>
-                                    <div style={{fontSize: '14px', marginBottom: '4px'}}>
-                                      <span style={{fontWeight: '500', color: '#2c3e50'}}>{reply.author}</span>
-                                      <span style={{color: '#6c757d', marginLeft: '8px'}}>
-                                        · {formatTimeAgo(reply.timestamp)}
-                                      </span>
-                                    </div>
-                                    <div style={{fontSize: '14px', color: '#495057', whiteSpace: 'pre-line'}}>{reply.content}</div>
-                                    <div style={{marginTop: '8px', display: 'flex', gap: '16px'}}>
-                                      <button
-                                        onClick={() => handleLike(selectedApplicant.id, reply.id)}
-                                        className={`post-action ${likes[`${selectedApplicant.id}-${reply.id}`] ? 'liked' : ''}`}
-                                        style={{fontSize: '12px'}}
-                                      >
-                                        ♡ {likes[`${selectedApplicant.id}-${reply.id}`] ? '1' : '0'}
-                                      </button>
-                                      <button onClick={() => handleReply(item.id)} className="post-action" style={{fontSize: '12px'}}>
-                                        💬 返信
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="actions-panel">
-                    <div className="actions-header">
-                      <h2 className="section-title">アクション</h2>
-                      <button
-                        onClick={() => setShowActions(!showActions)}
-                        className="btn btn-ghost"
-                      >
-                        {showActions ? '閉じる' : '表示'}
-                      </button>
-                    </div>
-                    
-                    <div className="actions-content">
-                      {showActions ? (
-                        <div className="action-list">
-                          {allActions.map((action, index) => {
-                            const isCompleted = completedActions.includes(action);
-                            return (
-                              <button
-                                key={index}
-                                onClick={() => handleStatusUpdate(action)}
-                                disabled={isCompleted}
-                                className="action-item"
-                                style={{
-                                  backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
-                                  color: isCompleted ? '#adb5bd' : '#495057'
-                                }}
-                              >
-                                {isCompleted ? '✓ ' : ''}{action}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="empty-state">
-                          <div className="empty-icon">📋</div>
-                          <div>「表示」ボタンでアクション一覧を確認できます</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {showEditPostModal && (
-                  <div className="modal-overlay" onClick={handleCancelEditPost}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h3 className="modal-title">投稿を編集</h3>
-                        <button className="modal-close" onClick={handleCancelEditPost}>×</button>
-                      </div>
-                      <div className="modal-body">
-                        <textarea
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          className="form-textarea"
-                          rows="5"
-                        />
-                      </div>
-                      <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={handleCancelEditPost}>
-                          キャンセル
-                        </button>
-                        <button onClick={handleSaveEditPost} className="btn btn-primary">
-                          保存
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showDeletePostModal && (
-                  <div className="modal-overlay" onClick={() => setShowDeletePostModal(false)}>
-                    <div className="modal delete-modal" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h3 className="modal-title">投稿を削除</h3>
-                        <button className="modal-close" onClick={() => setShowDeletePostModal(false)}>×</button>
-                      </div>
-                      <div className="modal-body">
-                        <div className="delete-icon">⚠️</div>
-                        <div className="delete-message">
-                          この投稿を削除しますか？
-                        </div>
-                        <div className="delete-submessage">
-                          この操作は取り消すことができません。
-                        </div>
-                      </div>
-                      <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={() => setShowDeletePostModal(false)}>
-                          キャンセル
-                        </button>
-                        <button onClick={confirmDeletePost} className="btn btn-danger">
-                          削除
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showEditReplyModal && (
-                  <div className="modal-overlay" onClick={handleCancelEditReply}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h3 className="modal-title">返信を編集</h3>
-                        <button className="modal-close" onClick={handleCancelEditReply}>×</button>
-                      </div>
-                      <div className="modal-body">
-                        <textarea
-                          value={editingReplyContent}
-                          onChange={(e) => setEditingReplyContent(e.target.value)}
-                          className="form-textarea"
-                          rows="5"
-                        />
-                      </div>
-                      <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={handleCancelEditReply}>
-                          キャンセル
-                        </button>
-                        <button onClick={handleSaveEditReply} className="btn btn-primary">
-                          保存
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showDeleteReplyModal && (
-                  <div className="modal-overlay" onClick={() => setShowDeleteReplyModal(false)}>
-                    <div className="modal delete-modal" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h3 className="modal-title">返信を削除</h3>
-                        <button className="modal-close" onClick={() => setShowDeleteReplyModal(false)}>×</button>
-                      </div>
-                      <div className="modal-body">
-                        <div className="delete-icon">⚠️</div>
-                        <div className="delete-message">
-                          この返信を削除しますか？
-                        </div>
-                        <div className="delete-submessage">
-                          この操作は取り消すことができません。
-                        </div>
-                      </div>
-                      <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteReplyModal(false)}>
-                          キャンセル
-                        </button>
-                        <button onClick={confirmDeleteReply} className="btn btn-danger">
-                          削除
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          }
 
           return (
             <div className="container">
@@ -2080,13 +1086,7 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => (
-                        <tr 
-                          key={applicant.id}
-                          onClick={() => {
-                            setSelectedApplicant(applicant);
-                            setCurrentView('detail');
-                          }}
-                        >
+                        <tr key={applicant.id}>
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
                           <td>{applicant.age}歳</td>
@@ -2549,18 +1549,5 @@
 
         ReactDOM.render(<CareFacilityApp />, document.getElementById('root'));
     </script>
-    
-    <footer style="margin-top: 40px; padding: 20px 0; border-top: 1px solid #e9ecef; text-align: center; background: #f8f9fa;">
-        <div style="max-width: 800px; margin: 0 auto;">
-            <div style="margin-bottom: 16px;">
-                <a href="/disclaimer.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">免責事項</a>
-                <a href="/privacy.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">プライバシーポリシー</a>
-                <a href="/credits.html" style="color: #6c757d; text-decoration: none; margin: 0 16px; font-size: 14px;">著作権・クレジット</a>
-            </div>
-            <div style="color: #adb5bd; font-size: 12px;">
-                © 2025 FractiqLabs. All rights reserved.
-            </div>
-        </div>
-    </footer>
 </body>
 </html>
