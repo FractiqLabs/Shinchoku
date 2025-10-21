@@ -8,6 +8,9 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
@@ -1044,7 +1047,8 @@
           };
         };
 
-        const apiClient = createMockApiClient();
+        // Supabase APIクライアントを使用（モック版と切り替え可能）
+        const apiClient = createSupabaseApiClient();
 
         const CareFacilityApp = () => {
           const [isLoggedIn, setIsLoggedIn] = React.useState(false);
@@ -1138,36 +1142,23 @@
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
-            
-            try {
-              const userId = Object.keys(users).find(id => users[id].name === loginForm.id);
-              const user = userId ? users[userId] : null;
-              
-              if (!user || user.password !== loginForm.password) {
-                setLoginError('ユーザーまたはパスワードが正しくありません。');
-                return;
-              }
 
-              const userData = { id: userId, name: user.name };
-              setCurrentUser(userData);
+            try {
+              // Supabaseでログイン
+              const response = await apiClient.login(loginForm.id, loginForm.password);
+
+              setCurrentUser(response.user);
               setIsLoggedIn(true);
-              
-              const tokenData = JSON.stringify({
-                id: userId,
-                name: user.name,
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
-              });
-              const mockToken = btoa(unescape(encodeURIComponent(tokenData)));
-              
-              localStorage.setItem('authToken', mockToken);
-              apiClient.setToken(mockToken);
+
+              localStorage.setItem('authToken', response.token);
+              apiClient.setToken(response.token);
               apiClient.connectSocket();
-              
+
               setLoginForm({ id: '', password: '' });
               await loadApplicants();
             } catch (error) {
               console.error('Login failed:', error);
-              setLoginError('ログインに失敗しました。');
+              setLoginError(error.message || 'ログインに失敗しました。');
             }
           };
 
@@ -1466,38 +1457,32 @@
             setReplyTo(null);
           };
 
-          const handleInlineReplySubmit = () => {
+          const handleInlineReplySubmit = async () => {
             if (!inlineReplyContent.trim()) return;
 
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === replyTo) {
-                    return {
-                      ...post,
-                      replies: [...(post.replies || []), {
-                        id: Date.now(),
-                        author: currentUser.name,
-                        timestamp: new Date().toISOString(),
-                        content: inlineReplyContent
-                      }]
-                    };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
+            try {
+              // Supabaseに返信を作成
+              await apiClient.createTimelinePost(
+                selectedApplicant.id,
+                currentUser.name,
+                inlineReplyContent,
+                null,
+                replyTo
+              );
 
-            setApplicants(updatedApplicants);
-            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
-            
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-            
-            setInlineReplyContent('');
-            setReplyTo(null);
+              // 申込者データを再取得
+              const updatedApplicants = await apiClient.getApplicants();
+              setApplicants(updatedApplicants);
+
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setInlineReplyContent('');
+              setReplyTo(null);
+            } catch (error) {
+              console.error('返信の作成に失敗しました:', error);
+              alert('返信の作成に失敗しました: ' + error.message);
+            }
           };
 
           const handleInlineReplyCancel = () => {
@@ -1547,75 +1532,32 @@
 
           const submitPost = async () => {
             if (!newPost.trim()) return;
-            
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                if (replyTo) {
-                  const updatedTimeline = app.timeline.map(post => {
-                    if (post.id === replyTo) {
-                      return {
-                        ...post,
-                        replies: [...(post.replies || []), {
-                          id: Date.now(),
-                          author: currentUser.name,
-                          timestamp: new Date().toISOString(),
-                          content: newPost
-                        }]
-                      };
-                    }
-                    return post;
-                  });
-                  return { ...app, timeline: updatedTimeline };
-                } else {
-                  const newTimelineItem = {
-                    id: Date.now(),
-                    author: currentUser.name,
-                    timestamp: new Date().toISOString(),
-                    content: newPost,
-                    action: postType || null,
-                    replies: []
-                  };
-                  
-                  let newStatus = app.status;
-                  
-                  const statusMapping = {
-                    '申込書受領': '申込書受領',
-                    '実調日程調整中': '実調日程調整中',
-                    '実調完了': '実調完了',
-                    '健康診断書依頼': '健康診断書待ち',
-                    '健康診断書受領': '健康診断書受領',
-                    '判定会議中': '判定会議中',
-                    '入居決定': '入居決定',
-                    '入居日調整中': '入居日調整中',
-                    '書類送付済': '書類送付済',
-                    '入居準備完了': '入居準備完了',
-                    '入居完了': '入居完了'
-                  };
-                  
-                  if (statusMapping[postType]) {
-                    newStatus = statusMapping[postType];
-                  }
-                  
-                  return {
-                    ...app,
-                    status: newStatus,
-                    timeline: [newTimelineItem, ...(app.timeline || [])]
-                  };
-                }
-              }
-              return app;
-            });
-            
-            setApplicants(updatedApplicants);
-            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
-            
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
-            
-            setNewPost('');
-            setShowPostForm(false);
-            setPostType('');
-            setReplyTo(null);
+
+            try {
+              // Supabaseにタイムライン投稿を作成
+              await apiClient.createTimelinePost(
+                selectedApplicant.id,
+                currentUser.name,
+                newPost,
+                postType || null,
+                replyTo
+              );
+
+              // 申込者データを再取得
+              const updatedApplicants = await apiClient.getApplicants();
+              setApplicants(updatedApplicants);
+
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setNewPost('');
+              setShowPostForm(false);
+              setPostType('');
+              setReplyTo(null);
+            } catch (error) {
+              console.error('投稿の作成に失敗しました:', error);
+              alert('投稿の作成に失敗しました: ' + error.message);
+            }
           };
 
           const handleEditPost = (post) => {
@@ -1646,7 +1588,6 @@
               });
 
               setApplicants(updatedApplicants);
-              localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
@@ -1685,7 +1626,6 @@
               });
 
               setApplicants(updatedApplicants);
-              localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
