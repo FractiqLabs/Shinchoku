@@ -1101,7 +1101,8 @@
             careManagerName: '',
             cmContact: '',
             assignee: '',
-            notes: ''
+            notes: '',
+            applicationDate: ''
           });
 
           const users = {
@@ -1260,7 +1261,8 @@
               careManagerName: applicant.careManagerName || '',
               cmContact: applicant.cmContact,
               assignee: applicant.assignee,
-              notes: applicant.notes || ''
+              notes: applicant.notes || '',
+              applicationDate: applicant.applicationDate || ''
             });
             setShowEditModal(true);
           };
@@ -1273,11 +1275,11 @@
 
           const handleEditSubmit = async (e) => {
             e.preventDefault();
-            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel) {
+            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
               alert('必須項目を入力してください。');
               return;
             }
-            
+
             try {
               const applicantData = {
                 surname: formData.surname,
@@ -1293,12 +1295,13 @@
                 careManagerName: formData.careManagerName,
                 cmContact: formData.cmContact,
                 assignee: formData.assignee,
-                notes: formData.notes
+                notes: formData.notes,
+                applicationDate: formData.applicationDate
               };
 
               await apiClient.updateApplicant(editingApplicant.id, applicantData);
               await loadApplicants();
-              
+
               setFormData({
                 surname: '',
                 givenName: '',
@@ -1313,7 +1316,8 @@
                 careManagerName: '',
                 cmContact: '',
                 assignee: '',
-                notes: ''
+                notes: '',
+                applicationDate: ''
               });
               setEditingApplicant(null);
               setShowEditModal(false);
@@ -1337,11 +1341,11 @@
 
           const handleSubmit = async (e) => {
             e.preventDefault();
-            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel) {
+            if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
               alert('必須項目を入力してください。');
               return;
             }
-            
+
             try {
               const applicantData = {
                 surname: formData.surname,
@@ -1357,12 +1361,13 @@
                 careManagerName: formData.careManagerName,
                 cmContact: formData.cmContact,
                 assignee: formData.assignee || '担当者未定',
-                notes: formData.notes
+                notes: formData.notes,
+                applicationDate: formData.applicationDate
               };
 
               await apiClient.createApplicant(applicantData);
               await loadApplicants();
-              
+
               setFormData({
                 surname: '',
                 givenName: '',
@@ -1377,7 +1382,8 @@
                 careManagerName: '',
                 cmContact: '',
                 assignee: '',
-                notes: ''
+                notes: '',
+                applicationDate: ''
               });
               setShowModal(false);
             } catch (error) {
@@ -2473,6 +2479,17 @@
                             placeholder="特記事項やメモを入力してください..."
                           />
                         </div>
+                        <div className="form-group">
+                          <label className="form-label">申込日 *</label>
+                          <input
+                            type="date"
+                            name="applicationDate"
+                            value={formData.applicationDate}
+                            onChange={handleInputChange}
+                            className="form-input"
+                            required
+                          />
+                        </div>
                       </form>
                     </div>
                     <div className="modal-footer">
@@ -2669,6 +2686,17 @@
                             className="form-textarea"
                             rows="3"
                             placeholder="特記事項やメモを入力してください..."
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">申込日 *</label>
+                          <input
+                            type="date"
+                            name="applicationDate"
+                            value={formData.applicationDate}
+                            onChange={handleInputChange}
+                            className="form-input"
+                            required
                           />
                         </div>
                       </form>

@@ -166,7 +166,7 @@ const createSupabaseApiClient = () => {
           assignee: data.assignee || '担当者未定',
           notes: data.notes || '',
           status: '申込受付',
-          application_date: new Date().toISOString().split('T')[0]
+          application_date: data.applicationDate
         }])
         .select()
         .single();
@@ -205,6 +205,7 @@ const createSupabaseApiClient = () => {
           cm_contact: data.cmContact || '',
           assignee: data.assignee,
           notes: data.notes || '',
+          application_date: data.applicationDate,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
