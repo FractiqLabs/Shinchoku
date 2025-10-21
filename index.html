@@ -1112,19 +1112,13 @@
           React.useEffect(() => {
             const token = localStorage.getItem('authToken');
             if (token) {
-              try {
-                const payload = JSON.parse(decodeURIComponent(escape(atob(token))));
-                if (payload.exp * 1000 > Date.now()) {
-                  setCurrentUser({ id: payload.id, name: payload.name });
-                  setIsLoggedIn(true);
-                  apiClient.setToken(token);
-                  apiClient.connectSocket();
-                  loadApplicants();
-                } else {
-                  localStorage.removeItem('authToken');
-                }
-              } catch (error) {
-                console.error('Token validation failed:', error);
+              // Supabaseのdummy-tokenはそのまま使用（検証スキップ）
+              if (token.startsWith('dummy-token-')) {
+                // トークンから簡易的にユーザー情報を復元
+                // 実際のアプリではSupabaseセッションを使うべき
+                apiClient.setToken(token);
+                // トークンが有効ならログイン状態を維持しない
+                // ログアウト後は再ログインが必要
                 localStorage.removeItem('authToken');
               }
             }

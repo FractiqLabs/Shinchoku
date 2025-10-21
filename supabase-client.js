@@ -91,16 +91,22 @@ const createSupabaseApiClient = () => {
             // 各投稿の返信を取得
             const timelineWithReplies = await Promise.all(
               (timelineData || []).map(async (post) => {
-                const { data: replies, error: repliesError } = await supabase
+                const { data: repliesData, error: repliesError } = await supabase
                   .from('timeline_posts')
                   .select('*')
                   .eq('parent_post_id', post.id)
                   .order('created_at', { ascending: true });
 
+                // 返信にもtimestampを追加
+                const replies = (repliesData || []).map(reply => ({
+                  ...reply,
+                  timestamp: reply.created_at
+                }));
+
                 return {
                   ...post,
                   timestamp: post.created_at,
-                  replies: replies || []
+                  replies: replies
                 };
               })
             );
