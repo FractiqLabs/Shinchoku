@@ -925,6 +925,19 @@
             font-size: 14px;
             pointer-events: none;
         }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                max-height: 200px;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1775,7 +1788,7 @@
           if (currentView === 'detail' && selectedApplicant) {
             const allActions = [
               '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
-              '健康診断書受領', '判定会議中', '入居決定', '入居不可', '入居日調整中',
+              '健康診断書受領', '判定会議中', '入居可否', '入居日調整中',
               '書類送付済', '入居準備完了', '入居完了', 'キャンセル'
             ];
 
@@ -1785,6 +1798,9 @@
 
             // 終了状態チェック（入居不可またはキャンセルが投稿されているか）
             const isTerminated = completedActions.includes('入居不可') || completedActions.includes('キャンセル');
+
+            // 入居可否の展開状態を管理
+            const [showAdmissionDecision, setShowAdmissionDecision] = React.useState(false);
 
             return (
               <div className="container">
@@ -2054,22 +2070,95 @@
                       {showActions ? (
                         <div className="action-list">
                           {allActions.map((action, index) => {
+                            // 入居可否ボタンの処理
+                            if (action === '入居可否') {
+                              const isAdmissionDecided = completedActions.includes('入居決定');
+                              const isAdmissionRejected = completedActions.includes('入居不可');
+                              const isAdmissionCompleted = isAdmissionDecided || isAdmissionRejected;
+                              const shouldDisableAdmission = isTerminated && !isAdmissionRejected;
+
+                              return (
+                                <div key={index}>
+                                  <button
+                                    onClick={() => !isAdmissionCompleted && !shouldDisableAdmission && setShowAdmissionDecision(!showAdmissionDecision)}
+                                    disabled={isAdmissionCompleted || shouldDisableAdmission}
+                                    className="action-item"
+                                    style={{
+                                      backgroundColor: isAdmissionCompleted ? '#f8f9fa' : '#ffffff',
+                                      color: (isAdmissionCompleted || shouldDisableAdmission) ? '#adb5bd' : '#495057',
+                                      cursor: (isAdmissionCompleted || shouldDisableAdmission) ? 'not-allowed' : 'pointer'
+                                    }}
+                                    title={isAdmissionCompleted ? '完了済み' : shouldDisableAdmission ? '案件終了のため実行不可' : '入居可否を選択'}
+                                  >
+                                    {isAdmissionCompleted ? '✓ ' : ''}{action}
+                                  </button>
+                                  {showAdmissionDecision && !isAdmissionCompleted && !shouldDisableAdmission && (
+                                    <div style={{
+                                      marginLeft: '20px',
+                                      marginTop: '8px',
+                                      marginBottom: '8px',
+                                      animation: 'slideDown 0.3s ease-out',
+                                      overflow: 'hidden'
+                                    }}>
+                                      <button
+                                        onClick={() => handleStatusUpdate('入居決定')}
+                                        className="action-item"
+                                        style={{
+                                          backgroundColor: '#ffffff',
+                                          color: '#495057',
+                                          marginBottom: '4px'
+                                        }}
+                                        title="入居決定を実行"
+                                      >
+                                        入居決定
+                                      </button>
+                                      <button
+                                        onClick={() => handleStatusUpdate('入居不可')}
+                                        className="action-item"
+                                        style={{
+                                          backgroundColor: '#ffebee',
+                                          color: '#495057'
+                                        }}
+                                        title="入居不可を実行"
+                                      >
+                                        入居不可
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            // キャンセルボタンの処理
+                            if (action === 'キャンセル') {
+                              const isCompleted = completedActions.includes(action);
+                              const shouldDisable = isCompleted || (isTerminated && !isCompleted);
+
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => handleStatusUpdate(action)}
+                                  disabled={shouldDisable}
+                                  className="action-item"
+                                  style={{
+                                    backgroundColor: isCompleted ? '#f8f9fa' : '#fff5f5',
+                                    color: shouldDisable ? '#adb5bd' : '#e57373',
+                                    border: isCompleted ? '1px solid #dee2e6' : '1px solid #ffcdd2',
+                                    borderTop: '2px solid #dee2e6',
+                                    marginTop: '12px',
+                                    paddingTop: '16px'
+                                  }}
+                                  title={isCompleted ? '完了済み' : shouldDisable ? '案件終了のため実行不可' : 'キャンセルを実行'}
+                                >
+                                  {isCompleted ? '✓ ' : ''}{action}
+                                </button>
+                              );
+                            }
+
+                            // 通常のアクションボタン
                             const isCompleted = completedActions.includes(action);
                             const isTerminatedAction = action === '入居不可' || action === 'キャンセル';
                             const shouldDisable = isCompleted || (isTerminated && !isTerminatedAction);
-
-                            // 視覚的区別のためのスタイル
-                            let backgroundColor = '#ffffff';
-                            let borderTop = 'none';
-
-                            if (isCompleted) {
-                              backgroundColor = '#f8f9fa';
-                            } else if (action === '入居不可') {
-                              backgroundColor = '#ffebee';
-                            } else if (action === 'キャンセル') {
-                              backgroundColor = '#f5f5f5';
-                              borderTop = '2px solid #dee2e6';
-                            }
 
                             return (
                               <button
@@ -2078,11 +2167,8 @@
                                 disabled={shouldDisable}
                                 className="action-item"
                                 style={{
-                                  backgroundColor: backgroundColor,
-                                  color: shouldDisable ? '#adb5bd' : '#495057',
-                                  borderTop: index > 0 && action === 'キャンセル' ? borderTop : 'none',
-                                  marginTop: index > 0 && action === 'キャンセル' ? '12px' : '0',
-                                  paddingTop: index > 0 && action === 'キャンセル' ? '16px' : '12px'
+                                  backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
+                                  color: shouldDisable ? '#adb5bd' : '#495057'
                                 }}
                                 title={isCompleted ? '完了済み' : shouldDisable ? '案件終了のため実行不可' : `${action}を実行`}
                               >
