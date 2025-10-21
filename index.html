@@ -1497,7 +1497,7 @@
             const timelineWithActions = applicant.timeline
               .filter(post => post.action && !post.parent_post_id)
               .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at));
-            
+
             if (timelineWithActions.length > 0) {
               const latestActionPost = timelineWithActions[0];
               const statusMapping = {
@@ -1508,18 +1508,20 @@
                 '健康診断書受領': '健康診断書受領',
                 '判定会議中': '判定会議中',
                 '入居決定': '入居決定',
+                '入居不可': '入居不可',
                 '入居日調整中': '入居日調整中',
                 '書類送付済': '書類送付済',
                 '入居準備完了': '入居準備完了',
-                '入居完了': '入居完了'
+                '入居完了': '入居完了',
+                'キャンセル': 'キャンセル'
               };
-              
+
               const newStatus = statusMapping[latestActionPost.action];
               if (newStatus) {
                 return { ...applicant, status: newStatus };
               }
             }
-            
+
             return applicant;
           };
 
@@ -1773,13 +1775,16 @@
           if (currentView === 'detail' && selectedApplicant) {
             const allActions = [
               '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
-              '健康診断書受領', '判定会議中', '入居決定', '入居日調整中',
-              '書類送付済', '入居準備完了', '入居完了'
+              '健康診断書受領', '判定会議中', '入居決定', '入居不可', '入居日調整中',
+              '書類送付済', '入居準備完了', '入居完了', 'キャンセル'
             ];
 
             const completedActions = (selectedApplicant.timeline || [])
               .filter(item => item.action)
               .map(item => item.action);
+
+            // 終了状態チェック（入居不可またはキャンセルが投稿されているか）
+            const isTerminated = completedActions.includes('入居不可') || completedActions.includes('キャンセル');
 
             return (
               <div className="container">
@@ -2050,18 +2055,36 @@
                         <div className="action-list">
                           {allActions.map((action, index) => {
                             const isCompleted = completedActions.includes(action);
-                            
+                            const isTerminatedAction = action === '入居不可' || action === 'キャンセル';
+                            const shouldDisable = isCompleted || (isTerminated && !isTerminatedAction);
+
+                            // 視覚的区別のためのスタイル
+                            let backgroundColor = '#ffffff';
+                            let borderTop = 'none';
+
+                            if (isCompleted) {
+                              backgroundColor = '#f8f9fa';
+                            } else if (action === '入居不可') {
+                              backgroundColor = '#ffebee';
+                            } else if (action === 'キャンセル') {
+                              backgroundColor = '#f5f5f5';
+                              borderTop = '2px solid #dee2e6';
+                            }
+
                             return (
                               <button
                                 key={index}
                                 onClick={() => handleStatusUpdate(action)}
-                                disabled={isCompleted}
+                                disabled={shouldDisable}
                                 className="action-item"
                                 style={{
-                                  backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
-                                  color: isCompleted ? '#adb5bd' : '#495057'
+                                  backgroundColor: backgroundColor,
+                                  color: shouldDisable ? '#adb5bd' : '#495057',
+                                  borderTop: index > 0 && action === 'キャンセル' ? borderTop : 'none',
+                                  marginTop: index > 0 && action === 'キャンセル' ? '12px' : '0',
+                                  paddingTop: index > 0 && action === 'キャンセル' ? '16px' : '12px'
                                 }}
-                                title={isCompleted ? '完了済み' : `${action}を実行`}
+                                title={isCompleted ? '完了済み' : shouldDisable ? '案件終了のため実行不可' : `${action}を実行`}
                               >
                                 {isCompleted ? '✓ ' : ''}{action}
                               </button>
