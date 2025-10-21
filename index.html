@@ -1970,8 +1970,12 @@
                               </div>
                               {currentUser && item.author === currentUser.name && (
                                 <div className="post-hover-actions">
-                                  <button onClick={() => handleEditPost(item)} className="btn-icon">✏️</button>
-                                  <button onClick={() => handleDeletePost(item.id)} className="btn-icon">🗑️</button>
+                                  <button onClick={() => handleEditPost(item)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
+                                    <img src="edit-icon.png" alt="編集" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                  </button>
+                                  <button onClick={() => handleDeletePost(item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
+                                    <img src="delete-icon.png" alt="削除" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                  </button>
                                 </div>
                               )}
                               <div className="post-content">{item.content}</div>
@@ -1994,8 +1998,12 @@
                                     <div key={reply.id} className="reply-item">
                                       {currentUser && reply.author === currentUser.name && (
                                         <div className="post-hover-actions">
-                                          <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon">✏️</button>
-                                          <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon">🗑️</button>
+                                          <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
+                                            <img src="edit-icon.png" alt="編集" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                          </button>
+                                          <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
+                                            <img src="delete-icon.png" alt="削除" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                          </button>
                                         </div>
                                       )}
                                       <div style={{fontSize: '14px', marginBottom: '4px'}}>
@@ -2383,17 +2391,30 @@
                           <td style={{fontWeight: '500', color: '#495057'}}>{applicant.assignee}</td>
                           <td onClick={(e) => e.stopPropagation()}>
                             <div className="action-buttons">
-                              <button 
+                              <button
                                 className="btn btn-small btn-edit"
                                 onClick={(e) => handleEdit(applicant, e)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: '4px',
+                                  cursor: 'pointer'
+                                }}
                               >
-                                編集
+                                <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
-                              <button 
+                              <button
                                 className="btn btn-small btn-delete"
                                 onClick={(e) => handleDelete(applicant, e)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: '4px',
+                                  cursor: 'pointer',
+                                  marginLeft: '8px'
+                                }}
                               >
-                                削除
+                                <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
                             </div>
                           </td>
