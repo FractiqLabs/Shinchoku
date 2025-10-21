@@ -1813,7 +1813,7 @@
                 </div>
                 
                 <div className="detail-header">
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <h1 className="detail-title">
                       {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
                     </h1>
@@ -1834,7 +1834,7 @@
                       onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
                     />
                   </div>
-                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
+                  <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`} style={{marginTop: '16px'}}>
                     {selectedApplicant.status}
                   </div>
 
