@@ -258,6 +258,19 @@ class APIClient {
     });
   }
 
+  async updatePost(applicantId, postId, content) {
+    return await this.request(`/applicants/${applicantId}/posts/${postId}`, {
+      method: 'PUT',
+      body: { content },
+    });
+  }
+
+  async deletePost(applicantId, postId) {
+    return await this.request(`/applicants/${applicantId}/posts/${postId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // WebSocket関連
   connectSocket() {
     if (this.socket && this.socket.connected) {

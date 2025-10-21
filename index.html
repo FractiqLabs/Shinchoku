@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Cache buster: 2025年 10月20日 月曜日 23時30分00秒 JST -->
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -240,30 +241,23 @@
         }
         
         .timeline-item {
-            margin-bottom: 24px;
-            padding-left: 20px;
-            border-left: 2px solid #e9ecef;
+            margin-bottom: 16px;
             position: relative;
-        }
-        
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 8px;
-            width: 10px;
-            height: 10px;
-            background: #ffffff;
-            border: 2px solid #2c3e50;
-            border-radius: 50%;
         }
         
         .timeline-post {
             background: #ffffff;
             border: 1px solid #e9ecef;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 20px;
             position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .timeline-post:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
         }
         
         .post-header {
@@ -361,12 +355,13 @@
         
         .reply-item {
             position: relative;
-            background: #fafafa;
-            padding: 12px;
-            border-radius: 6px;
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
             margin-bottom: 12px;
-            margin-left: 20px;
-            border-left: 2px solid #e9ecef;
+            margin-left: 16px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
         }
         
         .reply-item .post-hover-actions {
@@ -845,6 +840,87 @@
                 gap: 16px;
             }
         }
+
+        .inline-reply-form {
+            margin-top: 16px;
+            margin-left: 20px;
+            padding: 16px;
+            background: #fafbfc;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .inline-reply-form::before {
+            content: "返信中...";
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .inline-reply-form textarea {
+            width: 100%;
+            min-height: 70px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            resize: vertical;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        .inline-reply-form .reply-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .inline-reply-form .btn-reply {
+            background: #5a6c7d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .inline-reply-form .btn-reply:hover {
+            background: #495057;
+        }
+
+        .inline-reply-form .btn-reply:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .inline-reply-form .btn-cancel {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .inline-reply-form .btn-cancel:hover {
+            background: #dee2e6;
+        }
+
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 14px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -952,6 +1028,18 @@
               const applicants = await this.getApplicants();
               const filtered = applicants.filter(a => a.id != id);
               localStorage.setItem('careFacilityApplicants', JSON.stringify(filtered));
+            },
+            
+            async updatePost(applicantId, postId, content) {
+              // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
+              console.log('投稿更新（モック）:', { applicantId, postId, content });
+              return { message: '投稿が更新されました' };
+            },
+            
+            async deletePost(applicantId, postId) {
+              // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
+              console.log('投稿削除（モック）:', { applicantId, postId });
+              return { message: '投稿が削除されました' };
             }
           };
         };
@@ -977,6 +1065,8 @@
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
+          const [timelineSearchQuery, setTimelineSearchQuery] = React.useState('');
+          const [inlineReplyContent, setInlineReplyContent] = React.useState('');
           const [likes, setLikes] = React.useState({});
           const [showActions, setShowActions] = React.useState(true);
           
@@ -1120,6 +1210,7 @@
             if (diffDays < 7) return `${diffDays}日前`;
             return timestamp.split('T')[0];
           };
+
 
           const handleSort = (key) => {
             let direction = 'asc';
@@ -1310,14 +1401,62 @@
           };
 
           const handleStatusUpdate = (type) => {
+            // アクションの依存関係を定義
+            const actionDependencies = {
+              '健康診断書受領': ['健康診断書依頼']
+            };
+
+            // 依存関係をチェックして、前提条件のアクションを自動追加
+            const completedActions = (selectedApplicant.timeline || [])
+              .filter(item => item.action)
+              .map(item => item.action);
+
+            // 依存関係がある場合、前提条件のアクションが未完了なら自動で完了状態にする
+            if (actionDependencies[type]) {
+              const updatedApplicants = [...applicants];
+              const applicantIndex = updatedApplicants.findIndex(app => app.id === selectedApplicant.id);
+              
+              if (applicantIndex !== -1) {
+                for (const prerequisite of actionDependencies[type]) {
+                  if (!completedActions.includes(prerequisite)) {
+                    // 前提条件のアクションをタイムラインに追加（投稿内容なし）
+                    const prerequisiteItem = {
+                      id: Date.now() + Math.random(),
+                      author: currentUser.name,
+                      timestamp: new Date().toISOString(),
+                      content: '',
+                      action: prerequisite,
+                      replies: []
+                    };
+                    
+                    updatedApplicants[applicantIndex].timeline = [
+                      prerequisiteItem,
+                      ...(updatedApplicants[applicantIndex].timeline || [])
+                    ];
+                  }
+                }
+                
+                // 現在のアクションも追加（これは通常の投稿フォームで内容を入力）
+                setApplicants(updatedApplicants);
+                localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
+                
+                const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+                setSelectedApplicant(updatedSelected);
+              }
+            }
+
+            // 通常の投稿フォーム表示
             setPostType(type);
             setShowPostForm(true);
             setReplyTo(null);
           };
 
+
           const handleReply = (postId) => {
             setReplyTo(postId);
-            setShowPostForm(true);
+            setInlineReplyContent('');
+            // 従来の上部フォームは非表示にする
+            setShowPostForm(false);
             setPostType('');
           };
 
@@ -1325,6 +1464,77 @@
             setPostType('');
             setShowPostForm(true);
             setReplyTo(null);
+          };
+
+          const handleInlineReplySubmit = () => {
+            if (!inlineReplyContent.trim()) return;
+
+            const updatedApplicants = applicants.map(app => {
+              if (app.id === selectedApplicant.id) {
+                const updatedTimeline = app.timeline.map(post => {
+                  if (post.id === replyTo) {
+                    return {
+                      ...post,
+                      replies: [...(post.replies || []), {
+                        id: Date.now(),
+                        author: currentUser.name,
+                        timestamp: new Date().toISOString(),
+                        content: inlineReplyContent
+                      }]
+                    };
+                  }
+                  return post;
+                });
+                return { ...app, timeline: updatedTimeline };
+              }
+              return app;
+            });
+
+            setApplicants(updatedApplicants);
+            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
+            
+            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+            setSelectedApplicant(updatedSelected);
+            
+            setInlineReplyContent('');
+            setReplyTo(null);
+          };
+
+          const handleInlineReplyCancel = () => {
+            setInlineReplyContent('');
+            setReplyTo(null);
+          };
+
+          // 申込者の進捗ステータスを再計算する関数
+          const recalculateApplicantStatus = (applicant) => {
+            // 最新のaction付き投稿を取得（親投稿のみ、返信は除外）
+            const timelineWithActions = applicant.timeline
+              .filter(post => post.action && !post.parent_post_id)
+              .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at));
+            
+            if (timelineWithActions.length > 0) {
+              const latestActionPost = timelineWithActions[0];
+              const statusMapping = {
+                '申込書受領': '申込書受領',
+                '実調日程調整中': '実調日程調整中',
+                '実調完了': '実調完了',
+                '健康診断書依頼': '健康診断書待ち',
+                '健康診断書受領': '健康診断書受領',
+                '判定会議中': '判定会議中',
+                '入居決定': '入居決定',
+                '入居日調整中': '入居日調整中',
+                '書類送付済': '書類送付済',
+                '入居準備完了': '入居準備完了',
+                '入居完了': '入居完了'
+              };
+              
+              const newStatus = statusMapping[latestActionPost.action];
+              if (newStatus) {
+                return { ...applicant, status: newStatus };
+              }
+            }
+            
+            return applicant;
           };
 
           const handleLike = (applicantId, postId) => {
@@ -1414,30 +1624,39 @@
             setShowEditPostModal(true);
           };
 
-          const handleSaveEditPost = () => {
+          const handleSaveEditPost = async () => {
             if (!editingContent.trim()) return;
 
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingPostId) {
-                    return { ...post, content: editingContent };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
+            try {
+              await apiClient.updatePost(selectedApplicant.id, editingPostId, editingContent);
+              
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  const updatedTimeline = app.timeline.map(post => {
+                    if (post.id === editingPostId) {
+                      return { ...post, content: editingContent };
+                    }
+                    return post;
+                  });
+                  const appWithUpdatedTimeline = { ...app, timeline: updatedTimeline };
+                  // 進捗ステータスを再計算
+                  return recalculateApplicantStatus(appWithUpdatedTimeline);
+                }
+                return app;
+              });
 
-            setApplicants(updatedApplicants);
-            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
+              setApplicants(updatedApplicants);
+              localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
 
-            setEditingPostId(null);
-            setEditingContent('');
-            setShowEditPostModal(false);
+              setEditingPostId(null);
+              setEditingContent('');
+              setShowEditPostModal(false);
+            } catch (error) {
+              console.error('投稿の編集に失敗しました:', error);
+              alert('投稿の編集に失敗しました: ' + error.message);
+            }
           };
 
           const handleCancelEditPost = () => {
@@ -1451,22 +1670,31 @@
             setShowDeletePostModal(true);
           };
 
-          const confirmDeletePost = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
-                return { ...app, timeline: updatedTimeline };
-              }
-              return app;
-            });
+          const confirmDeletePost = async () => {
+            try {
+              await apiClient.deletePost(selectedApplicant.id, deletingPostId);
+              
+              const updatedApplicants = applicants.map(app => {
+                if (app.id === selectedApplicant.id) {
+                  const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
+                  const appWithUpdatedTimeline = { ...app, timeline: updatedTimeline };
+                  // 進捗ステータスを再計算
+                  return recalculateApplicantStatus(appWithUpdatedTimeline);
+                }
+                return app;
+              });
 
-            setApplicants(updatedApplicants);
-            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
+              setApplicants(updatedApplicants);
+              localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
 
-            setDeletingPostId(null);
-            setShowDeletePostModal(false);
+              setDeletingPostId(null);
+              setShowDeletePostModal(false);
+            } catch (error) {
+              console.error('投稿の削除に失敗しました:', error);
+              alert('投稿の削除に失敗しました: ' + error.message);
+            }
           };
 
           const handleEditReply = (reply, postId) => {
@@ -1644,9 +1872,27 @@
                 </div>
                 
                 <div className="detail-header">
-                  <h1 className="detail-title">
-                    {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
-                  </h1>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                    <h1 className="detail-title">
+                      {selectedApplicant.name}さん ({selectedApplicant.age}歳・{selectedApplicant.careLevel})
+                    </h1>
+                    <input
+                      type="text"
+                      placeholder="投稿を検索..."
+                      value={timelineSearchQuery}
+                      onChange={(e) => setTimelineSearchQuery(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        width: '200px',
+                        outline: 'none'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                      onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
+                    />
+                  </div>
                   <div className={`status-badge ${getStatusColor(selectedApplicant.status, selectedApplicant.applicationDate)}`}>
                     {selectedApplicant.status}
                   </div>
@@ -1699,13 +1945,10 @@
                     </div>
 
                     <div className="timeline-content">
-                      {showPostForm && (
+                      {showPostForm && !replyTo && (
                         <div className="post-form">
                           {postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>{postType}</div>}
-                          {replyTo && <div style={{fontSize: '14px', color: '#6c757d', marginBottom: '8px'}}>
-                            返信先: {selectedApplicant.timeline.find(t => t.id === replyTo)?.author}
-                          </div>}
-                          {!postType && !replyTo && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
+                          {!postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
@@ -1731,13 +1974,25 @@
                         </div>
                       )}
 
-                      {(selectedApplicant.timeline || []).length === 0 ? (
-                        <div className="empty-state">
-                          <div className="empty-icon">📝</div>
-                          <div>まだ投稿がありません</div>
-                        </div>
-                      ) : (
-                        (selectedApplicant.timeline || []).map((item) => (
+                      {(() => {
+                        const filteredTimeline = (selectedApplicant.timeline || []).filter(item => {
+                          if (!timelineSearchQuery.trim()) return true;
+                          const query = timelineSearchQuery.toLowerCase();
+                          const content = (item.content || '').toLowerCase();
+                          const action = (item.action || '').toLowerCase();
+                          return content.includes(query) || action.includes(query);
+                        });
+
+                        if (filteredTimeline.length === 0) {
+                          return (
+                            <div className="empty-state">
+                              <div className="empty-icon">📝</div>
+                              <div>{timelineSearchQuery.trim() ? '検索結果がありません' : 'まだ投稿がありません'}</div>
+                            </div>
+                          );
+                        }
+
+                        return filteredTimeline.map((item) => (
                           <div key={item.id} className="timeline-item">
                             <div className="timeline-post">
                               <div className="post-header">
@@ -1751,10 +2006,12 @@
                                   </span>
                                 )}
                               </div>
-                              <div className="post-hover-actions">
-                                <button onClick={() => handleEditPost(item)} className="btn-icon">✏️</button>
-                                <button onClick={() => handleDeletePost(item.id)} className="btn-icon">🗑️</button>
-                              </div>
+                              {currentUser && item.author === currentUser.name && (
+                                <div className="post-hover-actions">
+                                  <button onClick={() => handleEditPost(item)} className="btn-icon">✏️</button>
+                                  <button onClick={() => handleDeletePost(item.id)} className="btn-icon">🗑️</button>
+                                </div>
+                              )}
                               <div className="post-content">{item.content}</div>
                               
                               <div className="post-actions">
@@ -1773,10 +2030,12 @@
                                 <div style={{marginTop: '16px'}}>
                                   {item.replies.map((reply) => (
                                     <div key={reply.id} className="reply-item">
-                                      <div className="post-hover-actions">
-                                        <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon">✏️</button>
-                                        <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon">🗑️</button>
-                                      </div>
+                                      {currentUser && reply.author === currentUser.name && (
+                                        <div className="post-hover-actions">
+                                          <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon">✏️</button>
+                                          <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon">🗑️</button>
+                                        </div>
+                                      )}
                                       <div style={{fontSize: '14px', marginBottom: '4px'}}>
                                         <span style={{fontWeight: '500', color: '#2c3e50'}}>{reply.author}</span>
                                         <span style={{color: '#6c757d', marginLeft: '8px'}}>
@@ -1800,10 +2059,37 @@
                                   ))}
                                 </div>
                               )}
+
+                              {/* インライン返信フォーム */}
+                              {replyTo === item.id && (
+                                <div className="inline-reply-form">
+                                  <textarea
+                                    value={inlineReplyContent}
+                                    onChange={(e) => setInlineReplyContent(e.target.value)}
+                                    placeholder="返信を入力してください..."
+                                    autoFocus
+                                  />
+                                  <div className="reply-actions">
+                                    <button 
+                                      className="btn-reply" 
+                                      onClick={handleInlineReplySubmit}
+                                      disabled={!inlineReplyContent.trim()}
+                                    >
+                                      返信
+                                    </button>
+                                    <button 
+                                      className="btn-cancel" 
+                                      onClick={handleInlineReplyCancel}
+                                    >
+                                      キャンセル
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        ))
-                      )}
+                        ));
+                      })()}
                     </div>
                   </div>
 
@@ -1823,6 +2109,7 @@
                         <div className="action-list">
                           {allActions.map((action, index) => {
                             const isCompleted = completedActions.includes(action);
+                            
                             return (
                               <button
                                 key={index}
@@ -1833,6 +2120,7 @@
                                   backgroundColor: isCompleted ? '#f8f9fa' : '#ffffff',
                                   color: isCompleted ? '#adb5bd' : '#495057'
                                 }}
+                                title={isCompleted ? '完了済み' : `${action}を実行`}
                               >
                                 {isCompleted ? '✓ ' : ''}{action}
                               </button>
@@ -1970,13 +2258,15 @@
                     <h1 className="main-title">シンチョク.</h1>
                     <p className="subtitle">入居進捗管理支援システム</p>
                   </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div className="user-greeting">
-                      こんにちは、{currentUser?.name}さん
+                  <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                    <div style={{textAlign: 'right'}}>
+                      <div className="user-greeting">
+                        こんにちは、{currentUser?.name}さん
+                      </div>
+                      <button onClick={handleLogout} className="logout-btn">
+                        ログアウト
+                      </button>
                     </div>
-                    <button onClick={handleLogout} className="logout-btn">
-                      ログアウト
-                    </button>
                   </div>
                 </div>
               </div>

@@ -258,7 +258,120 @@ app.delete('/api/applicants/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// ========== 共通関数 ==========
+
+// 申込者の進捗ステータスを再計算する関数
+async function recalculateApplicantStatus(applicantId) {
+  try {
+    // 最新のaction付き投稿を取得（親投稿のみ、返信は除外）
+    const latestActionPost = await db.get(`
+      SELECT action FROM timeline_posts 
+      WHERE applicant_id = ? AND action IS NOT NULL AND parent_post_id IS NULL
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `, [applicantId]);
+
+    if (latestActionPost && latestActionPost.action) {
+      const statusMapping = {
+        '申込書受領': '申込書受領',
+        '実調日程調整中': '実調日程調整中',
+        '実調完了': '実調完了',
+        '健康診断書依頼': '健康診断書待ち',
+        '健康診断書受領': '健康診断書受領',
+        '判定会議中': '判定会議中',
+        '入居決定': '入居決定',
+        '入居日調整中': '入居日調整中',
+        '書類送付済': '書類送付済',
+        '入居準備完了': '入居準備完了',
+        '入居完了': '入居完了'
+      };
+
+      const newStatus = statusMapping[latestActionPost.action];
+      if (newStatus) {
+        await db.run('UPDATE applicants SET status = ? WHERE id = ?', [newStatus, applicantId]);
+        
+        // リアルタイム同期: ステータス更新をすべてのクライアントに通知
+        io.emit('statusUpdate', {
+          applicantId: applicantId,
+          status: newStatus,
+          updatedBy: 'システム'
+        });
+        
+        return newStatus;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('進捗ステータス再計算エラー:', error);
+    return null;
+  }
+}
+
 // ========== タイムライン投稿エンドポイント ==========
+
+// 投稿編集
+app.put('/api/applicants/:applicantId/posts/:postId', authenticateToken, async (req, res) => {
+  try {
+    const { applicantId, postId } = req.params;
+    const { content } = req.body;
+    const currentUser = req.user.name;
+
+    if (!content) {
+      return res.status(400).json({ error: '投稿内容が必要です' });
+    }
+
+    // 投稿の存在確認と作成者チェック
+    const post = await db.get('SELECT * FROM timeline_posts WHERE id = ? AND applicant_id = ?', [postId, applicantId]);
+    
+    if (!post) {
+      return res.status(404).json({ error: '投稿が見つかりません' });
+    }
+
+    if (post.author !== currentUser) {
+      return res.status(403).json({ error: '他のユーザーの投稿は編集できません' });
+    }
+
+    await db.run('UPDATE timeline_posts SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [content, postId]);
+
+    // 進捗ステータスを再計算
+    await recalculateApplicantStatus(applicantId);
+
+    res.json({ message: '投稿が更新されました' });
+  } catch (error) {
+    console.error('投稿編集エラー:', error);
+    res.status(500).json({ error: '投稿の更新に失敗しました' });
+  }
+});
+
+// 投稿削除
+app.delete('/api/applicants/:applicantId/posts/:postId', authenticateToken, async (req, res) => {
+  try {
+    const { applicantId, postId } = req.params;
+    const currentUser = req.user.name;
+
+    // 投稿の存在確認と作成者チェック
+    const post = await db.get('SELECT * FROM timeline_posts WHERE id = ? AND applicant_id = ?', [postId, applicantId]);
+    
+    if (!post) {
+      return res.status(404).json({ error: '投稿が見つかりません' });
+    }
+
+    if (post.author !== currentUser) {
+      return res.status(403).json({ error: '他のユーザーの投稿は削除できません' });
+    }
+
+    await db.run('DELETE FROM timeline_posts WHERE id = ?', [postId]);
+
+    // 進捗ステータスを再計算
+    await recalculateApplicantStatus(applicantId);
+
+    res.json({ message: '投稿が削除されました' });
+  } catch (error) {
+    console.error('投稿削除エラー:', error);
+    res.status(500).json({ error: '投稿の削除に失敗しました' });
+  }
+});
 
 // 投稿作成
 app.post('/api/applicants/:id/posts', authenticateToken, async (req, res) => {
