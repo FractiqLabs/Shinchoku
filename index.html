@@ -1099,7 +1099,10 @@
           const [showDeletePostModal, setShowDeletePostModal] = React.useState(false);
           const [showEditReplyModal, setShowEditReplyModal] = React.useState(false);
           const [showDeleteReplyModal, setShowDeleteReplyModal] = React.useState(false);
-          
+
+          // 入居可否の展開状態を管理
+          const [showAdmissionDecision, setShowAdmissionDecision] = React.useState(false);
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1798,9 +1801,6 @@
 
             // 終了状態チェック（入居不可またはキャンセルが投稿されているか）
             const isTerminated = completedActions.includes('入居不可') || completedActions.includes('キャンセル');
-
-            // 入居可否の展開状態を管理
-            const [showAdmissionDecision, setShowAdmissionDecision] = React.useState(false);
 
             return (
               <div className="container">
