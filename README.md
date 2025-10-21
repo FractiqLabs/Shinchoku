@@ -1,215 +1,112 @@
-# シンチョク. | 特養入居進捗管理アプリ
+シンチョク. | 特養入居進捗管理アプリ
 
-特別養護老人ホーム（特養）の入居申込者の進捗状況をリアルタイムで管理・共有できるWebアプリケーションです。
+「シンチョク.」は、特別養護老人ホームにおける入居申込から入居までの進捗を一元管理するためのWebアプリです。
+申込受付から健康診断書受領、判定会議、入居決定、入居完了までの各段階をタイムライン形式で可視化し、職員間で情報共有を行えます。
 
-![シンチョク.](https://img.shields.io/badge/シンチョク.-特養入居進捗管理-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Node.js](https://img.shields.io/badge/node.js-18+-brightgreen)
+🏗️ 構成
 
-## 🌟 特徴
+フロントエンド：HTML / CSS / React (Babel使用)
 
-- **📋 申込者情報の一元管理** - 氏名、年齢、介護度、連絡先等の基本情報を管理
-- **📊 進捗状況のリアルタイム更新** - WebSocketによる即座な状況共有
-- **⏰ タイムライン形式での記録管理** - 時系列での進捗確認が可能
-- **🔄 複数デバイス間でのデータ同期** - 異なるPC・ブラウザでデータ共有
-- **🔐 セキュアな認証システム** - JWT認証によるアクセス制御
-- **💾 柔軟なデータベース対応** - SQLite（ローカル）とPostgreSQL（クラウド）
+データ保存：
 
-## 🚀 クイックデプロイ
+デフォルトでは localStorage を利用
 
-### Railway（推奨）
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/shinchoku)
+supabase-config.js / supabase-client.js を用意することで Supabase に接続可能
 
-### Heroku
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/FractiqLabs/Shinchoku)
+主なファイル
 
-### Render
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/FractiqLabs/Shinchoku)
+index.html：アプリ本体（UIとロジックを含む）
 
-## 💻 ローカル開発環境
+supabase-config.js：Supabase 接続設定（URL・APIキーなど）
 
-### 必要な環境
-- Node.js 18以上
-- npm または yarn
+supabase-client.js：Supabase API クライアント定義
 
-### セットアップ手順
+fonts/kirin-Regular.ttf：見出し用フォント
 
-1. **リポジトリのクローン**
-   ```bash
-   git clone https://github.com/FractiqLabs/Shinchoku.git
-   cd Shinchoku
-   ```
+🔐 ログイン
 
-2. **依存関係のインストール**
-   ```bash
-   npm install
-   ```
+アプリを開くとログイン画面が表示されます。
+ユーザーを選択し、パスワードを入力してログインしてください。
 
-3. **環境設定**
-   ```bash
-   cp .env.example .env
-   # .envファイルを編集して必要な設定を行う
-   ```
+ユーザー名	パスワード
+藤堂　友未枝	admin1
+吉野　隼人	admin2
+田中　慎治	admin3
 
-4. **開発サーバーの起動**
-   ```bash
-   npm run dev
-   ```
+（本設定はデモ用。実際の運用では Supabase 認証に置き換え可能です）
 
-5. **ブラウザでアクセス**
-   ```
-   http://localhost:3001
-   ```
+✨ 主な機能
+1. 入居申込者の登録・編集・削除
 
-### デフォルトログイン情報
-- **ユーザー名**: `a` / **パスワード**: `a`
-- **ユーザー名**: `b` / **パスワード**: `b`
-- **ユーザー名**: `c` / **パスワード**: `c`
+申込者名、年齢、要介護度、住所、担当者、ケアマネ情報などを入力
 
-## 🐳 Docker での実行
+申込日を基点にステータスが色付きで表示されます
 
-### Docker Compose（推奨）
-```bash
-# PostgreSQLを含む完全な環境
-docker-compose up -d
-```
+緑：5日以内
 
-### 単体Docker
-```bash
-# Dockerfile使用
-docker build -t shinchoku .
-docker run -p 3001:3001 shinchoku
-```
+黄：6～10日
 
-## ☁️ クラウドデプロイ
+赤：10日超過
 
-### PostgreSQL使用時の環境変数
-```bash
-DB_TYPE=postgres
-DB_HOST=your-postgres-host
-DB_PORT=5432
-DB_NAME=shinchoku
-DB_USER=your-username
-DB_PASSWORD=your-password
-JWT_SECRET=your-secret-key
-NODE_ENV=production
-```
+2. タイムライン機能
 
-### SQLite使用時（ローカル開発）
-```bash
-DB_TYPE=sqlite
-JWT_SECRET=your-secret-key
-NODE_ENV=development
-```
+「申込書受領」「健康診断書依頼」「判定会議中」「入居決定」などの進捗アクションを投稿可能
 
-## 📖 使用方法
+投稿にはメモ・コメントを付けられ、返信も可能
 
-### 基本的な操作
+投稿・返信の編集／削除もサポート
 
-1. **ログイン**
-   - 認証情報を入力してシステムにアクセス
+3. 自動ステータス更新
 
-2. **申込者の追加**
-   - 「新規登録」ボタンから申込者情報を入力
+各アクションの投稿に応じて申込者の進捗ステータスが自動更新
 
-3. **進捗の更新**
-   - 申込者の詳細画面でタイムライン投稿を追加
-   - アクション選択により自動的にステータスが更新
+依存関係（例：「健康診断書受領」→「健康診断書依頼」が自動完了）も対応
 
-4. **情報の共有**
-   - リアルタイムで他のユーザーと情報を共有
-   - 変更は即座に全ユーザーに反映
+4. メモ自動保存機能
 
-### 進捗ステータス
+申込者詳細画面の「特記・メモ」は1.5秒ごとに自動保存
 
-- **申込書受領** → **実調日程調整中** → **実調完了**
-- **健康診断書依頼** → **健康診断書待ち** → **健康診断書受領**
-- **判定会議中** → **入居決定** → **入居日調整中**
-- **書類送付済** → **入居準備完了** → **入居完了**
+5. 検索・ソート
 
-## 🛠️ 技術スタック
+タイムライン内の検索バーで投稿内容を絞り込み
 
-### フロントエンド
-- React 17
-- Vanilla JavaScript
-- Socket.IO Client
-- CSS3
+一覧画面では申込者情報を並べ替え可能（氏名・年齢・申込日など）
 
-### バックエンド
-- Node.js
-- Express.js
-- Socket.IO
-- JWT認証
-- bcryptjs
+🧰 開発・実行方法
+ローカルで動かす場合
 
-### データベース
-- SQLite3（開発環境）
-- PostgreSQL（本番環境）
+プロジェクトフォルダを開く
 
-### インフラ・デプロイ
-- Docker & Docker Compose
-- GitHub Actions
-- Railway / Heroku / Render 対応
+index.html をブラウザで開く
+→ ローカルストレージに保存されるモックAPIが使用されます。
 
-## 📁 プロジェクト構成
+Supabase と連携する場合
 
-```
-Shinchoku/
-├── index.html              # メインアプリケーション
-├── server.js              # Express サーバー
-├── api-client.js          # API クライアント & WebSocket
-├── database/
-│   ├── db.js              # SQLite データベース
-│   ├── postgres-db.js     # PostgreSQL データベース
-│   ├── schema.sql         # SQLite スキーマ
-│   └── postgres-schema.sql # PostgreSQL スキーマ
-├── docs/                  # GitHub Pages 用静的サイト
-├── scripts/               # データベースセットアップスクリプト
-├── .github/workflows/     # GitHub Actions
-├── docker-compose.yml     # Docker 構成
-├── Dockerfile            # Docker イメージ
-├── app.json              # Heroku 設定
-├── railway.json          # Railway 設定
-└── render.yaml           # Render 設定
-```
+Supabase でプロジェクトを作成し、APIキーを取得
 
-## 🔒 セキュリティ
+supabase-config.js に以下を設定：
 
-- JWT トークンによる認証
-- パスワードのハッシュ化（bcryptjs）
-- CORS 設定
-- 環境変数による機密情報管理
-- HTTPS 通信推奨
+const SUPABASE_URL = 'https://your-project.supabase.co';
+const SUPABASE_ANON_KEY = 'your-anon-key';
 
-## 📄 法的事項
 
-- [免責事項](disclaimer.html)
-- [プライバシーポリシー](privacy.html)
-- [著作権・クレジット](credits.html)
+supabase-client.js 内で createSupabaseApiClient() を有効化
 
-## 🤝 コントリビューション
+再読み込みで Supabase DB に保存・取得されるようになります。
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+🧩 今後の拡張予定
 
-## 📝 ライセンス
+職員ごとのアクセス権限設定
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
+ファイル添付（診断書PDFなど）
 
-## 👥 作者
+入居日カレンダー連携
 
-**FractiqLabs**
-- GitHub: [@FractiqLabs](https://github.com/FractiqLabs)
+スマートフォンUI最適化
 
-## 🙏 謝辞
+Flask / FastAPI バックエンドとの統合
 
-特別養護老人ホームの現場で働く皆様からの貴重なご意見をいただき、開発することができました。心より感謝申し上げます。
+👩‍💼 作者メモ
 
----
-
-**⚠️ 注意事項**
-
-本アプリケーションは特別養護老人ホームの業務支援ツールです。重要な判断については必ず専門家にご相談ください。また、個人情報の取り扱いには十分ご注意ください。
+このアプリは、特養相談員・ケアマネ業務の現場負担を軽減し、チームで「進捗＝シンチョク」を見える化することを目的として開発されています。
+現場の声を取り入れながら、使いやすく、柔らかいデザインで成長を続けています。
