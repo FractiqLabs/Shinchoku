@@ -20,22 +20,27 @@ const createSupabaseApiClient = () => {
       this.currentUser = null;
     },
 
-    // ログイン
-    async login(username, password) {
-      // ユーザー情報を取得
+    // ログイン（名前ベース）
+    async login(nameInput, password) {
+      // ユーザー情報を名前で取得
       const { data: users, error } = await supabase
         .from('users')
         .select('*')
-        .eq('username', username)
+        .eq('name', nameInput)
         .single();
 
       if (error || !users) {
         throw new Error('ユーザーIDまたはパスワードが正しくありません');
       }
 
-      // 簡易的なパスワード確認（本番環境ではbcryptなどで検証）
-      // 今回は全て同じパスワードハッシュなので、パスワードが 'a' なら通す
-      if (password !== 'a') {
+      // パスワードのマッピング（元の仕様に合わせる）
+      const passwordMapping = {
+        '藤堂　友未枝': 'admin1',
+        '吉野　隼人': 'admin2',
+        '田中　慎治': 'admin3'
+      };
+
+      if (passwordMapping[users.name] !== password) {
         throw new Error('ユーザーIDまたはパスワードが正しくありません');
       }
 
