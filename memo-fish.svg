@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="150" height="150">
+  <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Body -->
+    <ellipse cx="180" cy="220" rx="100" ry="70" fill="#fff"/>
+
+    <!-- Scales -->
+    <path d="M 150 200 Q 155 210 150 220"/>
+    <path d="M 170 190 Q 175 200 170 210"/>
+    <path d="M 190 185 Q 195 195 190 205"/>
+    <path d="M 150 220 Q 155 230 150 240"/>
+    <path d="M 170 215 Q 175 225 170 235"/>
+    <path d="M 190 210 Q 195 220 190 230"/>
+
+    <!-- Eye -->
+    <circle cx="100" cy="210" r="8" fill="#000"/>
+
+    <!-- Mouth -->
+    <path d="M 60 225 Q 65 230 70 225"/>
+
+    <!-- Top fin -->
+    <path d="M 180 150 Q 220 100 230 95 Q 210 120 200 140 Q 195 150 185 155 Z" fill="#fff"/>
+
+    <!-- Tail fins -->
+    <path d="M 270 180 Q 350 150 420 140 Q 440 150 450 170 Q 430 175 400 180 Q 350 185 280 195 Z" fill="#fff"/>
+    <path d="M 270 220 Q 350 240 420 260 Q 440 270 450 290 Q 430 285 400 280 Q 350 270 280 250 Z" fill="#fff"/>
+    <path d="M 270 260 Q 340 290 400 320 Q 420 335 425 355 Q 405 345 380 335 Q 330 310 280 280 Z" fill="#fff"/>
+
+    <!-- Bottom fins -->
+    <path d="M 120 270 Q 110 310 105 340 Q 120 330 130 310 Q 135 290 130 275 Z" fill="#fff"/>
+    <path d="M 160 270 Q 155 310 152 340 Q 165 330 172 310 Q 175 290 170 275 Z" fill="#fff"/>
+
+    <!-- Bubbles -->
+    <circle cx="60" cy="110" r="12"/>
+    <circle cx="110" cy="60" r="18"/>
+  </g>
+</svg>

@@ -1103,6 +1103,11 @@
           // 入居可否の展開状態を管理
           const [showAdmissionDecision, setShowAdmissionDecision] = React.useState(false);
 
+          // メモの自動保存管理
+          const [memoContent, setMemoContent] = React.useState('');
+          const [savingStatus, setSavingStatus] = React.useState('idle'); // idle | saving | saved | error
+          const saveTimerRef = React.useRef(null);
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1458,6 +1463,77 @@
             setShowPostForm(true);
             setReplyTo(null);
           };
+
+          // メモ自動保存処理
+          const handleMemoChange = (e) => {
+            const newContent = e.target.value;
+            setMemoContent(newContent);
+
+            // 前回のタイマーをクリア
+            if (saveTimerRef.current) {
+              clearTimeout(saveTimerRef.current);
+            }
+
+            // 1.5秒後に自動保存
+            saveTimerRef.current = setTimeout(async () => {
+              setSavingStatus('saving');
+              try {
+                const updatedData = {
+                  ...selectedApplicant,
+                  notes: newContent
+                };
+
+                // Supabaseに保存
+                await apiClient.updateApplicant(selectedApplicant.id, {
+                  surname: selectedApplicant.name.split('　')[0],
+                  givenName: selectedApplicant.name.split('　')[1],
+                  age: selectedApplicant.age,
+                  careLevel: selectedApplicant.careLevel,
+                  address: selectedApplicant.address,
+                  kp: selectedApplicant.kp,
+                  kpRelationship: selectedApplicant.kpRelationship,
+                  kpContact: selectedApplicant.kpContact,
+                  kpAddress: selectedApplicant.kpAddress,
+                  careManager: selectedApplicant.careManager,
+                  careManagerName: selectedApplicant.careManagerName,
+                  cmContact: selectedApplicant.cmContact,
+                  assignee: selectedApplicant.assignee,
+                  notes: newContent,
+                  applicationDate: selectedApplicant.applicationDate
+                });
+
+                // ローカルstateも更新
+                const updatedApplicants = applicants.map(app =>
+                  app.id === selectedApplicant.id ? { ...app, notes: newContent } : app
+                );
+                setApplicants(updatedApplicants);
+                setSelectedApplicant({ ...selectedApplicant, notes: newContent });
+
+                setSavingStatus('saved');
+                setTimeout(() => setSavingStatus('idle'), 2000);
+              } catch (error) {
+                console.error('メモの保存に失敗:', error);
+                setSavingStatus('error');
+                setTimeout(() => setSavingStatus('idle'), 3000);
+              }
+            }, 1500);
+          };
+
+          // メモの初期化と更新
+          React.useEffect(() => {
+            if (selectedApplicant) {
+              setMemoContent(selectedApplicant.notes || '');
+            }
+          }, [selectedApplicant?.id]);
+
+          // コンポーネントのアンマウント時にタイマーをクリーンアップ
+          React.useEffect(() => {
+            return () => {
+              if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+              }
+            };
+          }, []);
 
 
           const handleReply = (postId) => {
@@ -2186,9 +2262,68 @@
                           })}
                         </div>
                       ) : (
-                        <div className="empty-state">
-                          <div className="empty-icon">📋</div>
-                          <div>「表示」ボタンでアクション一覧を確認できます</div>
+                        <div style={{textAlign: 'center', padding: '20px'}}>
+                          <img
+                            src="memo-fish.svg"
+                            alt="メモを書くキャラクター"
+                            style={{
+                              width: '140px',
+                              height: '140px',
+                              marginBottom: '20px',
+                              display: 'block',
+                              marginLeft: 'auto',
+                              marginRight: 'auto'
+                            }}
+                          />
+                          <div style={{
+                            backgroundColor: '#f8f9fa',
+                            border: '1px solid #e9ecef',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            maxWidth: '600px',
+                            margin: '0 auto'
+                          }}>
+                            <div style={{
+                              fontSize: '14px',
+                              color: '#6c757d',
+                              marginBottom: '12px',
+                              textAlign: 'left'
+                            }}>
+                              気になることは<br/>なんでもメモしてね
+                            </div>
+                            <textarea
+                              value={memoContent}
+                              onChange={handleMemoChange}
+                              placeholder="ここにメモを入力..."
+                              style={{
+                                width: '100%',
+                                minHeight: '120px',
+                                padding: '12px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                outline: 'none',
+                                transition: 'border-color 0.2s ease'
+                              }}
+                              onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                              onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
+                            />
+                            <div style={{
+                              textAlign: 'right',
+                              marginTop: '8px',
+                              fontSize: '12px',
+                              color: '#6c757d',
+                              minHeight: '18px'
+                            }}>
+                              {savingStatus === 'saving' && '自動保存中...'}
+                              {savingStatus === 'saved' && '保存済み ✓'}
+                              {savingStatus === 'error' && (
+                                <span style={{color: '#dc3545'}}>保存に失敗しました</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
