@@ -39,11 +39,15 @@ CREATE TABLE IF NOT EXISTS timeline_posts (
     content TEXT NOT NULL,
     action VARCHAR(100),
     parent_post_id INTEGER NULL,
+    post_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE
 );
+
+-- 既存のtimeline_postsテーブルにpost_dateカラムを追加（既存データ保護）
+ALTER TABLE timeline_posts ADD COLUMN IF NOT EXISTS post_date DATE DEFAULT CURRENT_DATE;
 
 -- いいねテーブル
 CREATE TABLE IF NOT EXISTS likes (
@@ -55,6 +59,25 @@ CREATE TABLE IF NOT EXISTS likes (
     FOREIGN KEY (post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE,
     UNIQUE(user_id, post_id)
 );
+
+-- 通知テーブル
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL, -- 'post', 'reply', 'heart'
+    actor_user_id INTEGER NOT NULL,
+    actor_user_name VARCHAR(255) NOT NULL,
+    target_applicant_id INTEGER NOT NULL,
+    target_post_id INTEGER,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE
+);
+
+-- 通知テーブルのインデックス追加（パフォーマンス向上）
+CREATE INDEX IF NOT EXISTS idx_notifications_target_applicant
+ON notifications(target_applicant_id, read);
 
 -- 初期ユーザーデータ挿入
 INSERT INTO users (username, password_hash, name) VALUES 

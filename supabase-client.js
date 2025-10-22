@@ -253,15 +253,16 @@ const createSupabaseApiClient = () => {
     },
 
     // タイムライン投稿を作成
-    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null) {
-      const { data, error } = await supabase
+    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
+      const { data, error} = await supabase
         .from('timeline_posts')
         .insert([{
           applicant_id: applicantId,
           author: author,
           content: content,
           action: action,
-          parent_post_id: parentPostId
+          parent_post_id: parentPostId,
+          post_date: postDate || new Date().toISOString().split('T')[0]
         }])
         .select()
         .single();
@@ -296,6 +297,61 @@ const createSupabaseApiClient = () => {
       }
 
       return data;
+    },
+
+    // 通知を作成
+    async createNotification(type, actorUserId, actorUserName, targetApplicantId, targetPostId = null) {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert([{
+          type: type,
+          actor_user_id: actorUserId,
+          actor_user_name: actorUserName,
+          target_applicant_id: targetApplicantId,
+          target_post_id: targetPostId
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // 未読通知を取得
+    async getUnreadNotifications(currentUserId) {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('read', false)
+        .neq('actor_user_id', currentUserId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // 申込者の通知を削除（既読処理）
+    async deleteNotificationsByApplicant(applicantId, currentUserId) {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('target_applicant_id', applicantId)
+        .neq('actor_user_id', currentUserId);
+
+      if (error) throw error;
+      return { message: '通知を削除しました' };
+    },
+
+    // 投稿の通知を削除（既読処理）
+    async deleteNotificationsByPost(postId, currentUserId) {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('target_post_id', postId)
+        .neq('actor_user_id', currentUserId);
+
+      if (error) throw error;
+      return { message: '通知を削除しました' };
     }
   };
 };

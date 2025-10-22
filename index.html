@@ -29,6 +29,7 @@
             color: #1a1a1a;
             line-height: 1.6;
             min-height: 100vh;
+            zoom: 0.9;
         }
         
         .container {
@@ -1080,6 +1081,7 @@
           const [applicants, setApplicants] = React.useState([]);
           
           const [newPost, setNewPost] = React.useState('');
+          const [postDate, setPostDate] = React.useState(new Date().toISOString().split('T')[0]);
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
@@ -1106,6 +1108,9 @@
           const [memoContent, setMemoContent] = React.useState('');
           const [savingStatus, setSavingStatus] = React.useState('idle'); // idle | saving | saved | error
           const saveTimerRef = React.useRef(null);
+
+          // 通知管理
+          const [notifications, setNotifications] = React.useState([]);
 
           const [formData, setFormData] = React.useState({
             surname: '',
@@ -1154,6 +1159,23 @@
               console.error('Failed to load applicants:', error);
             }
           };
+
+          const loadNotifications = async () => {
+            if (!currentUser) return;
+            try {
+              const data = await apiClient.getUnreadNotifications(currentUser.id);
+              setNotifications(data);
+            } catch (error) {
+              console.error('Failed to load notifications:', error);
+            }
+          };
+
+          // ログイン後に通知を読み込む
+          React.useEffect(() => {
+            if (isLoggedIn && currentUser) {
+              loadNotifications();
+            }
+          }, [isLoggedIn, currentUser]);
 
           const handleLogin = async (e) => {
             e.preventDefault();
@@ -1616,12 +1638,30 @@
             return applicant;
           };
 
-          const handleLike = (applicantId, postId) => {
+          const handleLike = async (applicantId, postId) => {
             const key = `${applicantId}-${postId}`;
+            const isLiking = !likes[key];
+
             setLikes(prev => ({
               ...prev,
-              [key]: !prev[key]
+              [key]: isLiking
             }));
+
+            // いいねした場合のみ通知を作成
+            if (isLiking && currentUser && currentUser.id) {
+              try {
+                await apiClient.createNotification(
+                  'heart',
+                  currentUser.id,
+                  currentUser.name,
+                  applicantId,
+                  postId
+                );
+                await loadNotifications();
+              } catch (error) {
+                console.error('いいね通知作成エラー:', error);
+              }
+            }
           };
 
           const submitPost = async () => {
@@ -1629,13 +1669,26 @@
 
             try {
               // Supabaseにタイムライン投稿を作成
-              await apiClient.createTimelinePost(
+              const newPostData = await apiClient.createTimelinePost(
                 selectedApplicant.id,
                 currentUser.name,
                 newPost,
                 postType || null,
-                replyTo
+                replyTo,
+                postDate
               );
+
+              // 通知を作成（自分以外に通知）
+              if (currentUser && currentUser.id) {
+                const notificationType = replyTo ? 'reply' : 'post';
+                await apiClient.createNotification(
+                  notificationType,
+                  currentUser.id,
+                  currentUser.name,
+                  selectedApplicant.id,
+                  newPostData.id
+                ).catch(err => console.error('通知作成エラー:', err));
+              }
 
               // 申込者データを再取得
               const updatedApplicants = await apiClient.getApplicants();
@@ -1644,7 +1697,11 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // 通知を再読み込み
+              await loadNotifications();
+
               setNewPost('');
+              setPostDate(new Date().toISOString().split('T')[0]);
               setShowPostForm(false);
               setPostType('');
               setReplyTo(null);
@@ -1981,11 +2038,91 @@
                       </button>
                     </div>
 
+                    {/* 通知メッセージエリア */}
+                    {notifications.filter(n => n.target_applicant_id === selectedApplicant.id).length > 0 && (
+                      <div style={{
+                        backgroundColor: '#fff3cd',
+                        border: '1px solid #ffc107',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        margin: '12px 24px'
+                      }}>
+                        {notifications
+                          .filter(n => n.target_applicant_id === selectedApplicant.id)
+                          .slice(0, 5)
+                          .map((notification) => {
+                            let message = '';
+                            if (notification.type === 'post') {
+                              message = `${notification.actor_user_name}さんがタイムラインに投稿しました！`;
+                            } else if (notification.type === 'reply') {
+                              message = `${notification.actor_user_name}さんが投稿に返信しました！`;
+                            } else if (notification.type === 'heart') {
+                              message = `${notification.actor_user_name}さんが投稿にハートしました！`;
+                            }
+
+                            return (
+                              <div key={notification.id} style={{
+                                padding: '6px 0',
+                                fontSize: '14px',
+                                cursor: notification.target_post_id ? 'pointer' : 'default',
+                                color: notification.target_post_id ? '#007bff' : '#000'
+                              }}
+                              onClick={async () => {
+                                if (notification.target_post_id) {
+                                  const postElement = document.getElementById(`post-${notification.target_post_id}`);
+                                  if (postElement) {
+                                    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    // 通知を削除
+                                    try {
+                                      await apiClient.deleteNotificationsByPost(notification.target_post_id, currentUser.id);
+                                      await loadNotifications();
+                                    } catch (error) {
+                                      console.error('通知削除エラー:', error);
+                                    }
+                                  }
+                                }
+                              }}>
+                                {message}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+
                     <div className="timeline-content">
                       {showPostForm && !replyTo && (
                         <div className="post-form">
                           {postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>{postType}</div>}
                           {!postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
+                          <div style={{marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center'}}>
+                            <label style={{fontWeight: '500', fontSize: '14px', color: '#495057'}}>投稿日付:</label>
+                            <input
+                              type="date"
+                              value={postDate}
+                              onChange={(e) => setPostDate(e.target.value)}
+                              style={{
+                                padding: '6px 10px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                outline: 'none'
+                              }}
+                            />
+                            <button
+                              onClick={() => setPostDate(new Date().toISOString().split('T')[0])}
+                              style={{
+                                padding: '6px 12px',
+                                border: '1px solid #007bff',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                backgroundColor: '#fff',
+                                color: '#007bff',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              今日
+                            </button>
+                          </div>
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
@@ -1999,6 +2136,7 @@
                                 setShowPostForm(false);
                                 setPostType('');
                                 setReplyTo(null);
+                                setPostDate(new Date().toISOString().split('T')[0]);
                               }}
                               className="btn btn-secondary"
                             >
@@ -2030,12 +2168,12 @@
                         }
 
                         return filteredTimeline.map((item) => (
-                          <div key={item.id} className="timeline-item">
+                          <div key={item.id} id={`post-${item.id}`} className="timeline-item">
                             <div className="timeline-post">
                               <div className="post-header">
                                 <span className="post-author">{item.author}</span>
                                 <span className="post-time">
-                                  {formatTimeAgo(item.timestamp)}
+                                  {item.post_date || (item.created_at && item.created_at.split('T')[0]) || item.timestamp?.split('T')[0] || '日付なし'}
                                 </span>
                                 {item.action && (
                                   <span className="action-badge">
@@ -2434,15 +2572,37 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => (
-                        <tr 
+                        <tr
                           key={applicant.id}
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
+                            // 該当申込者の通知を削除
+                            if (currentUser && currentUser.id) {
+                              try {
+                                await apiClient.deleteNotificationsByApplicant(applicant.id, currentUser.id);
+                                await loadNotifications();
+                              } catch (error) {
+                                console.error('通知削除エラー:', error);
+                              }
+                            }
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
-                          <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
+                          <td style={{fontWeight: '500', color: '#2c3e50'}}>
+                            {applicant.name}
+                            {notifications.some(n => n.target_applicant_id === applicant.id) && (
+                              <span style={{
+                                marginLeft: '8px',
+                                padding: '2px 6px',
+                                backgroundColor: '#dc3545',
+                                color: '#fff',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                borderRadius: '4px'
+                              }}>NEW</span>
+                            )}
+                          </td>
                           <td>{applicant.age}歳</td>
                           <td>{applicant.careLevel}</td>
                           <td>
