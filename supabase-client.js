@@ -352,6 +352,17 @@ const createSupabaseApiClient = () => {
 
       if (error) throw error;
       return { message: '通知を削除しました' };
+    },
+
+    // 通知を個別IDで削除
+    async deleteNotificationById(notificationId) {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+      return { message: '通知を削除しました' };
     }
   };
 };

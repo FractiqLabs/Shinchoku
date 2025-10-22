@@ -2071,10 +2071,21 @@
                                 if (notification.target_post_id) {
                                   const postElement = document.getElementById(`post-${notification.target_post_id}`);
                                   if (postElement) {
+                                    // スクロールして該当投稿に移動
                                     postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    // 通知を削除
+
+                                    // ハイライト効果を追加（2秒間）
+                                    const originalBackground = postElement.style.backgroundColor;
+                                    postElement.style.backgroundColor = '#fff3cd';
+                                    postElement.style.transition = 'background-color 0.3s ease';
+
+                                    setTimeout(() => {
+                                      postElement.style.backgroundColor = originalBackground;
+                                    }, 2000);
+
+                                    // この通知のみを個別に削除
                                     try {
-                                      await apiClient.deleteNotificationsByPost(notification.target_post_id, currentUser.id);
+                                      await apiClient.deleteNotificationById(notification.id);
                                       await loadNotifications();
                                     } catch (error) {
                                       console.error('通知削除エラー:', error);
@@ -2574,18 +2585,9 @@
                       {sortedApplicants.map((applicant) => (
                         <tr
                           key={applicant.id}
-                          onClick={async () => {
+                          onClick={() => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
-                            // 該当申込者の通知を削除
-                            if (currentUser && currentUser.id) {
-                              try {
-                                await apiClient.deleteNotificationsByApplicant(applicant.id, currentUser.id);
-                                await loadNotifications();
-                              } catch (error) {
-                                console.error('通知削除エラー:', error);
-                              }
-                            }
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
