@@ -68,6 +68,16 @@ const createSupabaseApiClient = () => {
     on(event, callback) {},
     off(event) {},
 
+    // 全ユーザーを取得
+    async getAllUsers() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, username');
+
+      if (error) throw error;
+      return data || [];
+    },
+
     // 申込者一覧を取得
     async getApplicants() {
       try {
@@ -299,7 +309,7 @@ const createSupabaseApiClient = () => {
       return data;
     },
 
-    // 通知を作成
+    // 通知を作成（単一ユーザー向け）
     async createNotification(type, actorUserId, actorUserName, targetApplicantId, targetPostId = null) {
       const { data, error } = await supabase
         .from('notifications')
@@ -314,7 +324,139 @@ const createSupabaseApiClient = () => {
         .single();
 
       if (error) throw error;
+      console.log('通知作成:', { type, actorUserId, actorUserName, targetApplicantId, targetPostId });
       return data;
+    },
+
+    // 新規投稿時：全ユーザーに通知を作成
+    async createNotificationsForAllUsers(type, actorUserId, actorUserName, targetApplicantId, targetPostId) {
+      try {
+        // 全ユーザーを取得
+        const allUsers = await this.getAllUsers();
+
+        // 自分以外の全ユーザーに通知を作成
+        const notifications = allUsers
+          .filter(user => user.id !== actorUserId)
+          .map(user => ({
+            type: type,
+            actor_user_id: actorUserId,
+            actor_user_name: actorUserName,
+            target_applicant_id: targetApplicantId,
+            target_post_id: targetPostId,
+            read: false,
+            created_at: new Date().toISOString()
+          }));
+
+        if (notifications.length > 0) {
+          const { error } = await supabase
+            .from('notifications')
+            .insert(notifications);
+
+          if (error) throw error;
+          console.log(`通知作成: ${notifications.length}件の通知を作成しました`, { type, actorUserId, targetPostId });
+        }
+
+        return { success: true, count: notifications.length };
+      } catch (error) {
+        console.error('全ユーザー通知作成エラー:', error);
+        throw error;
+      }
+    },
+
+    // 返信時：元投稿者に通知を作成
+    async createNotificationForPostAuthor(parentPostId, actorUserId, actorUserName, targetApplicantId, replyPostId) {
+      try {
+        // 親投稿の情報を取得
+        const { data: parentPost, error: postError } = await supabase
+          .from('timeline_posts')
+          .select('author')
+          .eq('id', parentPostId)
+          .single();
+
+        if (postError) throw postError;
+
+        // 元投稿者のユーザー情報を取得
+        const { data: originalAuthor, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('name', parentPost.author)
+          .single();
+
+        if (userError) throw userError;
+
+        // 自分の投稿への返信でない場合のみ通知を作成
+        if (originalAuthor && originalAuthor.id !== actorUserId) {
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert({
+              type: 'reply',
+              actor_user_id: actorUserId,
+              actor_user_name: actorUserName,
+              target_applicant_id: targetApplicantId,
+              target_post_id: parentPostId,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+
+          if (notifError) throw notifError;
+          console.log('返信通知作成:', { actorUserId, actorUserName, parentPostId, replyPostId });
+          return { success: true, notified_user_id: originalAuthor.id };
+        } else {
+          console.log('返信通知スキップ: 自分の投稿への返信のため');
+          return { success: true, skipped: true };
+        }
+      } catch (error) {
+        console.error('返信通知作成エラー:', error);
+        throw error;
+      }
+    },
+
+    // ハート時：投稿者に通知を作成
+    async createNotificationForLike(postId, actorUserId, actorUserName, targetApplicantId) {
+      try {
+        // 投稿の情報を取得
+        const { data: post, error: postError } = await supabase
+          .from('timeline_posts')
+          .select('author')
+          .eq('id', postId)
+          .single();
+
+        if (postError) throw postError;
+
+        // 投稿者のユーザー情報を取得
+        const { data: postAuthor, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('name', post.author)
+          .single();
+
+        if (userError) throw userError;
+
+        // 自分の投稿へのハートでない場合のみ通知を作成
+        if (postAuthor && postAuthor.id !== actorUserId) {
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert({
+              type: 'heart',
+              actor_user_id: actorUserId,
+              actor_user_name: actorUserName,
+              target_applicant_id: targetApplicantId,
+              target_post_id: postId,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+
+          if (notifError) throw notifError;
+          console.log('ハート通知作成:', { actorUserId, actorUserName, postId });
+          return { success: true, notified_user_id: postAuthor.id };
+        } else {
+          console.log('ハート通知スキップ: 自分の投稿へのハートのため');
+          return { success: true, skipped: true };
+        }
+      } catch (error) {
+        console.error('ハート通知作成エラー:', error);
+        throw error;
+      }
     },
 
     // 未読通知を取得

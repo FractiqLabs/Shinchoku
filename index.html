@@ -1650,13 +1650,12 @@
             if (currentUser && currentUser.id) {
               try {
                 if (isLiking) {
-                  // いいねした場合：通知を作成
-                  await apiClient.createNotification(
-                    'heart',
+                  // いいねした場合：投稿者に通知を作成
+                  await apiClient.createNotificationForLike(
+                    postId,
                     currentUser.id,
                     currentUser.name,
-                    applicantId,
-                    postId
+                    applicantId
                   );
                 } else {
                   // いいねを取り消した場合：通知を削除
@@ -1686,16 +1685,31 @@
                 postDate
               );
 
-              // 通知を作成（自分以外に通知）
+              // 通知を作成
               if (currentUser && currentUser.id) {
-                const notificationType = replyTo ? 'reply' : 'post';
-                await apiClient.createNotification(
-                  notificationType,
-                  currentUser.id,
-                  currentUser.name,
-                  selectedApplicant.id,
-                  newPostData.id
-                ).catch(err => console.error('通知作成エラー:', err));
+                try {
+                  if (replyTo) {
+                    // 返信の場合：元投稿者に通知
+                    await apiClient.createNotificationForPostAuthor(
+                      replyTo,
+                      currentUser.id,
+                      currentUser.name,
+                      selectedApplicant.id,
+                      newPostData.id
+                    );
+                  } else {
+                    // 新規投稿の場合：全ユーザーに通知
+                    await apiClient.createNotificationsForAllUsers(
+                      'post',
+                      currentUser.id,
+                      currentUser.name,
+                      selectedApplicant.id,
+                      newPostData.id
+                    );
+                  }
+                } catch (err) {
+                  console.error('通知作成エラー:', err);
+                }
               }
 
               // 申込者データを再取得
