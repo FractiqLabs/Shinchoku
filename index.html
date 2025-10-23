@@ -1345,53 +1345,60 @@
             }
           };
 
-          // 返信時の通知を作成（元投稿者に通知、自分以外）
-          const createReplyNotifications = async (applicantId, postId, parentPost) => {
+          // 返信時の通知を作成（直接の返信先作成者に通知、自分以外）
+          const createReplyNotifications = async (parentPostId, applicantId, replyId) => {
             try {
-              console.log('返信通知作成開始:', { applicantId, postId, parentPost });
-
-              // 元投稿の作成者を取得
-              const parentAuthor = parentPost.author;
-
-              // 自分自身への返信の場合は通知を作成しない
-              if (parentAuthor === currentUser.name) {
-                console.log('自分自身への返信のため通知スキップ');
-                return;
-              }
-
-              // 元投稿者のユーザーIDを取得
-              const { data: authorUser, error: userError } = await supabaseClient
-                .from('users')
-                .select('id')
-                .eq('name', parentAuthor)
+              // 返信先の投稿情報を取得（直接の返信先）
+              const { data: parentPost, error: postError } = await supabaseClient
+                .from('timeline_posts')
+                .select('author')
+                .eq('id', parentPostId)
                 .single();
 
-              if (userError || !authorUser) {
-                console.error('元投稿者のユーザー取得エラー:', userError);
-                return;
+              if (postError) {
+                console.error('返信先投稿取得エラー:', postError);
+                throw postError;
               }
 
-              console.log('元投稿者ユーザー:', authorUser);
+              console.log('返信先の投稿作成者:', parentPost.author);
 
-              // 通知を作成
-              const notification = {
-                type: 'reply',
-                actor_user_id: currentUser.id,
-                actor_user_name: currentUser.name,
-                target_applicant_id: applicantId,
-                target_post_id: postId
-              };
+              // 返信先の作成者のユーザーIDを取得
+              const { data: replyTargetAuthor, error: authorError } = await supabaseClient
+                .from('users')
+                .select('id')
+                .eq('name', parentPost.author)
+                .single();
 
-              console.log('返信通知を作成します:', notification);
-              const { error: insertError } = await supabaseClient
-                .from('notifications')
-                .insert([notification]);
+              if (authorError) {
+                console.error('返信先ユーザー取得エラー:', authorError);
+                throw authorError;
+              }
 
-              if (insertError) {
-                console.error('返信通知作成エラー:', insertError);
+              console.log('返信先ユーザーID:', replyTargetAuthor.id);
+              console.log('現在のユーザーID:', currentUser.id);
+
+              // 自分の投稿/返信への返信でない場合のみ通知を作成
+              if (replyTargetAuthor && replyTargetAuthor.id !== currentUser.id) {
+                const { error: notifError } = await supabaseClient
+                  .from('notifications')
+                  .insert({
+                    type: 'reply',
+                    actor_user_id: currentUser.id,
+                    actor_user_name: currentUser.name,
+                    target_applicant_id: applicantId,
+                    target_post_id: parentPostId, // 返信先のID
+                    created_at: new Date().toISOString()
+                  });
+
+                if (notifError) {
+                  console.error('返信通知作成エラー:', notifError);
+                } else {
+                  console.log('返信通知を作成しました（返信先:', parentPost.author, '）');
+                }
               } else {
-                console.log('返信通知作成完了');
+                console.log('自分への返信のため通知は作成しません');
               }
+
             } catch (error) {
               console.error('返信通知作成処理エラー:', error);
             }
@@ -1890,18 +1897,8 @@
 
               // 返信通知を作成
               if (replyTo) {
-                console.log('インライン返信モード - 元投稿を検索中...');
-                const parentPost = selectedApplicant.timeline
-                  .flatMap(post => [post, ...(post.replies || [])])
-                  .find(p => p.id === replyTo);
-
-                console.log('元投稿:', parentPost);
-                if (parentPost) {
-                  console.log('返信通知を作成します');
-                  await createReplyNotifications(selectedApplicant.id, newReplyData.id, parentPost);
-                } else {
-                  console.error('元投稿が見つかりませんでした:', replyTo);
-                }
+                console.log('インライン返信モード - 返信通知を作成します');
+                await createReplyNotifications(replyTo, selectedApplicant.id, newReplyData.id);
               }
 
               // 申込者データを再取得
@@ -2033,19 +2030,9 @@
 
               // 通知を作成
               if (replyTo) {
-                // 返信の場合：元投稿を取得して返信通知を作成
-                console.log('返信モード - 元投稿を検索中...');
-                const parentPost = selectedApplicant.timeline
-                  .flatMap(post => [post, ...(post.replies || [])])
-                  .find(p => p.id === replyTo);
-
-                console.log('元投稿:', parentPost);
-                if (parentPost) {
-                  console.log('返信通知を作成します');
-                  await createReplyNotifications(selectedApplicant.id, newPostData.id, parentPost);
-                } else {
-                  console.error('元投稿が見つかりませんでした:', replyTo);
-                }
+                // 返信の場合：返信通知を作成
+                console.log('返信モード - 返信通知を作成します');
+                await createReplyNotifications(replyTo, selectedApplicant.id, newPostData.id);
               } else {
                 // 新規投稿の場合：全ユーザーに通知
                 console.log('新規投稿モード - 全ユーザーに通知');
