@@ -1357,6 +1357,33 @@
             }
           };
 
+          // 通知をクリックした際に通知を削除
+          const deleteNotification = async (notificationId) => {
+            try {
+              console.log('通知削除開始:', notificationId);
+
+              const { error } = await supabase
+                .from('notifications')
+                .delete()
+                .eq('id', notificationId);
+
+              if (error) {
+                console.error('通知削除エラー:', error);
+                throw error;
+              }
+
+              console.log('通知削除完了:', notificationId);
+
+              // 通知リストを再取得
+              if (selectedApplicant) {
+                await fetchNotifications(selectedApplicant.id);
+              }
+              await fetchAllNotifications();
+            } catch (error) {
+              console.error('通知削除処理エラー:', error);
+            }
+          };
+
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
@@ -1977,8 +2004,23 @@
 
           const confirmDeletePost = async () => {
             try {
+              console.log('投稿削除開始:', deletingPostId);
+
+              // 投稿を削除
               await apiClient.deletePost(selectedApplicant.id, deletingPostId);
-              
+
+              // この投稿に関連する全ての通知を削除
+              const { error: deleteNotifError } = await supabase
+                .from('notifications')
+                .delete()
+                .eq('target_post_id', deletingPostId);
+
+              if (deleteNotifError) {
+                console.error('通知削除エラー:', deleteNotifError);
+              } else {
+                console.log('投稿に関連する通知を削除しました');
+              }
+
               const updatedApplicants = applicants.map(app => {
                 if (app.id === selectedApplicant.id) {
                   const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
@@ -2054,29 +2096,39 @@
             setShowEditReplyModal(false);
           };
 
-          const confirmDeleteReply = () => {
-            const updatedApplicants = applicants.map(app => {
-              if (app.id === selectedApplicant.id) {
-                const updatedTimeline = app.timeline.map(post => {
-                  if (post.id === editingReplyPostId) {
-                    const updatedReplies = post.replies.filter(reply => reply.id !== deletingReplyId);
-                    return { ...post, replies: updatedReplies };
-                  }
-                  return post;
-                });
-                return { ...app, timeline: updatedTimeline };
+          const confirmDeleteReply = async () => {
+            try {
+              console.log('返信削除開始:', deletingReplyId);
+
+              // 返信を削除（Supabase経由）
+              await apiClient.deletePost(selectedApplicant.id, deletingReplyId);
+
+              // この返信に関連する全ての通知を削除
+              const { error: deleteNotifError } = await supabase
+                .from('notifications')
+                .delete()
+                .eq('target_post_id', deletingReplyId);
+
+              if (deleteNotifError) {
+                console.error('返信通知削除エラー:', deleteNotifError);
+              } else {
+                console.log('返信に関連する通知を削除しました');
               }
-              return app;
-            });
 
-            setApplicants(updatedApplicants);
-            localStorage.setItem('careFacilityApplicants', JSON.stringify(updatedApplicants));
-            const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
-            setSelectedApplicant(updatedSelected);
+              // 申込者データを再取得
+              const updatedApplicants = await apiClient.getApplicants();
+              setApplicants(updatedApplicants);
 
-            setDeletingReplyId(null);
-            setEditingReplyPostId(null);
-            setShowDeleteReplyModal(false);
+              const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
+              setSelectedApplicant(updatedSelected);
+
+              setDeletingReplyId(null);
+              setEditingReplyPostId(null);
+              setShowDeleteReplyModal(false);
+            } catch (error) {
+              console.error('返信の削除に失敗しました:', error);
+              alert('返信の削除に失敗しました: ' + error.message);
+            }
           };
 
           if (!isLoggedIn) {
