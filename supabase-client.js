@@ -264,6 +264,8 @@ const createSupabaseApiClient = () => {
 
     // タイムライン投稿を作成
     async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
+      console.log('投稿を作成します:', { applicantId, author, action, parentPostId });
+
       const { data, error} = await supabase
         .from('timeline_posts')
         .insert([{
@@ -277,7 +279,12 @@ const createSupabaseApiClient = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('投稿作成エラー:', error);
+        throw error;
+      }
+
+      console.log('投稿を作成しました:', data);
 
       // ステータス更新が必要な場合
       if (action) {
@@ -299,10 +306,21 @@ const createSupabaseApiClient = () => {
 
         const newStatus = statusMapping[action];
         if (newStatus) {
-          await supabase
+          console.log('ステータスを更新します:', { applicantId, action, newStatus });
+
+          const { error: statusError } = await supabase
             .from('applicants')
-            .update({ status: newStatus })
+            .update({
+              status: newStatus,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', applicantId);
+
+          if (statusError) {
+            console.error('ステータス更新エラー:', statusError);
+          } else {
+            console.log('ステータスを更新しました:', newStatus);
+          }
         }
       }
 

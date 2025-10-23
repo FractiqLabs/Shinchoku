@@ -1177,6 +1177,86 @@
             }
           }, [isLoggedIn, currentUser]);
 
+          // Supabase Realtimeでリアルタイム更新を監視
+          React.useEffect(() => {
+            if (!isLoggedIn || !currentUser) return;
+
+            console.log('Supabase Realtime監視を開始します');
+
+            // timeline_postsの変更を監視
+            const postsChannel = supabase
+              .channel('timeline_posts_changes')
+              .on(
+                'postgres_changes',
+                {
+                  event: '*',
+                  schema: 'public',
+                  table: 'timeline_posts'
+                },
+                (payload) => {
+                  console.log('タイムライン変更検知:', payload);
+
+                  // 申込者一覧を再取得（ステータス更新を反映）
+                  loadApplicants();
+
+                  // 現在表示中の申込者のタイムラインを再取得
+                  if (selectedApplicant) {
+                    loadApplicants().then(() => {
+                      const updatedApplicants = apiClient.getApplicants();
+                      // 表示中の申込者情報を更新
+                    });
+                  }
+                }
+              )
+              .subscribe();
+
+            // applicantsの変更を監視
+            const applicantsChannel = supabase
+              .channel('applicants_changes')
+              .on(
+                'postgres_changes',
+                {
+                  event: '*',
+                  schema: 'public',
+                  table: 'applicants'
+                },
+                (payload) => {
+                  console.log('申込者情報変更検知:', payload);
+                  loadApplicants();
+                }
+              )
+              .subscribe();
+
+            // notificationsの変更を監視
+            const notificationsChannel = supabase
+              .channel('notifications_changes')
+              .on(
+                'postgres_changes',
+                {
+                  event: 'INSERT',
+                  schema: 'public',
+                  table: 'notifications'
+                },
+                (payload) => {
+                  console.log('新規通知検知:', payload);
+
+                  // 自分宛ての通知のみを反映
+                  if (payload.new && payload.new.actor_user_id !== currentUser.id) {
+                    loadNotifications();
+                  }
+                }
+              )
+              .subscribe();
+
+            // クリーンアップ
+            return () => {
+              console.log('Supabase Realtime監視を停止します');
+              postsChannel.unsubscribe();
+              applicantsChannel.unsubscribe();
+              notificationsChannel.unsubscribe();
+            };
+          }, [isLoggedIn, currentUser, selectedApplicant]);
+
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
