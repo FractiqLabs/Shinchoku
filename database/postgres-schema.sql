@@ -60,6 +60,27 @@ CREATE TABLE IF NOT EXISTS likes (
     UNIQUE(user_id, post_id)
 );
 
+-- 通知テーブル
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL,
+    actor_user_id INTEGER NOT NULL,
+    actor_user_name VARCHAR(255) NOT NULL,
+    target_applicant_id INTEGER NOT NULL,
+    target_post_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE
+);
+
+-- インデックス追加
+CREATE INDEX IF NOT EXISTS idx_notifications_target_applicant
+ON notifications(target_applicant_id);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_actor
+ON notifications(actor_user_id);
+
 -- 初期ユーザーデータ挿入
 INSERT INTO users (username, password_hash, name) VALUES 
 ('a', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '藤堂　友未枝'),

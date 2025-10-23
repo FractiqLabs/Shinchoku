@@ -1088,6 +1088,10 @@
           const [inlineReplyContent, setInlineReplyContent] = React.useState('');
           const [likes, setLikes] = React.useState({});
 
+          // 通知管理
+          const [notifications, setNotifications] = React.useState([]);
+          const [allNotifications, setAllNotifications] = React.useState([]);
+
           const [editingPostId, setEditingPostId] = React.useState(null);
           const [editingContent, setEditingContent] = React.useState('');
           const [deletingPostId, setDeletingPostId] = React.useState(null);
