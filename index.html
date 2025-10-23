@@ -1647,19 +1647,27 @@
               [key]: isLiking
             }));
 
-            // いいねした場合のみ通知を作成
-            if (isLiking && currentUser && currentUser.id) {
+            if (currentUser && currentUser.id) {
               try {
-                await apiClient.createNotification(
-                  'heart',
-                  currentUser.id,
-                  currentUser.name,
-                  applicantId,
-                  postId
-                );
+                if (isLiking) {
+                  // いいねした場合：通知を作成
+                  await apiClient.createNotification(
+                    'heart',
+                    currentUser.id,
+                    currentUser.name,
+                    applicantId,
+                    postId
+                  );
+                } else {
+                  // いいねを取り消した場合：通知を削除
+                  await apiClient.deleteHeartNotification(
+                    currentUser.id,
+                    postId
+                  );
+                }
                 await loadNotifications();
               } catch (error) {
-                console.error('いいね通知作成エラー:', error);
+                console.error('いいね通知処理エラー:', error);
               }
             }
           };

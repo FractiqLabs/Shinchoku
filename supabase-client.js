@@ -363,6 +363,19 @@ const createSupabaseApiClient = () => {
 
       if (error) throw error;
       return { message: '通知を削除しました' };
+    },
+
+    // ハート通知を削除（ハート取り消し時に使用）
+    async deleteHeartNotification(actorUserId, targetPostId) {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('type', 'heart')
+        .eq('actor_user_id', actorUserId)
+        .eq('target_post_id', targetPostId);
+
+      if (error) throw error;
+      return { message: 'ハート通知を削除しました' };
     }
   };
 };
