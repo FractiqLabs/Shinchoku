@@ -1222,36 +1222,6 @@
             }
           };
 
-          // 申込者の全投稿のいいね状態を読み込む
-          const loadLikesForApplicant = async (applicant) => {
-            try {
-              if (!applicant || !currentUser) return;
-
-              console.log('いいね状態を読み込んでいます...', applicant.id);
-
-              // この申込者の全投稿IDを取得
-              const allPostIds = applicant.timeline.flatMap(post => [
-                post.id,
-                ...(post.replies || []).map(reply => reply.id)
-              ]);
-
-              console.log('投稿ID一覧:', allPostIds);
-
-              // 各投稿のいいね状態をチェック
-              const newLikesState = {};
-              for (const postId of allPostIds) {
-                const isLiked = await apiClient.checkLike(currentUser.id, postId);
-                const key = `${applicant.id}-${postId}`;
-                newLikesState[key] = isLiked;
-              }
-
-              console.log('いいね状態:', newLikesState);
-              setLikes(newLikesState);
-            } catch (error) {
-              console.error('いいね状態の読み込みエラー:', error);
-            }
-          };
-
           // 通知を取得（特定の申込者用）
           const fetchNotifications = async (applicantId) => {
             try {
@@ -2980,11 +2950,10 @@
                         return (
                         <tr
                           key={applicant.id}
-                          onClick={async () => {
+                          onClick={() => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
                             fetchNotifications(applicant.id);
-                            await loadLikesForApplicant(applicant);
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
