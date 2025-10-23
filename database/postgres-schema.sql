@@ -39,11 +39,15 @@ CREATE TABLE IF NOT EXISTS timeline_posts (
     content TEXT NOT NULL,
     action VARCHAR(100),
     parent_post_id INTEGER NULL,
+    post_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE
 );
+
+-- 既存データ保護のため、カラムが存在しない場合のみ追加
+ALTER TABLE timeline_posts ADD COLUMN IF NOT EXISTS post_date DATE DEFAULT CURRENT_DATE;
 
 -- いいねテーブル
 CREATE TABLE IF NOT EXISTS likes (

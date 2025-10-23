@@ -1080,6 +1080,7 @@
           const [applicants, setApplicants] = React.useState([]);
           
           const [newPost, setNewPost] = React.useState('');
+          const [postDate, setPostDate] = React.useState(new Date().toISOString().split('T')[0]);
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
@@ -1634,7 +1635,8 @@
                 currentUser.name,
                 newPost,
                 postType || null,
-                replyTo
+                replyTo,
+                postDate
               );
 
               // 申込者データを再取得
@@ -1645,6 +1647,7 @@
               setSelectedApplicant(updatedSelected);
 
               setNewPost('');
+              setPostDate(new Date().toISOString().split('T')[0]);
               setShowPostForm(false);
               setPostType('');
               setReplyTo(null);
@@ -1986,6 +1989,35 @@
                         <div className="post-form">
                           {postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>{postType}</div>}
                           {!postType && <div style={{fontWeight: '500', marginBottom: '8px', color: '#2c3e50'}}>メモを追加</div>}
+                          <div style={{marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center'}}>
+                            <label style={{fontWeight: '500', fontSize: '14px', color: '#495057'}}>投稿日付:</label>
+                            <input
+                              type="date"
+                              value={postDate}
+                              onChange={(e) => setPostDate(e.target.value)}
+                              style={{
+                                padding: '6px 10px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                outline: 'none'
+                              }}
+                            />
+                            <button
+                              onClick={() => setPostDate(new Date().toISOString().split('T')[0])}
+                              style={{
+                                padding: '6px 12px',
+                                border: '1px solid #007bff',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                backgroundColor: '#fff',
+                                color: '#007bff',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              今日
+                            </button>
+                          </div>
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
@@ -2035,7 +2067,7 @@
                               <div className="post-header">
                                 <span className="post-author">{item.author}</span>
                                 <span className="post-time">
-                                  {formatTimeAgo(item.timestamp)}
+                                  {item.post_date || (item.created_at && item.created_at.split('T')[0]) || item.timestamp?.split('T')[0] || '日付なし'}
                                 </span>
                                 {item.action && (
                                   <span className="action-badge">

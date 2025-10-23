@@ -253,7 +253,7 @@ const createSupabaseApiClient = () => {
     },
 
     // タイムライン投稿を作成
-    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null) {
+    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
       const { data, error } = await supabase
         .from('timeline_posts')
         .insert([{
@@ -261,7 +261,8 @@ const createSupabaseApiClient = () => {
           author: author,
           content: content,
           action: action,
-          parent_post_id: parentPostId
+          parent_post_id: parentPostId,
+          post_date: postDate || new Date().toISOString().split('T')[0]
         }])
         .select()
         .single();
