@@ -1847,13 +1847,32 @@
 
             try {
               // Supabaseに返信を作成
-              await apiClient.createTimelinePost(
+              const newReplyData = await apiClient.createTimelinePost(
                 selectedApplicant.id,
                 currentUser.name,
                 inlineReplyContent,
                 null,
-                replyTo
+                replyTo,
+                new Date().toISOString().split('T')[0]
               );
+
+              console.log('インライン返信作成完了:', newReplyData);
+
+              // 返信通知を作成
+              if (replyTo) {
+                console.log('インライン返信モード - 元投稿を検索中...');
+                const parentPost = selectedApplicant.timeline
+                  .flatMap(post => [post, ...(post.replies || [])])
+                  .find(p => p.id === replyTo);
+
+                console.log('元投稿:', parentPost);
+                if (parentPost) {
+                  console.log('返信通知を作成します');
+                  await createReplyNotifications(selectedApplicant.id, newReplyData.id, parentPost);
+                } else {
+                  console.error('元投稿が見つかりませんでした:', replyTo);
+                }
+              }
 
               // 申込者データを再取得
               const updatedApplicants = await apiClient.getApplicants();
@@ -1960,7 +1979,8 @@
               }
             } catch (error) {
               console.error('いいね処理エラー:', error);
-              alert('いいね処理に失敗しました: ' + error.message);
+              console.error('エラー詳細:', JSON.stringify(error, null, 2));
+              alert('いいね処理に失敗しました: ' + (error.message || JSON.stringify(error)));
             }
           };
 
@@ -1979,19 +1999,26 @@
               );
 
               console.log('投稿作成完了:', newPostData);
+              console.log('replyTo:', replyTo);
 
               // 通知を作成
               if (replyTo) {
                 // 返信の場合：元投稿を取得して返信通知を作成
+                console.log('返信モード - 元投稿を検索中...');
                 const parentPost = selectedApplicant.timeline
                   .flatMap(post => [post, ...(post.replies || [])])
                   .find(p => p.id === replyTo);
 
+                console.log('元投稿:', parentPost);
                 if (parentPost) {
+                  console.log('返信通知を作成します');
                   await createReplyNotifications(selectedApplicant.id, newPostData.id, parentPost);
+                } else {
+                  console.error('元投稿が見つかりませんでした:', replyTo);
                 }
               } else {
                 // 新規投稿の場合：全ユーザーに通知
+                console.log('新規投稿モード - 全ユーザーに通知');
                 await createPostNotifications(selectedApplicant.id, newPostData.id);
               }
 
