@@ -2084,17 +2084,33 @@
 
                             return (
                               <div key={notification.id} style={{
-                                padding: '6px 0',
+                                padding: '8px',
                                 fontSize: '14px',
                                 cursor: notification.target_post_id ? 'pointer' : 'default',
-                                color: notification.target_post_id ? '#007bff' : '#000'
+                                color: notification.target_post_id ? '#007bff' : '#000',
+                                borderRadius: '4px',
+                                transition: 'background-color 0.2s'
                               }}
-                              onClick={async () => {
+                              onMouseEnter={(e) => {
+                                if (notification.target_post_id) {
+                                  e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
+                              onClick={async (e) => {
+                                e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
+                                console.log('通知クリック:', { notificationId: notification.id, targetPostId: notification.target_post_id });
+
                                 if (notification.target_post_id) {
                                   const postElement = document.getElementById(`post-${notification.target_post_id}`);
+                                  console.log('投稿要素の検索結果:', postElement ? '見つかりました' : '見つかりません');
+
                                   if (postElement) {
                                     // スクロールして該当投稿に移動
                                     postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    console.log('投稿にジャンプしました:', notification.target_post_id);
 
                                     // ハイライト効果を追加（2秒間）
                                     const originalBackground = postElement.style.backgroundColor;
@@ -2107,11 +2123,18 @@
 
                                     // この通知のみを個別に削除
                                     try {
+                                      console.log('通知を削除します:', notification.id);
                                       await apiClient.deleteNotificationById(notification.id);
+                                      console.log('通知を削除しました:', notification.id);
+
                                       await loadNotifications();
+                                      console.log('通知一覧を更新しました');
                                     } catch (error) {
                                       console.error('通知削除エラー:', error);
                                     }
+                                  } else {
+                                    console.warn('対象の投稿が見つかりません:', notification.target_post_id);
+                                    alert('この通知の対象となる投稿が見つかりません。');
                                   }
                                 }
                               }}>
