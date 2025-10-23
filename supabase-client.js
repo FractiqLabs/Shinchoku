@@ -297,6 +297,56 @@ const createSupabaseApiClient = () => {
       }
 
       return data;
+    },
+
+    // いいねを追加
+    async addLike(userId, postId) {
+      const { data, error } = await supabase
+        .from('likes')
+        .insert([{
+          user_id: userId,
+          post_id: postId
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // いいねを削除
+    async removeLike(userId, postId) {
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('user_id', userId)
+        .eq('post_id', postId);
+
+      if (error) throw error;
+    },
+
+    // 投稿のいいね一覧を取得
+    async getLikes(postId) {
+      const { data, error } = await supabase
+        .from('likes')
+        .select('*')
+        .eq('post_id', postId);
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // ユーザーがいいねしたか確認
+    async checkLike(userId, postId) {
+      const { data, error } = await supabase
+        .from('likes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('post_id', postId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      return !!data;
     }
   };
 };
