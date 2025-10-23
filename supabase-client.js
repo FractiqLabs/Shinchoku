@@ -1,10 +1,13 @@
 // Supabase APIクライアント
+// Supabaseクライアントをグローバルスコープで初期化（リアルタイム機能用）
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.anonKey
+);
+
 const createSupabaseApiClient = () => {
-  // Supabaseクライアントを初期化
-  const supabase = window.supabase.createClient(
-    SUPABASE_CONFIG.url,
-    SUPABASE_CONFIG.anonKey
-  );
+  // グローバルのsupabaseClientを使用
+  const supabase = supabaseClient;
 
   return {
     socket: null,

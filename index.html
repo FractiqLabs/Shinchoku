@@ -1158,7 +1158,7 @@
             console.log('リアルタイム監視を開始します');
 
             // 通知テーブルの変更を監視
-            const notificationsSubscription = supabase
+            const notificationsSubscription = supabaseClient
               .channel('notifications-changes')
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'notifications' },
@@ -1177,7 +1177,7 @@
               .subscribe();
 
             // タイムライン投稿テーブルの変更を監視
-            const postsSubscription = supabase
+            const postsSubscription = supabaseClient
               .channel('posts-changes')
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'timeline_posts' },
@@ -1191,7 +1191,7 @@
               .subscribe();
 
             // いいねテーブルの変更を監視
-            const likesSubscription = supabase
+            const likesSubscription = supabaseClient
               .channel('likes-changes')
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'likes' },
@@ -1207,9 +1207,9 @@
             // クリーンアップ関数
             return () => {
               console.log('リアルタイム監視を停止します');
-              supabase.removeChannel(notificationsSubscription);
-              supabase.removeChannel(postsSubscription);
-              supabase.removeChannel(likesSubscription);
+              supabaseClient.removeChannel(notificationsSubscription);
+              supabaseClient.removeChannel(postsSubscription);
+              supabaseClient.removeChannel(likesSubscription);
             };
           }, [isLoggedIn, currentUser, selectedApplicant]);
 
@@ -1230,7 +1230,7 @@
                 return;
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
                 .eq('target_applicant_id', applicantId)
@@ -1251,7 +1251,7 @@
           // 全申込者の通知を取得（NEWバッジ用）
           const fetchAllNotifications = async () => {
             try {
-              const { data, error } = await supabase
+              const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -1274,7 +1274,7 @@
               console.log('投稿通知作成開始:', { applicantId, postId, currentUserId: currentUser.id });
 
               // 全ユーザーを取得
-              const { data: allUsers, error: usersError } = await supabase
+              const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
                 .select('id, name');
 
@@ -1298,7 +1298,7 @@
 
               if (notifications.length > 0) {
                 console.log('通知を作成します:', notifications);
-                const { error: insertError } = await supabase
+                const { error: insertError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
@@ -1330,7 +1330,7 @@
               }
 
               // 元投稿者のユーザーIDを取得
-              const { data: authorUser, error: userError } = await supabase
+              const { data: authorUser, error: userError } = await supabaseClient
                 .from('users')
                 .select('id')
                 .eq('name', parentAuthor)
@@ -1353,7 +1353,7 @@
               };
 
               console.log('返信通知を作成します:', notification);
-              const { error: insertError } = await supabase
+              const { error: insertError } = await supabaseClient
                 .from('notifications')
                 .insert([notification]);
 
@@ -1382,7 +1382,7 @@
               }
 
               // 投稿者のユーザーIDを取得
-              const { data: authorUser, error: userError } = await supabase
+              const { data: authorUser, error: userError } = await supabaseClient
                 .from('users')
                 .select('id')
                 .eq('name', postAuthor)
@@ -1405,7 +1405,7 @@
               };
 
               console.log('いいね通知を作成します:', notification);
-              const { error: insertError } = await supabase
+              const { error: insertError } = await supabaseClient
                 .from('notifications')
                 .insert([notification]);
 
@@ -1424,7 +1424,7 @@
             try {
               console.log('通知削除開始:', notificationId);
 
-              const { error } = await supabase
+              const { error } = await supabaseClient
                 .from('notifications')
                 .delete()
                 .eq('id', notificationId);
@@ -1920,7 +1920,7 @@
                 await apiClient.removeLike(currentUser.id, postId);
 
                 // 通知を削除
-                const { error: deleteError } = await supabase
+                const { error: deleteError } = await supabaseClient
                   .from('notifications')
                   .delete()
                   .eq('type', 'heart')
@@ -2072,7 +2072,7 @@
               await apiClient.deletePost(selectedApplicant.id, deletingPostId);
 
               // この投稿に関連する全ての通知を削除
-              const { error: deleteNotifError } = await supabase
+              const { error: deleteNotifError } = await supabaseClient
                 .from('notifications')
                 .delete()
                 .eq('target_post_id', deletingPostId);
@@ -2166,7 +2166,7 @@
               await apiClient.deletePost(selectedApplicant.id, deletingReplyId);
 
               // この返信に関連する全ての通知を削除
-              const { error: deleteNotifError } = await supabase
+              const { error: deleteNotifError } = await supabaseClient
                 .from('notifications')
                 .delete()
                 .eq('target_post_id', deletingReplyId);
