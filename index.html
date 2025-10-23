@@ -2362,6 +2362,76 @@
                         </div>
                       )}
 
+                      {/* 通知エリア */}
+                      {notifications.length > 0 && (
+                        <div style={{marginBottom: '20px'}}>
+                          <div style={{
+                            backgroundColor: '#e7f3ff',
+                            border: '1px solid #b3d9ff',
+                            borderRadius: '8px',
+                            padding: '12px 16px'
+                          }}>
+                            <div style={{
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              color: '#0066cc',
+                              marginBottom: '8px'
+                            }}>
+                              📬 新しい通知 ({notifications.length})
+                            </div>
+                            {notifications.map(notif => {
+                              let message = '';
+                              if (notif.type === 'post') {
+                                message = `${notif.actor_user_name}さんが新しい投稿をしました`;
+                              } else if (notif.type === 'reply') {
+                                message = `${notif.actor_user_name}さんがあなたの投稿に返信しました`;
+                              } else if (notif.type === 'heart') {
+                                message = `${notif.actor_user_name}さんがあなたの投稿にいいねしました`;
+                              }
+
+                              return (
+                                <div
+                                  key={notif.id}
+                                  onClick={() => {
+                                    deleteNotification(notif.id);
+                                    const postElement = document.getElementById(`post-${notif.target_post_id}`);
+                                    if (postElement) {
+                                      postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      postElement.style.backgroundColor = '#fff9e6';
+                                      setTimeout(() => {
+                                        postElement.style.backgroundColor = '';
+                                      }, 2000);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '8px 12px',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #d9ecff',
+                                    borderRadius: '6px',
+                                    marginTop: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    color: '#495057',
+                                    transition: 'background-color 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                                >
+                                  {message}
+                                  <span style={{
+                                    fontSize: '11px',
+                                    color: '#6c757d',
+                                    marginLeft: '8px'
+                                  }}>
+                                    {formatTimeAgo(notif.created_at)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {(() => {
                         const filteredTimeline = (selectedApplicant.timeline || []).filter(item => {
                           if (!timelineSearchQuery.trim()) return true;
@@ -2381,7 +2451,7 @@
                         }
 
                         return filteredTimeline.map((item) => (
-                          <div key={item.id} className="timeline-item">
+                          <div key={item.id} id={`post-${item.id}`} className="timeline-item">
                             <div className="timeline-post">
                               <div className="post-header">
                                 <span className="post-author">{item.author}</span>
@@ -2421,7 +2491,7 @@
                               {item.replies && item.replies.length > 0 && (
                                 <div style={{marginTop: '16px'}}>
                                   {item.replies.map((reply) => (
-                                    <div key={reply.id} className="reply-item">
+                                    <div key={reply.id} id={`post-${reply.id}`} className="reply-item">
                                       {currentUser && reply.author === currentUser.name && (
                                         <div className="post-hover-actions">
                                           <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
@@ -2784,16 +2854,37 @@
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedApplicants.map((applicant) => (
-                        <tr 
+                      {sortedApplicants.map((applicant) => {
+                        // この申込者に関する通知があるか確認
+                        const hasNotifications = allNotifications.some(n => n.target_applicant_id === applicant.id);
+
+                        return (
+                        <tr
                           key={applicant.id}
                           onClick={() => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
+                            fetchNotifications(applicant.id);
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
-                          <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
+                          <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
+                            {applicant.name}
+                            {hasNotifications && (
+                              <span style={{
+                                marginLeft: '8px',
+                                backgroundColor: '#ff4444',
+                                color: '#fff',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                verticalAlign: 'middle'
+                              }}>
+                                NEW
+                              </span>
+                            )}
+                          </td>
                           <td>{applicant.age}歳</td>
                           <td>{applicant.careLevel}</td>
                           <td>
@@ -2832,7 +2923,8 @@
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
