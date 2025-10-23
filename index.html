@@ -1160,6 +1160,52 @@
             }
           };
 
+          // 通知を取得（特定の申込者用）
+          const fetchNotifications = async (applicantId) => {
+            try {
+              if (!applicantId) {
+                setNotifications([]);
+                return;
+              }
+
+              const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('target_applicant_id', applicantId)
+                .order('created_at', { ascending: false });
+
+              if (error) {
+                console.error('通知取得エラー:', error);
+                return;
+              }
+
+              console.log('通知を取得しました:', data);
+              setNotifications(data || []);
+            } catch (error) {
+              console.error('通知取得処理エラー:', error);
+            }
+          };
+
+          // 全申込者の通知を取得（NEWバッジ用）
+          const fetchAllNotifications = async () => {
+            try {
+              const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+              if (error) {
+                console.error('全通知取得エラー:', error);
+                return;
+              }
+
+              console.log('全通知を取得しました:', data);
+              setAllNotifications(data || []);
+            } catch (error) {
+              console.error('全通知取得処理エラー:', error);
+            }
+          };
+
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
@@ -1177,6 +1223,8 @@
 
               setLoginForm({ id: '', password: '' });
               await loadApplicants();
+              await fetchAllNotifications();
+              console.log('ログイン成功:', { id: response.user.id, name: response.user.name });
             } catch (error) {
               console.error('Login failed:', error);
               setLoginError(error.message || 'ログインに失敗しました。');
