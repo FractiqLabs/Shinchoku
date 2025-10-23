@@ -1151,6 +1151,68 @@
             }
           }, []);
 
+          // リアルタイム監視の設定
+          React.useEffect(() => {
+            if (!isLoggedIn || !currentUser) return;
+
+            console.log('リアルタイム監視を開始します');
+
+            // 通知テーブルの変更を監視
+            const notificationsSubscription = supabase
+              .channel('notifications-changes')
+              .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'notifications' },
+                async (payload) => {
+                  console.log('通知テーブル変更検知:', payload);
+
+                  // 全通知を再取得
+                  await fetchAllNotifications();
+
+                  // 現在選択中の申込者の通知も再取得
+                  if (selectedApplicant) {
+                    await fetchNotifications(selectedApplicant.id);
+                  }
+                }
+              )
+              .subscribe();
+
+            // タイムライン投稿テーブルの変更を監視
+            const postsSubscription = supabase
+              .channel('posts-changes')
+              .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'timeline_posts' },
+                async (payload) => {
+                  console.log('投稿テーブル変更検知:', payload);
+
+                  // 申込者リストを再取得
+                  await loadApplicants();
+                }
+              )
+              .subscribe();
+
+            // いいねテーブルの変更を監視
+            const likesSubscription = supabase
+              .channel('likes-changes')
+              .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'likes' },
+                async (payload) => {
+                  console.log('いいねテーブル変更検知:', payload);
+
+                  // いいね状態を更新（簡易実装：該当投稿のいいね状態を再取得）
+                  // より詳細な実装が必要な場合はここで処理
+                }
+              )
+              .subscribe();
+
+            // クリーンアップ関数
+            return () => {
+              console.log('リアルタイム監視を停止します');
+              supabase.removeChannel(notificationsSubscription);
+              supabase.removeChannel(postsSubscription);
+              supabase.removeChannel(likesSubscription);
+            };
+          }, [isLoggedIn, currentUser, selectedApplicant]);
+
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
