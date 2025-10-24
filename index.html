@@ -1092,6 +1092,9 @@
           const [notifications, setNotifications] = React.useState([]);
           const [allNotifications, setAllNotifications] = React.useState([]);
 
+          // 申込者閲覧履歴管理
+          const [applicantViews, setApplicantViews] = React.useState({});
+
           const [editingPostId, setEditingPostId] = React.useState(null);
           const [editingContent, setEditingContent] = React.useState('');
           const [deletingPostId, setDeletingPostId] = React.useState(null);
@@ -1219,6 +1222,66 @@
               setApplicants(data);
             } catch (error) {
               console.error('Failed to load applicants:', error);
+            }
+          };
+
+          // 申込者の閲覧履歴を取得
+          const loadApplicantViews = async () => {
+            try {
+              if (!currentUser) return;
+
+              const { data, error } = await supabaseClient
+                .from('user_applicant_views')
+                .select('applicant_id, last_viewed_at')
+                .eq('user_id', currentUser.id);
+
+              if (error) {
+                console.error('閲覧履歴取得エラー:', error);
+                return;
+              }
+
+              // applicant_idをキーとしたオブジェクトに変換
+              const viewsMap = {};
+              data.forEach(view => {
+                viewsMap[view.applicant_id] = view.last_viewed_at;
+              });
+
+              setApplicantViews(viewsMap);
+              console.log('閲覧履歴を取得しました:', viewsMap);
+            } catch (error) {
+              console.error('閲覧履歴取得処理エラー:', error);
+            }
+          };
+
+          // 申込者の閲覧時刻を更新
+          const updateApplicantView = async (applicantId) => {
+            try {
+              if (!currentUser) return;
+
+              const { error } = await supabaseClient
+                .from('user_applicant_views')
+                .upsert({
+                  user_id: currentUser.id,
+                  applicant_id: applicantId,
+                  last_viewed_at: new Date().toISOString()
+                }, {
+                  onConflict: 'user_id,applicant_id'
+                });
+
+              if (error) {
+                console.error('閲覧時刻更新エラー:', error);
+                return;
+              }
+
+              console.log('閲覧時刻を更新しました:', applicantId);
+
+              // ローカル状態も更新
+              setApplicantViews(prev => ({
+                ...prev,
+                [applicantId]: new Date().toISOString()
+              }));
+            } catch (error) {
+              console.error('閲覧時刻更新処理エラー:', error);
             }
           };
 
@@ -1554,6 +1617,7 @@
               setLoginForm({ id: '', password: '' });
               await loadApplicants();
               await fetchAllNotifications();
+              await loadApplicantViews();
               console.log('ログイン成功:', { id: response.user.id, name: response.user.name });
             } catch (error) {
               console.error('Login failed:', error);
@@ -2536,7 +2600,7 @@
                               color: '#0066cc',
                               marginBottom: '8px'
                             }}>
-                              📬 新しい通知 ({notifications.length})
+                              新しい通知 ({notifications.length})
                             </div>
                             {notifications.map(notif => {
                               let message = '';
@@ -3024,9 +3088,15 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に関する未読通知があるか確認
-                        const hasUnreadNotifications = allNotifications.some(
-                          n => n.target_applicant_id === applicant.id && !n.is_read
+                        // この申込者に新しい動きがあるかチェック（lastViewedAtベース）
+                        const lastViewedAt = applicantViews[applicant.id];
+                        const hasNewActivity = applicant.timeline && applicant.timeline.length > 0 && (
+                          !lastViewedAt ||
+                          applicant.timeline.some(post => {
+                            const postTime = new Date(post.timestamp || post.created_at).getTime();
+                            const viewedTime = new Date(lastViewedAt).getTime();
+                            return postTime > viewedTime;
+                          })
                         );
 
                         return (
@@ -3035,6 +3105,9 @@
                           onClick={async () => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
+
+                            // この申込者の閲覧時刻を更新
+                            await updateApplicantView(applicant.id);
 
                             // この申込者に関する未読通知を既読にする
                             await markNotificationsAsRead(applicant.id);
@@ -3045,11 +3118,12 @@
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
                             {applicant.name}
-                            {hasUnreadNotifications && (
+                            {hasNewActivity && (
                               <span style={{
-                                marginLeft: '8px',
+                                display: 'inline-block',
+                                marginLeft: '6px',
                                 backgroundColor: '#dc3545',
-                                color: '#fff',
+                                color: '#ffffff',
                                 fontSize: '10px',
                                 fontWeight: '600',
                                 padding: '2px 6px',

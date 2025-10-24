@@ -94,6 +94,23 @@ ON notifications(viewer_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique
 ON notifications(type, actor_user_id, COALESCE(target_post_id, 0), viewer_user_id);
 
+-- ユーザー別申込者閲覧履歴テーブル
+CREATE TABLE IF NOT EXISTS user_applicant_views (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    applicant_id INTEGER NOT NULL,
+    last_viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
+    UNIQUE(user_id, applicant_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_applicant_views_user
+ON user_applicant_views(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_applicant_views_applicant
+ON user_applicant_views(applicant_id);
+
 -- 初期ユーザーデータ挿入
 INSERT INTO users (username, password_hash, name) VALUES 
 ('a', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '藤堂　友未枝'),
