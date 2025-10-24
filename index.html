@@ -1285,6 +1285,62 @@
             }
           };
 
+          // いいね状態を読み込む（特定の申込者用）
+          const loadLikesForApplicant = async (applicantId) => {
+            try {
+              if (!applicantId) {
+                return;
+              }
+
+              // この申込者のタイムライン投稿IDを取得
+              const { data: posts, error: postsError } = await supabaseClient
+                .from('timeline_posts')
+                .select('id')
+                .eq('applicant_id', applicantId);
+
+              if (postsError) {
+                console.error('投稿ID取得エラー:', postsError);
+                return;
+              }
+
+              if (!posts || posts.length === 0) {
+                return;
+              }
+
+              const postIds = posts.map(p => p.id);
+
+              // この申込者の投稿に対する現在のユーザーのいいねを取得
+              const { data: userLikes, error: likesError } = await supabaseClient
+                .from('likes')
+                .select('post_id')
+                .eq('user_id', currentUser.id)
+                .in('post_id', postIds);
+
+              if (likesError) {
+                console.error('いいね状態取得エラー:', likesError);
+                return;
+              }
+
+              // いいね状態を更新
+              const newLikes = {};
+              if (userLikes) {
+                userLikes.forEach(like => {
+                  const key = `${applicantId}-${like.post_id}`;
+                  newLikes[key] = true;
+                });
+              }
+
+              setLikes(prev => ({
+                ...prev,
+                ...newLikes
+              }));
+
+              console.log('いいね状態を読み込みました:', newLikes);
+            } catch (error) {
+              console.error('いいね状態読み込みエラー:', error);
+            }
+          };
+
           // 通知を取得（特定の申込者用）
           const fetchNotifications = async (applicantId) => {
             try {
@@ -3113,6 +3169,9 @@
                           onClick={async () => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
+
+                            // この申込者のいいね状態を読み込む
+                            await loadLikesForApplicant(applicant.id);
 
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
