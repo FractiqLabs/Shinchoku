@@ -30,3 +30,20 @@ ON notifications(is_read);
 -- 6. 重複防止用のユニーク制約を追加
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique
 ON notifications(type, actor_user_id, COALESCE(target_post_id, 0), viewer_user_id);
+
+-- 7. ユーザー別申込者閲覧履歴テーブルを作成
+CREATE TABLE IF NOT EXISTS user_applicant_views (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    applicant_id INTEGER NOT NULL,
+    last_viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
+    UNIQUE(user_id, applicant_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_applicant_views_user
+ON user_applicant_views(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_applicant_views_applicant
+ON user_applicant_views(applicant_id);
