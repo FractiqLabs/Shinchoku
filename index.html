@@ -2115,11 +2115,23 @@
                   await createHeartNotifications(applicantId, postId, post);
                 }
 
+                // 申込者のlast_updated_byを更新
+                await supabaseClient
+                  .from('applicants')
+                  .update({
+                    last_updated_by: currentUser.name,
+                    last_updated_at: new Date().toISOString()
+                  })
+                  .eq('id', applicantId);
+
                 // ローカル状態を更新
                 setLikes(prev => ({
                   ...prev,
                   [key]: true
                 }));
+
+                // 申込者リストを再取得（NEWバッジ更新のため）
+                await loadApplicants();
               }
             } catch (error) {
               console.error('いいね処理エラー:', error);
@@ -3088,16 +3100,12 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に新しい動きがあるかチェック（lastViewedAtベース）
+                        // この申込者に新しい動きがあるかチェック（lastUpdatedByベース）
                         const lastViewedAt = applicantViews[applicant.id];
-                        const hasNewActivity = applicant.timeline && applicant.timeline.length > 0 && (
-                          !lastViewedAt ||
-                          applicant.timeline.some(post => {
-                            const postTime = new Date(post.timestamp || post.created_at).getTime();
-                            const viewedTime = new Date(lastViewedAt).getTime();
-                            return postTime > viewedTime;
-                          })
-                        );
+                        const hasNewActivity =
+                          applicant.last_updated_by &&
+                          applicant.last_updated_by !== currentUser.name &&
+                          (!lastViewedAt || new Date(applicant.last_updated_at) > new Date(lastViewedAt));
 
                         return (
                         <tr

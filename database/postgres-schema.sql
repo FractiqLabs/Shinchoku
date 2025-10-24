@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS applicants (
     notes TEXT,
     status VARCHAR(50) DEFAULT '申込書受領',
     application_date DATE NOT NULL,
+    last_updated_by VARCHAR(255),
+    last_updated_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
