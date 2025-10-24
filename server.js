@@ -263,11 +263,11 @@ app.delete('/api/applicants/:id', authenticateToken, async (req, res) => {
 // 申込者の進捗ステータスを再計算する関数
 async function recalculateApplicantStatus(applicantId) {
   try {
-    // 最新のaction付き投稿を取得（親投稿のみ、返信は除外）
+    // 最新のaction付き投稿を取得（親投稿・返信の両方を含む）
     const latestActionPost = await db.get(`
-      SELECT action FROM timeline_posts 
-      WHERE applicant_id = ? AND action IS NOT NULL AND parent_post_id IS NULL
-      ORDER BY created_at DESC 
+      SELECT action FROM timeline_posts
+      WHERE applicant_id = ? AND action IS NOT NULL
+      ORDER BY created_at DESC
       LIMIT 1
     `, [applicantId]);
 
@@ -280,27 +280,29 @@ async function recalculateApplicantStatus(applicantId) {
         '健康診断書受領': '健康診断書受領',
         '判定会議中': '判定会議中',
         '入居決定': '入居決定',
+        '入居不可': '入居不可',
         '入居日調整中': '入居日調整中',
         '書類送付済': '書類送付済',
         '入居準備完了': '入居準備完了',
-        '入居完了': '入居完了'
+        '入居完了': '入居完了',
+        'キャンセル': 'キャンセル'
       };
 
       const newStatus = statusMapping[latestActionPost.action];
       if (newStatus) {
         await db.run('UPDATE applicants SET status = ? WHERE id = ?', [newStatus, applicantId]);
-        
+
         // リアルタイム同期: ステータス更新をすべてのクライアントに通知
         io.emit('statusUpdate', {
           applicantId: applicantId,
           status: newStatus,
           updatedBy: 'システム'
         });
-        
+
         return newStatus;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('進捗ステータス再計算エラー:', error);
