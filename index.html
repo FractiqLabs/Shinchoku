@@ -1510,6 +1510,32 @@
             }
           };
 
+          // 申込者を開いた時に通知を既読にする
+          const markNotificationsAsRead = async (applicantId) => {
+            try {
+              console.log('通知既読化開始:', applicantId);
+
+              const { error } = await supabaseClient
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('target_applicant_id', applicantId)
+                .eq('viewer_user_id', currentUser.id)
+                .eq('is_read', false);
+
+              if (error) {
+                console.error('通知既読化エラー:', error);
+                throw error;
+              }
+
+              console.log('通知既読化完了');
+
+              // 全通知リストを再取得（NEWバッジ更新のため）
+              await fetchAllNotifications();
+            } catch (error) {
+              console.error('通知既読化処理エラー:', error);
+            }
+          };
+
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
@@ -2998,30 +3024,36 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に関する通知があるか確認
-                        const hasNotifications = allNotifications.some(n => n.target_applicant_id === applicant.id);
+                        // この申込者に関する未読通知があるか確認
+                        const hasUnreadNotifications = allNotifications.some(
+                          n => n.target_applicant_id === applicant.id && !n.is_read
+                        );
 
                         return (
                         <tr
                           key={applicant.id}
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
+
+                            // この申込者に関する未読通知を既読にする
+                            await markNotificationsAsRead(applicant.id);
+
                             fetchNotifications(applicant.id);
                           }}
                         >
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
                             {applicant.name}
-                            {hasNotifications && (
+                            {hasUnreadNotifications && (
                               <span style={{
                                 marginLeft: '8px',
-                                backgroundColor: '#ff4444',
+                                backgroundColor: '#dc3545',
                                 color: '#fff',
                                 fontSize: '10px',
                                 fontWeight: '600',
                                 padding: '2px 6px',
-                                borderRadius: '10px',
+                                borderRadius: '8px',
                                 verticalAlign: 'middle'
                               }}>
                                 NEW

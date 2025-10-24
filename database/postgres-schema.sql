@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     target_user_name VARCHAR(255),
     target_applicant_id INTEGER NOT NULL,
     target_post_id INTEGER,
+    is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (viewer_user_id) REFERENCES users(id) ON DELETE CASCADE,

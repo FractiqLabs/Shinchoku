@@ -8,6 +8,7 @@ TRUNCATE TABLE notifications;
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS viewer_user_id INTEGER;
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS target_user_id INTEGER;
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS target_user_name VARCHAR(255);
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
 
 -- 3. NOT NULL制約を追加
 ALTER TABLE notifications ALTER COLUMN viewer_user_id SET NOT NULL;
@@ -22,6 +23,9 @@ FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE;
 -- 5. インデックスを追加
 CREATE INDEX IF NOT EXISTS idx_notifications_viewer
 ON notifications(viewer_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read
+ON notifications(is_read);
 
 -- 6. 重複防止用のユニーク制約を追加
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique
