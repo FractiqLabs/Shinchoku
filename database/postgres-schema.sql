@@ -66,10 +66,15 @@ CREATE TABLE IF NOT EXISTS notifications (
     type VARCHAR(50) NOT NULL,
     actor_user_id INTEGER NOT NULL,
     actor_user_name VARCHAR(255) NOT NULL,
+    viewer_user_id INTEGER NOT NULL,
+    target_user_id INTEGER,
+    target_user_name VARCHAR(255),
     target_applicant_id INTEGER NOT NULL,
     target_post_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (viewer_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (target_applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
     FOREIGN KEY (target_post_id) REFERENCES timeline_posts(id) ON DELETE CASCADE
 );
@@ -80,6 +85,13 @@ ON notifications(target_applicant_id);
 
 CREATE INDEX IF NOT EXISTS idx_notifications_actor
 ON notifications(actor_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_viewer
+ON notifications(viewer_user_id);
+
+-- 重複防止用のユニーク制約（同じアクションに対して同じユーザーへの通知は1件のみ）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique
+ON notifications(type, actor_user_id, COALESCE(target_post_id, 0), viewer_user_id);
 
 -- 初期ユーザーデータ挿入
 INSERT INTO users (username, password_hash, name) VALUES 
