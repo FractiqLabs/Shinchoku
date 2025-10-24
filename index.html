@@ -1234,6 +1234,7 @@
                 .from('notifications')
                 .select('*')
                 .eq('target_applicant_id', applicantId)
+                .eq('viewer_user_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
               if (error) {
@@ -1254,6 +1255,7 @@
               const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
+                .eq('viewer_user_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
               if (error) {
@@ -1292,6 +1294,9 @@
                   type: 'post',
                   actor_user_id: currentUser.id,
                   actor_user_name: currentUser.name,
+                  viewer_user_id: user.id,
+                  target_user_id: null,
+                  target_user_name: null,
                   target_applicant_id: applicantId,
                   target_post_id: postId
                 }));
@@ -1302,10 +1307,10 @@
                   .from('notifications')
                   .insert(notifications);
 
-                if (insertError) {
+                if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('通知作成エラー:', insertError);
                 } else {
-                  console.log('投稿通知作成完了:', notifications.length + '件');
+                  console.log('投稿通知作成完了');
                 }
               } else {
                 console.log('通知対象ユーザーなし');
@@ -1320,7 +1325,7 @@
             try {
               console.log('返信通知作成開始:', { parentPostId, applicantId, replyId });
 
-              // 1. 返信先の投稿情報を取得（元投稿IDの特定のため）
+              // 1. 返信先の投稿情報を取得
               const { data: parentPost, error: parentError } = await supabaseClient
                 .from('timeline_posts')
                 .select('id, author, parent_post_id')
@@ -1334,18 +1339,18 @@
 
               console.log('返信先の投稿:', parentPost);
 
-              // 2. 元投稿（ルート投稿）のIDを特定
+              // 2. 元投稿（ルート投稿）のIDと作成者を特定
               let rootPostId = parentPostId;
+              let rootPostAuthor = parentPost.author;
 
               // parent_post_idがnullでない場合、さらに遡って元投稿を探す
               if (parentPost.parent_post_id) {
-                // 再帰的に元投稿を探す
                 let currentPost = parentPost;
 
                 while (currentPost.parent_post_id) {
                   const { data: ancestorPost, error: ancestorError } = await supabaseClient
                     .from('timeline_posts')
-                    .select('id, parent_post_id')
+                    .select('id, author, parent_post_id')
                     .eq('id', currentPost.parent_post_id)
                     .single();
 
@@ -1353,12 +1358,24 @@
 
                   currentPost = ancestorPost;
                   rootPostId = ancestorPost.id;
+                  rootPostAuthor = ancestorPost.author;
                 }
               }
 
-              console.log('元投稿ID:', rootPostId);
+              console.log('元投稿ID:', rootPostId, '元投稿作成者:', rootPostAuthor);
 
-              // 3. 全ユーザーを取得
+              // 3. 返信先の投稿者のユーザー情報を取得
+              const { data: targetUser, error: targetUserError } = await supabaseClient
+                .from('users')
+                .select('id, name')
+                .eq('name', parentPost.author)
+                .single();
+
+              if (targetUserError) {
+                console.error('返信先ユーザー取得エラー:', targetUserError);
+              }
+
+              // 4. 全ユーザーを取得
               const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
                 .select('id, name');
@@ -1369,34 +1386,35 @@
               }
 
               console.log('通知対象ユーザー（全ユーザー）:', allUsers);
-              console.log('現在のユーザーID:', currentUser.id);
 
-              // 4. 自分以外の全ユーザーに通知を作成
+              // 5. 自分以外の全ユーザーに通知を作成
               const notifications = allUsers
-                .filter(user => user.id !== currentUser.id) // 自分自身は除外
+                .filter(user => user.id !== currentUser.id)
                 .map(user => ({
                   type: 'reply',
                   actor_user_id: currentUser.id,
                   actor_user_name: currentUser.name,
+                  viewer_user_id: user.id,
+                  target_user_id: targetUser?.id || null,
+                  target_user_name: targetUser?.name || parentPost.author,
                   target_applicant_id: applicantId,
-                  target_post_id: rootPostId, // 元投稿のIDを指定
+                  target_post_id: replyId, // 返信自体のIDを設定
                   created_at: new Date().toISOString()
                 }));
 
               console.log('作成する通知:', notifications);
 
               if (notifications.length > 0) {
+                // 重複を無視して挿入（ユニーク制約でエラーになる場合はスキップ）
                 const { error: notifError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
-                if (notifError) {
+                if (notifError && !notifError.message?.includes('duplicate')) {
                   console.error('返信通知作成エラー:', notifError);
                 } else {
-                  console.log('返信通知を作成しました:', notifications.length + '件');
+                  console.log('返信通知を作成しました');
                 }
-              } else {
-                console.log('通知対象ユーザーがいません（自分のみ）');
               }
 
             } catch (error) {
@@ -1408,6 +1426,17 @@
           const createHeartNotifications = async (applicantId, postId, post) => {
             try {
               console.log('いいね通知作成開始:', { applicantId, postId, post });
+
+              // 投稿者のユーザー情報を取得
+              const { data: targetUser, error: targetUserError } = await supabaseClient
+                .from('users')
+                .select('id, name')
+                .eq('name', post.author)
+                .single();
+
+              if (targetUserError) {
+                console.error('投稿者ユーザー取得エラー:', targetUserError);
+              }
 
               // 全ユーザーを取得
               const { data: allUsers, error: usersError } = await supabaseClient
@@ -1423,11 +1452,14 @@
 
               // 自分以外の全ユーザーに通知を作成
               const notifications = allUsers
-                .filter(user => user.id !== currentUser.id) // 自分自身は除外
+                .filter(user => user.id !== currentUser.id)
                 .map(user => ({
                   type: 'heart',
                   actor_user_id: currentUser.id,
                   actor_user_name: currentUser.name,
+                  viewer_user_id: user.id,
+                  target_user_id: targetUser?.id || null,
+                  target_user_name: targetUser?.name || post.author,
                   target_applicant_id: applicantId,
                   target_post_id: postId
                 }));
@@ -1439,20 +1471,18 @@
                   .from('notifications')
                   .insert(notifications);
 
-                if (insertError) {
+                if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('いいね通知作成エラー:', insertError);
                 } else {
-                  console.log('いいね通知作成完了:', notifications.length + '件');
+                  console.log('いいね通知作成完了');
                 }
-              } else {
-                console.log('通知対象ユーザーがいません（自分のみ）');
               }
             } catch (error) {
               console.error('いいね通知作成処理エラー:', error);
             }
           };
 
-          // 通知をクリックした際に通知を削除
+          // 通知をクリックした際に通知を削除（自分の通知のみ）
           const deleteNotification = async (notificationId) => {
             try {
               console.log('通知削除開始:', notificationId);
@@ -1460,7 +1490,8 @@
               const { error } = await supabaseClient
                 .from('notifications')
                 .delete()
-                .eq('id', notificationId);
+                .eq('id', notificationId)
+                .eq('viewer_user_id', currentUser.id);
 
               if (error) {
                 console.error('通知削除エラー:', error);
@@ -2486,9 +2517,19 @@
                               if (notif.type === 'post') {
                                 message = `${notif.actor_user_name}さんが新しい投稿をしました`;
                               } else if (notif.type === 'reply') {
-                                message = `${notif.actor_user_name}さんがあなたの投稿に返信しました`;
+                                // 返信対象が自分かどうかで文言を変更
+                                if (notif.target_user_id === currentUser.id) {
+                                  message = `${notif.actor_user_name}さんがあなたに返信しました`;
+                                } else {
+                                  message = `${notif.actor_user_name}さんが${notif.target_user_name}さんに返信しました`;
+                                }
                               } else if (notif.type === 'heart') {
-                                message = `${notif.actor_user_name}さんがあなたの投稿にいいねしました`;
+                                // いいね対象が自分かどうかで文言を変更
+                                if (notif.target_user_id === currentUser.id) {
+                                  message = `${notif.actor_user_name}さんがあなたの投稿にいいねしました`;
+                                } else {
+                                  message = `${notif.actor_user_name}さんが${notif.target_user_name}さんの投稿にいいねしました`;
+                                }
                               }
 
                               return (
