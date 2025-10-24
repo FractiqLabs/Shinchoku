@@ -272,6 +272,12 @@ const createSupabaseApiClient = () => {
 
       if (error) throw error;
 
+      // 申込者のlast_updated_byとlast_updated_atを更新
+      const updateData = {
+        last_updated_by: author,
+        last_updated_at: new Date().toISOString()
+      };
+
       // ステータス更新が必要な場合
       if (action) {
         const statusMapping = {
@@ -292,12 +298,15 @@ const createSupabaseApiClient = () => {
 
         const newStatus = statusMapping[action];
         if (newStatus) {
-          await supabase
-            .from('applicants')
-            .update({ status: newStatus })
-            .eq('id', applicantId);
+          updateData.status = newStatus;
         }
       }
+
+      // 申込者情報を更新
+      await supabase
+        .from('applicants')
+        .update(updateData)
+        .eq('id', applicantId);
 
       return data;
     },
