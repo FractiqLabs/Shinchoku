@@ -1315,12 +1315,12 @@
             }
           };
 
-          // 返信時の通知を作成（スレッド内の全ユーザーに通知、自分以外）
+          // 返信時の通知を作成（投稿者以外の全ユーザーに通知）
           const createReplyNotifications = async (parentPostId, applicantId, replyId) => {
             try {
               console.log('返信通知作成開始:', { parentPostId, applicantId, replyId });
 
-              // 1. 返信先の投稿情報を取得
+              // 1. 返信先の投稿情報を取得（元投稿IDの特定のため）
               const { data: parentPost, error: parentError } = await supabaseClient
                 .from('timeline_posts')
                 .select('id, author, parent_post_id')
@@ -1358,54 +1358,21 @@
 
               console.log('元投稿ID:', rootPostId);
 
-              // 3. 元投稿の作成者を取得
-              const { data: rootPost, error: rootError } = await supabaseClient
-                .from('timeline_posts')
-                .select('author')
-                .eq('id', rootPostId)
-                .single();
-
-              if (rootError) {
-                console.error('元投稿取得エラー:', rootError);
-                throw rootError;
-              }
-
-              console.log('元投稿の作成者:', rootPost.author);
-
-              // 4. そのスレッド内の全ての返信を取得
-              const { data: allRepliesInThread, error: repliesError } = await supabaseClient
-                .from('timeline_posts')
-                .select('author')
-                .or(`id.eq.${rootPostId},parent_post_id.eq.${rootPostId}`)
-                .neq('id', replyId); // 今作成した返信は除外
-
-              if (repliesError) {
-                console.error('スレッド内返信取得エラー:', repliesError);
-                throw repliesError;
-              }
-
-              console.log('スレッド内の全投稿/返信:', allRepliesInThread);
-
-              // 5. 通知対象ユーザー名のリストを作成（重複除去）
-              const uniqueAuthors = [...new Set(allRepliesInThread.map(p => p.author))];
-              console.log('通知対象の作成者名:', uniqueAuthors);
-
-              // 6. ユーザー名からユーザーIDを取得
-              const { data: targetUsers, error: usersError } = await supabaseClient
+              // 3. 全ユーザーを取得
+              const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
-                .select('id, name')
-                .in('name', uniqueAuthors);
+                .select('id, name');
 
               if (usersError) {
                 console.error('ユーザー情報取得エラー:', usersError);
                 throw usersError;
               }
 
-              console.log('通知対象ユーザー:', targetUsers);
+              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
               console.log('現在のユーザーID:', currentUser.id);
 
-              // 7. 自分以外のユーザーに通知を作成
-              const notifications = targetUsers
+              // 4. 自分以外の全ユーザーに通知を作成
+              const notifications = allUsers
                 .filter(user => user.id !== currentUser.id) // 自分自身は除外
                 .map(user => ({
                   type: 'reply',
@@ -1437,52 +1404,48 @@
             }
           };
 
-          // いいね時の通知を作成（投稿者に通知、自分以外）
+          // いいね時の通知を作成（投稿者以外の全ユーザーに通知）
           const createHeartNotifications = async (applicantId, postId, post) => {
             try {
               console.log('いいね通知作成開始:', { applicantId, postId, post });
 
-              // 投稿の作成者を取得
-              const postAuthor = post.author;
-
-              // 自分自身の投稿の場合は通知を作成しない
-              if (postAuthor === currentUser.name) {
-                console.log('自分自身の投稿へのいいねのため通知スキップ');
-                return;
-              }
-
-              // 投稿者のユーザーIDを取得
-              const { data: authorUser, error: userError } = await supabaseClient
+              // 全ユーザーを取得
+              const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
-                .select('id')
-                .eq('name', postAuthor)
-                .single();
+                .select('id, name');
 
-              if (userError || !authorUser) {
-                console.error('投稿者のユーザー取得エラー:', userError);
+              if (usersError) {
+                console.error('ユーザー情報取得エラー:', usersError);
                 return;
               }
 
-              console.log('投稿者ユーザー:', authorUser);
+              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
 
-              // 通知を作成
-              const notification = {
-                type: 'heart',
-                actor_user_id: currentUser.id,
-                actor_user_name: currentUser.name,
-                target_applicant_id: applicantId,
-                target_post_id: postId
-              };
+              // 自分以外の全ユーザーに通知を作成
+              const notifications = allUsers
+                .filter(user => user.id !== currentUser.id) // 自分自身は除外
+                .map(user => ({
+                  type: 'heart',
+                  actor_user_id: currentUser.id,
+                  actor_user_name: currentUser.name,
+                  target_applicant_id: applicantId,
+                  target_post_id: postId
+                }));
 
-              console.log('いいね通知を作成します:', notification);
-              const { error: insertError } = await supabaseClient
-                .from('notifications')
-                .insert([notification]);
+              console.log('いいね通知を作成します:', notifications);
 
-              if (insertError) {
-                console.error('いいね通知作成エラー:', insertError);
+              if (notifications.length > 0) {
+                const { error: insertError } = await supabaseClient
+                  .from('notifications')
+                  .insert(notifications);
+
+                if (insertError) {
+                  console.error('いいね通知作成エラー:', insertError);
+                } else {
+                  console.log('いいね通知作成完了:', notifications.length + '件');
+                }
               } else {
-                console.log('いいね通知作成完了');
+                console.log('通知対象ユーザーがいません（自分のみ）');
               }
             } catch (error) {
               console.error('いいね通知作成処理エラー:', error);
@@ -1956,9 +1919,9 @@
 
           // 申込者の進捗ステータスを再計算する関数
           const recalculateApplicantStatus = (applicant) => {
-            // 最新のaction付き投稿を取得（親投稿のみ、返信は除外）
+            // 最新のaction付き投稿を取得（親投稿・返信の両方を含む）
             const timelineWithActions = applicant.timeline
-              .filter(post => post.action && !post.parent_post_id)
+              .filter(post => post.action)
               .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at));
 
             if (timelineWithActions.length > 0) {
