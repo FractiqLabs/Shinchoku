@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS timeline_posts (
     author VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     action VARCHAR(100),
+    status VARCHAR(100),
     parent_post_id INTEGER NULL,
     post_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS timeline_posts (
 
 -- 既存データ保護のため、カラムが存在しない場合のみ追加
 ALTER TABLE timeline_posts ADD COLUMN IF NOT EXISTS post_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE timeline_posts ADD COLUMN IF NOT EXISTS status VARCHAR(100);
 
 -- いいねテーブル
 CREATE TABLE IF NOT EXISTS likes (

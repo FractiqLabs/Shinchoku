@@ -252,11 +252,55 @@ const createSupabaseApiClient = () => {
 
       if (error) throw error;
 
+      // 削除後、この申込者の最新のstatusを取得して更新
+      const { data: latestPost } = await supabase
+        .from('timeline_posts')
+        .select('status')
+        .eq('applicant_id', applicantId)
+        .not('status', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // 最新のstatusが見つかった場合は申込者のstatusを更新
+      if (latestPost && latestPost.status) {
+        await supabase
+          .from('applicants')
+          .update({ status: latestPost.status })
+          .eq('id', applicantId);
+      } else {
+        // statusのある投稿がない場合は、statusをクリア
+        await supabase
+          .from('applicants')
+          .update({ status: null })
+          .eq('id', applicantId);
+      }
+
       return { message: '投稿が削除されました' };
     },
 
     // タイムライン投稿を作成
     async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
+      // ステータスマッピング
+      const statusMapping = {
+        '申込書受領': '申込書受領',
+        '実調日程調整中': '実調日程調整中',
+        '実調完了': '実調完了',
+        '健康診断書依頼': '健康診断書待ち',
+        '健康診断書受領': '健康診断書受領',
+        '判定会議中': '判定会議中',
+        '入居決定': '入居決定',
+        '入居不可': '入居不可',
+        '入居日調整中': '入居日調整中',
+        '書類送付済': '書類送付済',
+        '入居準備完了': '入居準備完了',
+        '入居完了': '入居完了',
+        'キャンセル': 'キャンセル'
+      };
+
+      // actionがある場合はstatusもマッピング
+      const status = action ? statusMapping[action] : null;
+
       const { data, error } = await supabase
         .from('timeline_posts')
         .insert([{
@@ -264,6 +308,7 @@ const createSupabaseApiClient = () => {
           author: author,
           content: content,
           action: action,
+          status: status,
           parent_post_id: parentPostId,
           post_date: postDate || new Date().toISOString().split('T')[0]
         }])
@@ -279,27 +324,8 @@ const createSupabaseApiClient = () => {
       };
 
       // ステータス更新が必要な場合
-      if (action) {
-        const statusMapping = {
-          '申込書受領': '申込書受領',
-          '実調日程調整中': '実調日程調整中',
-          '実調完了': '実調完了',
-          '健康診断書依頼': '健康診断書待ち',
-          '健康診断書受領': '健康診断書受領',
-          '判定会議中': '判定会議中',
-          '入居決定': '入居決定',
-          '入居不可': '入居不可',
-          '入居日調整中': '入居日調整中',
-          '書類送付済': '書類送付済',
-          '入居準備完了': '入居準備完了',
-          '入居完了': '入居完了',
-          'キャンセル': 'キャンセル'
-        };
-
-        const newStatus = statusMapping[action];
-        if (newStatus) {
-          updateData.status = newStatus;
-        }
+      if (status) {
+        updateData.status = status;
       }
 
       // 申込者情報を更新
