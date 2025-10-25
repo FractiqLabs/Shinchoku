@@ -3125,12 +3125,12 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に新しい動きがあるかチェック（lastUpdatedByベース）
-                        const lastViewedAt = applicantViews[applicant.id];
-                        const hasNewActivity =
-                          applicant.last_updated_by &&
-                          applicant.last_updated_by !== currentUser.name &&
-                          (!lastViewedAt || new Date(applicant.last_updated_at) > new Date(lastViewedAt));
+                        // この申込者に未読通知があるかチェック（通知ベース）
+                        const hasUnreadNotifications = allNotifications.some(
+                          notif => notif.target_applicant_id === applicant.id &&
+                                   notif.viewer_user_id === currentUser.id &&
+                                   !notif.is_read
+                        );
 
                         return (
                         <tr
@@ -3145,25 +3145,6 @@
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
 
-                            // NEWバッジを消すため、last_updated_byを現在のユーザーに更新
-                            try {
-                              await supabaseClient
-                                .from('applicants')
-                                .update({
-                                  last_updated_by: currentUser.name
-                                })
-                                .eq('id', applicant.id);
-
-                              // ローカルの申込者リストも更新
-                              setApplicants(prev => prev.map(a =>
-                                a.id === applicant.id
-                                  ? { ...a, last_updated_by: currentUser.name }
-                                  : a
-                              ));
-                            } catch (error) {
-                              console.error('last_updated_by更新エラー:', error);
-                            }
-
                             // この申込者に関する未読通知を既読にする
                             await markNotificationsAsRead(applicant.id);
 
@@ -3173,7 +3154,7 @@
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
                             {applicant.name}
-                            {hasNewActivity && (
+                            {hasUnreadNotifications && (
                               <span style={{
                                 display: 'inline-block',
                                 marginLeft: '6px',
