@@ -1208,15 +1208,18 @@
               )
               .subscribe();
 
-            // クリーンアップ関数
+            // クリーンアップ関数（コンポーネントアンマウント時にリアルタイム監視を停止）
             return () => {
-              console.log('リアルタイム監視を停止します');
               supabaseClient.removeChannel(notificationsSubscription);
               supabaseClient.removeChannel(postsSubscription);
               supabaseClient.removeChannel(likesSubscription);
             };
           }, [isLoggedIn, currentUser, selectedApplicant]);
 
+          /**
+           * 申込者データの読み込み
+           * Supabaseから全申込者データを取得してstateに設定
+           */
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
@@ -1226,7 +1229,11 @@
             }
           };
 
-          // 申込者の閲覧履歴を取得
+          /**
+           * 申込者閲覧履歴の取得
+           * 現在のユーザーがいつ各申込者を閲覧したかの履歴を取得
+           * NEWバッジ表示の判定に使用（現在は通知ベースに変更済み）
+           */
           const loadApplicantViews = async () => {
             try {
               if (!currentUser) return;
@@ -1248,13 +1255,16 @@
               });
 
               setApplicantViews(viewsMap);
-              console.log('閲覧履歴を取得しました:', viewsMap);
             } catch (error) {
               console.error('閲覧履歴取得処理エラー:', error);
             }
           };
 
-          // 申込者の閲覧時刻を更新
+          /**
+           * 申込者閲覧時刻の更新
+           * ユーザーが申込者詳細を開いた時刻を記録
+           * user_applicant_viewsテーブルにupsert（挿入または更新）
+           */
           const updateApplicantView = async (applicantId) => {
             try {
               if (!currentUser) return;
@@ -1274,8 +1284,6 @@
                 return;
               }
 
-              console.log('閲覧時刻を更新しました:', applicantId);
-
               // ローカル状態も更新
               setApplicantViews(prev => ({
                 ...prev,
@@ -1286,7 +1294,12 @@
             }
           };
 
-          // いいね状態を読み込む（特定の申込者用）
+          /**
+           * いいね状態の読み込み（特定の申込者用）
+           * 申込者詳細画面を開いた時に、その申込者のすべての投稿に対する
+           * 現在のユーザーのいいね状態を読み込む
+           * これにより、いいねボタンの表示状態（押されているか）を正しく表示できる
+           */
           const loadLikesForApplicant = async (applicantId) => {
             try {
               if (!applicantId) {
@@ -1322,7 +1335,7 @@
                 return;
               }
 
-              // いいね状態を更新
+              // いいね状態を更新（キー: "applicantId-postId"、値: true）
               const newLikes = {};
               if (userLikes) {
                 userLikes.forEach(like => {
@@ -1335,14 +1348,16 @@
                 ...prev,
                 ...newLikes
               }));
-
-              console.log('いいね状態を読み込みました:', newLikes);
             } catch (error) {
               console.error('いいね状態読み込みエラー:', error);
             }
           };
 
-          // 通知を取得（特定の申込者用）
+          /**
+           * 通知取得（特定の申込者用）
+           * 申込者詳細画面で表示する通知を取得
+           * 現在のユーザー宛ての通知のみを取得
+           */
           const fetchNotifications = async (applicantId) => {
             try {
               if (!applicantId) {
@@ -1352,7 +1367,6 @@
 
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：通知取得をスキップ');
                 return;
               }
 
@@ -1368,19 +1382,21 @@
                 return;
               }
 
-              console.log('通知を取得しました:', data);
               setNotifications(data || []);
             } catch (error) {
               console.error('通知取得処理エラー:', error);
             }
           };
 
-          // 全申込者の通知を取得（NEWバッジ用）
+          /**
+           * 全申込者の通知取得（NEWバッジ用）
+           * 現在のユーザー宛ての全通知を取得し、一覧画面でのNEWバッジ表示に使用
+           * 未読通知がある申込者にはNEWバッジが表示される
+           */
           const fetchAllNotifications = async () => {
             try {
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：全通知取得をスキップ');
                 return;
               }
 
@@ -1655,6 +1671,10 @@
             }
           };
 
+          /**
+           * ログイン処理
+           * ユーザー認証を実行し、成功時にトークン保存とデータ読み込みを行う
+           */
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
@@ -1674,13 +1694,16 @@
               await loadApplicants();
               await fetchAllNotifications();
               await loadApplicantViews();
-              console.log('ログイン成功:', { id: response.user.id, name: response.user.name });
             } catch (error) {
               console.error('Login failed:', error);
               setLoginError(error.message || 'ログインに失敗しました。');
             }
           };
 
+          /**
+           * ログアウト処理
+           * トークンを削除し、アプリケーション状態をリセット
+           */
           const handleLogout = () => {
             setIsLoggedIn(false);
             setCurrentUser(null);
@@ -2354,6 +2377,9 @@
             setShowEditReplyModal(false);
           };
 
+          /**
+           * 返信編集のキャンセル
+           */
           const handleCancelEditReply = () => {
             setEditingReplyId(null);
             setEditingReplyContent('');
@@ -2361,11 +2387,16 @@
             setShowEditReplyModal(false);
           };
 
+          /**
+           * 返信削除の実行
+           * 返信削除後：
+           * 1. 関連する通知を全て削除
+           * 2. 申込者のステータスを再計算（最新のstatus付き投稿から取得）
+           * 3. UIを更新
+           */
           const confirmDeleteReply = async () => {
             try {
-              console.log('返信削除開始:', deletingReplyId);
-
-              // 返信を削除（Supabase経由）
+              // 返信を削除（supabase-client.jsで自動的にステータスを再計算）
               await apiClient.deletePost(selectedApplicant.id, deletingReplyId);
 
               // この返信に関連する全ての通知を削除
@@ -2376,8 +2407,6 @@
 
               if (deleteNotifError) {
                 console.error('返信通知削除エラー:', deleteNotifError);
-              } else {
-                console.log('返信に関連する通知を削除しました');
               }
 
               // 申込者リストをリロードして最新のステータスを取得
@@ -2388,6 +2417,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setDeletingReplyId(null);
               setEditingReplyPostId(null);
               setShowDeleteReplyModal(false);
