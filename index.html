@@ -2052,6 +2052,10 @@
             setReplyTo(null);
           };
 
+          /**
+           * インライン返信の送信処理
+           * 投稿に対する返信を作成し、返信通知を送信
+           */
           const handleInlineReplySubmit = async () => {
             if (!inlineReplyContent.trim()) return;
 
@@ -2066,15 +2070,12 @@
                 new Date().toISOString().split('T')[0]
               );
 
-              console.log('インライン返信作成完了:', newReplyData);
-
-              // 返信通知を作成
+              // 返信通知を作成（自分以外の全ユーザーに送信）
               if (replyTo) {
-                console.log('インライン返信モード - 返信通知を作成します');
                 await createReplyNotifications(replyTo, selectedApplicant.id, newReplyData.id);
               }
 
-              // 申込者データを再取得
+              // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
               setApplicants(updatedApplicants);
 
@@ -2089,11 +2090,19 @@
             }
           };
 
+          /**
+           * インライン返信のキャンセル
+           */
           const handleInlineReplyCancel = () => {
             setInlineReplyContent('');
             setReplyTo(null);
           };
 
+          /**
+           * いいね処理（追加・削除）
+           * いいね追加時：通知を作成し、申込者のlast_updated_byを更新
+           * いいね削除時：通知を削除
+           */
           const handleLike = async (applicantId, postId) => {
             const key = `${applicantId}-${postId}`;
             const isCurrentlyLiked = likes[key];
@@ -2101,10 +2110,9 @@
             try {
               if (isCurrentlyLiked) {
                 // いいねを削除
-                console.log('いいね削除開始:', { userId: currentUser.id, postId });
                 await apiClient.removeLike(currentUser.id, postId);
 
-                // 通知を削除
+                // いいね通知を削除
                 const { error: deleteError } = await supabaseClient
                   .from('notifications')
                   .delete()
@@ -2114,8 +2122,6 @@
 
                 if (deleteError) {
                   console.error('通知削除エラー:', deleteError);
-                } else {
-                  console.log('いいね通知削除完了');
                 }
 
                 // ローカル状態を更新
@@ -2125,7 +2131,6 @@
                 }));
               } else {
                 // いいねを追加
-                console.log('いいね追加開始:', { userId: currentUser.id, postId });
                 await apiClient.addLike(currentUser.id, postId);
 
                 // 投稿を取得して通知を作成
@@ -2137,7 +2142,7 @@
                   await createHeartNotifications(applicantId, postId, post);
                 }
 
-                // 申込者のlast_updated_byを更新
+                // 申込者のlast_updated_byを更新（NEWバッジ表示のため）
                 await supabaseClient
                   .from('applicants')
                   .update({
@@ -2162,6 +2167,12 @@
             }
           };
 
+          /**
+           * タイムライン投稿の作成処理
+           * 新規投稿または返信を作成し、適切な通知を送信
+           * - 新規投稿：全ユーザーに通知
+           * - 返信：全ユーザーに返信通知（返信先ユーザー情報を含む）
+           */
           const submitPost = async () => {
             if (!newPost.trim()) return;
 
@@ -2176,27 +2187,23 @@
                 postDate
               );
 
-              console.log('投稿作成完了:', newPostData);
-              console.log('replyTo:', replyTo);
-
               // 通知を作成
               if (replyTo) {
-                // 返信の場合：返信通知を作成
-                console.log('返信モード - 返信通知を作成します');
+                // 返信の場合：返信通知を作成（自分以外の全ユーザーに送信）
                 await createReplyNotifications(replyTo, selectedApplicant.id, newPostData.id);
               } else {
-                // 新規投稿の場合：全ユーザーに通知
-                console.log('新規投稿モード - 全ユーザーに通知');
+                // 新規投稿の場合：投稿通知を作成（自分以外の全ユーザーに送信）
                 await createPostNotifications(selectedApplicant.id, newPostData.id);
               }
 
-              // 申込者データを再取得
+              // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
               setApplicants(updatedApplicants);
 
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // フォームをリセット
               setNewPost('');
               setPostDate(new Date().toISOString().split('T')[0]);
               setShowPostForm(false);
@@ -2208,12 +2215,19 @@
             }
           };
 
+          /**
+           * 投稿編集モーダルを開く
+           */
           const handleEditPost = (post) => {
             setEditingPostId(post.id);
             setEditingContent(post.content);
             setShowEditPostModal(true);
           };
 
+          /**
+           * 投稿編集の保存
+           * 編集後、最新のステータスを再取得
+           */
           const handleSaveEditPost = async () => {
             if (!editingContent.trim()) return;
 
@@ -2228,6 +2242,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setEditingPostId(null);
               setEditingContent('');
               setShowEditPostModal(false);
@@ -2237,22 +2252,33 @@
             }
           };
 
+          /**
+           * 投稿編集のキャンセル
+           */
           const handleCancelEditPost = () => {
             setEditingPostId(null);
             setEditingContent('');
             setShowEditPostModal(false);
           };
 
+          /**
+           * 投稿削除モーダルを開く
+           */
           const handleDeletePost = (postId) => {
             setDeletingPostId(postId);
             setShowDeletePostModal(true);
           };
 
+          /**
+           * 投稿削除の実行
+           * 投稿削除後：
+           * 1. 関連する通知を全て削除
+           * 2. 申込者のステータスを再計算（最新のstatus付き投稿から取得）
+           * 3. UIを更新
+           */
           const confirmDeletePost = async () => {
             try {
-              console.log('投稿削除開始:', deletingPostId);
-
-              // 投稿を削除
+              // 投稿を削除（supabase-client.jsで自動的にステータスを再計算）
               await apiClient.deletePost(selectedApplicant.id, deletingPostId);
 
               // この投稿に関連する全ての通知を削除
@@ -2263,8 +2289,6 @@
 
               if (deleteNotifError) {
                 console.error('通知削除エラー:', deleteNotifError);
-              } else {
-                console.log('投稿に関連する通知を削除しました');
               }
 
               // 申込者リストをリロードして最新のステータスを取得
@@ -2275,6 +2299,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setDeletingPostId(null);
               setShowDeletePostModal(false);
             } catch (error) {
