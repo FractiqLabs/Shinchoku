@@ -1976,6 +1976,11 @@
             }
           };
 
+          /**
+           * ステータス更新処理
+           * アクションボタンクリック時に呼ばれ、依存関係をチェックして投稿フォームを表示
+           * 例：健康診断書受領をクリックすると、健康診断書依頼が未完了なら自動追加
+           */
           const handleStatusUpdate = (type) => {
             // アクションの依存関係を定義
             const actionDependencies = {
@@ -2027,7 +2032,10 @@
             setReplyTo(null);
           };
 
-          // メモ自動保存処理
+          /**
+           * メモ変更時の自動保存処理
+           * デバウンス処理により、入力停止後500msでデータベースに保存
+           */
           const handleMemoChange = (e) => {
             const newContent = e.target.value;
             setMemoContent(newContent);
@@ -2099,6 +2107,10 @@
           }, []);
 
 
+          /**
+           * 返信開始
+           * 投稿に対する返信フォームを表示
+           */
           const handleReply = (postId) => {
             setReplyTo(postId);
             setInlineReplyContent('');
@@ -2107,6 +2119,10 @@
             setPostType('');
           };
 
+          /**
+           * 自由投稿開始
+           * アクションに紐付かない自由な投稿フォームを表示
+           */
           const handleFreePost = () => {
             setPostType('');
             setShowPostForm(true);
@@ -2369,6 +2385,10 @@
             }
           };
 
+          /**
+           * 返信編集開始
+           * 返信の編集モーダルを表示
+           */
           const handleEditReply = (reply, postId) => {
             setEditingReplyId(reply.id);
             setEditingReplyPostId(postId);
@@ -2376,12 +2396,20 @@
             setShowEditReplyModal(true);
           };
 
+          /**
+           * 返信削除開始
+           * 返信の削除確認モーダルを表示
+           */
           const handleDeleteReply = (replyId, postId) => {
             setDeletingReplyId(replyId);
             setEditingReplyPostId(postId);
             setShowDeleteReplyModal(true);
           };
 
+          /**
+           * 返信編集の保存
+           * 編集した返信内容をローカルストレージに保存
+           */
           const handleSaveEditReply = () => {
             if (!editingReplyContent.trim()) return;
 
