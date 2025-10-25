@@ -1395,18 +1395,18 @@
                 return;
               }
 
-              console.log('全通知を取得しました:', data);
               setAllNotifications(data || []);
             } catch (error) {
               console.error('全通知取得処理エラー:', error);
             }
           };
 
-          // 新規投稿時の通知を作成（全ユーザーに通知、自分以外）
+          /**
+           * 新規投稿時の通知作成
+           * 自分以外の全ユーザーに通知を送信
+           */
           const createPostNotifications = async (applicantId, postId) => {
             try {
-              console.log('投稿通知作成開始:', { applicantId, postId, currentUserId: currentUser.id });
-
               // 全ユーザーを取得
               const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
@@ -1416,8 +1416,6 @@
                 console.error('ユーザー取得エラー:', usersError);
                 return;
               }
-
-              console.log('全ユーザー取得:', allUsers);
 
               // 自分以外のユーザーに通知を作成
               const notifications = allUsers
@@ -1434,29 +1432,25 @@
                 }));
 
               if (notifications.length > 0) {
-                console.log('通知を作成します:', notifications);
                 const { error: insertError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('通知作成エラー:', insertError);
-                } else {
-                  console.log('投稿通知作成完了');
                 }
-              } else {
-                console.log('通知対象ユーザーなし');
               }
             } catch (error) {
               console.error('投稿通知作成処理エラー:', error);
             }
           };
 
-          // 返信時の通知を作成（投稿者以外の全ユーザーに通知）
+          /**
+           * 返信時の通知作成
+           * 自分以外の全ユーザーに通知を送信し、返信先ユーザー情報を含める
+           */
           const createReplyNotifications = async (parentPostId, applicantId, replyId) => {
             try {
-              console.log('返信通知作成開始:', { parentPostId, applicantId, replyId });
-
               // 1. 返信先の投稿情報を取得
               const { data: parentPost, error: parentError } = await supabaseClient
                 .from('timeline_posts')
@@ -1469,11 +1463,10 @@
                 throw parentError;
               }
 
-              console.log('返信先の投稿:', parentPost);
-
               // 2. 元投稿（ルート投稿）のIDと作成者を特定
               let rootPostId = parentPostId;
               let rootPostAuthor = parentPost.author;
+
 
               // parent_post_idがnullでない場合、さらに遡って元投稿を探す
               if (parentPost.parent_post_id) {
