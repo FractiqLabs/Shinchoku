@@ -1349,6 +1349,12 @@
                 return;
               }
 
+              // ログインしていない場合は何もしない
+              if (!currentUser) {
+                console.log('未ログイン：通知取得をスキップ');
+                return;
+              }
+
               const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
@@ -1371,6 +1377,12 @@
           // 全申込者の通知を取得（NEWバッジ用）
           const fetchAllNotifications = async () => {
             try {
+              // ログインしていない場合は何もしない
+              if (!currentUser) {
+                console.log('未ログイン：全通知取得をスキップ');
+                return;
+              }
+
               const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
@@ -1632,6 +1644,12 @@
           // 申込者を開いた時に通知を既読にする
           const markNotificationsAsRead = async (applicantId) => {
             try {
+              // ログインしていない場合は何もしない
+              if (!currentUser) {
+                console.log('未ログイン：通知既読化をスキップ');
+                return;
+              }
+
               console.log('通知既読化開始:', applicantId);
 
               const { error } = await supabaseClient
