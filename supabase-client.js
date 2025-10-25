@@ -23,7 +23,13 @@ const createSupabaseApiClient = () => {
       this.currentUser = null;
     },
 
-    // ログイン（名前ベース）
+    /**
+     * ログイン処理（名前ベース認証）
+     * ユーザー名とパスワードで認証し、ユーザー情報とトークンを返す
+     * @param {string} nameInput - ユーザー名
+     * @param {string} password - パスワード
+     * @returns {Promise<{token: string, user: object}>} トークンとユーザー情報
+     */
     async login(nameInput, password) {
       // ユーザー情報を名前で取得
       const { data: users, error } = await supabase
@@ -61,17 +67,21 @@ const createSupabaseApiClient = () => {
     },
 
     connectSocket() {
-      console.log('WebSocket接続（Supabaseはリアルタイム対応）');
+      // WebSocket接続（Supabaseはリアルタイム対応）
     },
 
     disconnectSocket() {
-      console.log('WebSocket切断');
+      // WebSocket切断
     },
 
     on(event, callback) {},
     off(event) {},
 
-    // 申込者一覧を取得
+    /**
+     * 申込者一覧を取得
+     * 全申込者データとタイムライン投稿（返信含む）を取得
+     * @returns {Promise<Array>} 申込者一覧（タイムラインデータを含む）
+     */
     async getApplicants() {
       try {
         const { data: applicantsData, error: applicantsError } = await supabase
@@ -149,7 +159,12 @@ const createSupabaseApiClient = () => {
       return applicants.find(a => a.id == id);
     },
 
-    // 申込者を作成
+    /**
+     * 申込者を作成
+     * 新規申込者をデータベースに登録し、初期タイムライン投稿を作成
+     * @param {object} data - 申込者データ
+     * @returns {Promise<object>} 作成された申込者データ
+     */
     async createApplicant(data) {
       const { data: newApplicant, error } = await supabase
         .from('applicants')
@@ -189,7 +204,12 @@ const createSupabaseApiClient = () => {
       return await this.getApplicant(newApplicant.id);
     },
 
-    // 申込者を更新
+    /**
+     * 申込者情報を更新
+     * @param {number} id - 申込者ID
+     * @param {object} data - 更新する申込者データ
+     * @returns {Promise<object>} 更新後の申込者データ
+     */
     async updateApplicant(id, data) {
       const { error } = await supabase
         .from('applicants')
@@ -218,7 +238,10 @@ const createSupabaseApiClient = () => {
       return await this.getApplicant(id);
     },
 
-    // 申込者を削除
+    /**
+     * 申込者を削除
+     * @param {number} id - 申込者ID
+     */
     async deleteApplicant(id) {
       const { error } = await supabase
         .from('applicants')
@@ -228,7 +251,13 @@ const createSupabaseApiClient = () => {
       if (error) throw error;
     },
 
-    // 投稿を更新
+    /**
+     * 投稿内容を更新
+     * @param {number} applicantId - 申込者ID（未使用、互換性のため保持）
+     * @param {number} postId - 投稿ID
+     * @param {string} content - 更新後の投稿内容
+     * @returns {Promise<{message: string}>} 更新メッセージ
+     */
     async updatePost(applicantId, postId, content) {
       const { error } = await supabase
         .from('timeline_posts')
@@ -243,7 +272,13 @@ const createSupabaseApiClient = () => {
       return { message: '投稿が更新されました' };
     },
 
-    // 投稿を削除
+    /**
+     * 投稿を削除
+     * 削除後、申込者のステータスを再計算（最新のstatus付き投稿から取得）
+     * @param {number} applicantId - 申込者ID
+     * @param {number} postId - 投稿ID
+     * @returns {Promise<{message: string}>} 削除メッセージ
+     */
     async deletePost(applicantId, postId) {
       const { error } = await supabase
         .from('timeline_posts')
@@ -279,7 +314,18 @@ const createSupabaseApiClient = () => {
       return { message: '投稿が削除されました' };
     },
 
-    // タイムライン投稿を作成
+    /**
+     * タイムライン投稿を作成
+     * 新規投稿または返信を作成し、actionがある場合はstatusも設定
+     * 申込者のlast_updated_by、last_updated_at、statusを更新
+     * @param {number} applicantId - 申込者ID
+     * @param {string} author - 投稿者名
+     * @param {string} content - 投稿内容
+     * @param {string|null} action - アクション（申込書受領、実調完了など）
+     * @param {number|null} parentPostId - 親投稿ID（返信の場合）
+     * @param {string|null} postDate - 投稿日付（YYYY-MM-DD形式）
+     * @returns {Promise<object>} 作成された投稿データ
+     */
     async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
       // ステータスマッピング
       const statusMapping = {
@@ -337,7 +383,12 @@ const createSupabaseApiClient = () => {
       return data;
     },
 
-    // いいねを追加
+    /**
+     * いいねを追加
+     * @param {number} userId - ユーザーID
+     * @param {number} postId - 投稿ID
+     * @returns {Promise<object>} 作成されたいいねデータ
+     */
     async addLike(userId, postId) {
       const { data, error } = await supabase
         .from('likes')
@@ -352,7 +403,11 @@ const createSupabaseApiClient = () => {
       return data;
     },
 
-    // いいねを削除
+    /**
+     * いいねを削除
+     * @param {number} userId - ユーザーID
+     * @param {number} postId - 投稿ID
+     */
     async removeLike(userId, postId) {
       const { error } = await supabase
         .from('likes')
@@ -363,7 +418,11 @@ const createSupabaseApiClient = () => {
       if (error) throw error;
     },
 
-    // 投稿のいいね一覧を取得
+    /**
+     * 投稿のいいね一覧を取得
+     * @param {number} postId - 投稿ID
+     * @returns {Promise<Array>} いいね一覧
+     */
     async getLikes(postId) {
       const { data, error } = await supabase
         .from('likes')

@@ -959,11 +959,11 @@
             },
             
             connectSocket() {
-              console.log('WebSocket接続（モック）');
+              // WebSocket接続（モック）
             },
-            
+
             disconnectSocket() {
-              console.log('WebSocket切断（モック）');
+              // WebSocket切断（モック）
             },
             
             on(event, callback) {},
@@ -1050,13 +1050,11 @@
             
             async updatePost(applicantId, postId, content) {
               // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
-              console.log('投稿更新（モック）:', { applicantId, postId, content });
               return { message: '投稿が更新されました' };
             },
-            
+
             async deletePost(applicantId, postId) {
               // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
-              console.log('投稿削除（モック）:', { applicantId, postId });
               return { message: '投稿が削除されました' };
             }
           };
@@ -1159,16 +1157,12 @@
           React.useEffect(() => {
             if (!isLoggedIn || !currentUser) return;
 
-            console.log('リアルタイム監視を開始します');
-
             // 通知テーブルの変更を監視
             const notificationsSubscription = supabaseClient
               .channel('notifications-changes')
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'notifications' },
                 async (payload) => {
-                  console.log('通知テーブル変更検知:', payload);
-
                   // 全通知を再取得
                   await fetchAllNotifications();
 
@@ -1186,8 +1180,6 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'timeline_posts' },
                 async (payload) => {
-                  console.log('投稿テーブル変更検知:', payload);
-
                   // 申込者リストを再取得
                   await loadApplicants();
                 }
@@ -1200,23 +1192,24 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'likes' },
                 async (payload) => {
-                  console.log('いいねテーブル変更検知:', payload);
-
                   // いいね状態を更新（簡易実装：該当投稿のいいね状態を再取得）
                   // より詳細な実装が必要な場合はここで処理
                 }
               )
               .subscribe();
 
-            // クリーンアップ関数
+            // クリーンアップ関数（コンポーネントアンマウント時にリアルタイム監視を停止）
             return () => {
-              console.log('リアルタイム監視を停止します');
               supabaseClient.removeChannel(notificationsSubscription);
               supabaseClient.removeChannel(postsSubscription);
               supabaseClient.removeChannel(likesSubscription);
             };
           }, [isLoggedIn, currentUser, selectedApplicant]);
 
+          /**
+           * 申込者データの読み込み
+           * Supabaseから全申込者データを取得してstateに設定
+           */
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
@@ -1226,7 +1219,11 @@
             }
           };
 
-          // 申込者の閲覧履歴を取得
+          /**
+           * 申込者閲覧履歴の取得
+           * 現在のユーザーがいつ各申込者を閲覧したかの履歴を取得
+           * NEWバッジ表示の判定に使用（現在は通知ベースに変更済み）
+           */
           const loadApplicantViews = async () => {
             try {
               if (!currentUser) return;
@@ -1248,13 +1245,16 @@
               });
 
               setApplicantViews(viewsMap);
-              console.log('閲覧履歴を取得しました:', viewsMap);
             } catch (error) {
               console.error('閲覧履歴取得処理エラー:', error);
             }
           };
 
-          // 申込者の閲覧時刻を更新
+          /**
+           * 申込者閲覧時刻の更新
+           * ユーザーが申込者詳細を開いた時刻を記録
+           * user_applicant_viewsテーブルにupsert（挿入または更新）
+           */
           const updateApplicantView = async (applicantId) => {
             try {
               if (!currentUser) return;
@@ -1274,8 +1274,6 @@
                 return;
               }
 
-              console.log('閲覧時刻を更新しました:', applicantId);
-
               // ローカル状態も更新
               setApplicantViews(prev => ({
                 ...prev,
@@ -1286,7 +1284,12 @@
             }
           };
 
-          // いいね状態を読み込む（特定の申込者用）
+          /**
+           * いいね状態の読み込み（特定の申込者用）
+           * 申込者詳細画面を開いた時に、その申込者のすべての投稿に対する
+           * 現在のユーザーのいいね状態を読み込む
+           * これにより、いいねボタンの表示状態（押されているか）を正しく表示できる
+           */
           const loadLikesForApplicant = async (applicantId) => {
             try {
               if (!applicantId) {
@@ -1322,7 +1325,7 @@
                 return;
               }
 
-              // いいね状態を更新
+              // いいね状態を更新（キー: "applicantId-postId"、値: true）
               const newLikes = {};
               if (userLikes) {
                 userLikes.forEach(like => {
@@ -1335,14 +1338,16 @@
                 ...prev,
                 ...newLikes
               }));
-
-              console.log('いいね状態を読み込みました:', newLikes);
             } catch (error) {
               console.error('いいね状態読み込みエラー:', error);
             }
           };
 
-          // 通知を取得（特定の申込者用）
+          /**
+           * 通知取得（特定の申込者用）
+           * 申込者詳細画面で表示する通知を取得
+           * 現在のユーザー宛ての通知のみを取得
+           */
           const fetchNotifications = async (applicantId) => {
             try {
               if (!applicantId) {
@@ -1352,7 +1357,6 @@
 
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：通知取得をスキップ');
                 return;
               }
 
@@ -1368,19 +1372,21 @@
                 return;
               }
 
-              console.log('通知を取得しました:', data);
               setNotifications(data || []);
             } catch (error) {
               console.error('通知取得処理エラー:', error);
             }
           };
 
-          // 全申込者の通知を取得（NEWバッジ用）
+          /**
+           * 全申込者の通知取得（NEWバッジ用）
+           * 現在のユーザー宛ての全通知を取得し、一覧画面でのNEWバッジ表示に使用
+           * 未読通知がある申込者にはNEWバッジが表示される
+           */
           const fetchAllNotifications = async () => {
             try {
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：全通知取得をスキップ');
                 return;
               }
 
@@ -1395,18 +1401,18 @@
                 return;
               }
 
-              console.log('全通知を取得しました:', data);
               setAllNotifications(data || []);
             } catch (error) {
               console.error('全通知取得処理エラー:', error);
             }
           };
 
-          // 新規投稿時の通知を作成（全ユーザーに通知、自分以外）
+          /**
+           * 新規投稿時の通知作成
+           * 自分以外の全ユーザーに通知を送信
+           */
           const createPostNotifications = async (applicantId, postId) => {
             try {
-              console.log('投稿通知作成開始:', { applicantId, postId, currentUserId: currentUser.id });
-
               // 全ユーザーを取得
               const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
@@ -1416,8 +1422,6 @@
                 console.error('ユーザー取得エラー:', usersError);
                 return;
               }
-
-              console.log('全ユーザー取得:', allUsers);
 
               // 自分以外のユーザーに通知を作成
               const notifications = allUsers
@@ -1434,29 +1438,25 @@
                 }));
 
               if (notifications.length > 0) {
-                console.log('通知を作成します:', notifications);
                 const { error: insertError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('通知作成エラー:', insertError);
-                } else {
-                  console.log('投稿通知作成完了');
                 }
-              } else {
-                console.log('通知対象ユーザーなし');
               }
             } catch (error) {
               console.error('投稿通知作成処理エラー:', error);
             }
           };
 
-          // 返信時の通知を作成（投稿者以外の全ユーザーに通知）
+          /**
+           * 返信時の通知作成
+           * 自分以外の全ユーザーに通知を送信し、返信先ユーザー情報を含める
+           */
           const createReplyNotifications = async (parentPostId, applicantId, replyId) => {
             try {
-              console.log('返信通知作成開始:', { parentPostId, applicantId, replyId });
-
               // 1. 返信先の投稿情報を取得
               const { data: parentPost, error: parentError } = await supabaseClient
                 .from('timeline_posts')
@@ -1469,13 +1469,12 @@
                 throw parentError;
               }
 
-              console.log('返信先の投稿:', parentPost);
-
               // 2. 元投稿（ルート投稿）のIDと作成者を特定
               let rootPostId = parentPostId;
               let rootPostAuthor = parentPost.author;
 
-              // parent_post_idがnullでない場合、さらに遡って元投稿を探す
+
+              // parent_post_idがnullでない場合、さらに遡って元投稿を探す（ネストされた返信対応）
               if (parentPost.parent_post_id) {
                 let currentPost = parentPost;
 
@@ -1493,8 +1492,6 @@
                   rootPostAuthor = ancestorPost.author;
                 }
               }
-
-              console.log('元投稿ID:', rootPostId, '元投稿作成者:', rootPostAuthor);
 
               // 3. 返信先の投稿者のユーザー情報を取得
               const { data: targetUser, error: targetUserError } = await supabaseClient
@@ -1517,9 +1514,8 @@
                 throw usersError;
               }
 
-              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
-
               // 5. 自分以外の全ユーザーに通知を作成
+              // target_user_id/target_user_nameを含めることで、通知メッセージを適切に表示
               const notifications = allUsers
                 .filter(user => user.id !== currentUser.id)
                 .map(user => ({
@@ -1530,22 +1526,18 @@
                   target_user_id: targetUser?.id || null,
                   target_user_name: targetUser?.name || parentPost.author,
                   target_applicant_id: applicantId,
-                  target_post_id: replyId, // 返信自体のIDを設定
+                  target_post_id: replyId,
                   created_at: new Date().toISOString()
                 }));
 
-              console.log('作成する通知:', notifications);
-
               if (notifications.length > 0) {
-                // 重複を無視して挿入（ユニーク制約でエラーになる場合はスキップ）
+                // ユニーク制約による重複エラーは無視
                 const { error: notifError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (notifError && !notifError.message?.includes('duplicate')) {
                   console.error('返信通知作成エラー:', notifError);
-                } else {
-                  console.log('返信通知を作成しました');
                 }
               }
 
@@ -1554,12 +1546,13 @@
             }
           };
 
-          // いいね時の通知を作成（投稿者以外の全ユーザーに通知）
+          /**
+           * いいね時の通知作成
+           * 自分以外の全ユーザーに通知を送信し、いいねされた投稿者情報を含める
+           */
           const createHeartNotifications = async (applicantId, postId, post) => {
             try {
-              console.log('いいね通知作成開始:', { applicantId, postId, post });
-
-              // 投稿者のユーザー情報を取得
+              // いいねされた投稿者のユーザー情報を取得
               const { data: targetUser, error: targetUserError } = await supabaseClient
                 .from('users')
                 .select('id, name')
@@ -1580,9 +1573,8 @@
                 return;
               }
 
-              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
-
               // 自分以外の全ユーザーに通知を作成
+              // target_user_id/target_user_nameを含めることで、通知メッセージを適切に表示
               const notifications = allUsers
                 .filter(user => user.id !== currentUser.id)
                 .map(user => ({
@@ -1596,17 +1588,14 @@
                   target_post_id: postId
                 }));
 
-              console.log('いいね通知を作成します:', notifications);
-
               if (notifications.length > 0) {
+                // ユニーク制約による重複エラーは無視
                 const { error: insertError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('いいね通知作成エラー:', insertError);
-                } else {
-                  console.log('いいね通知作成完了');
                 }
               }
             } catch (error) {
@@ -1614,11 +1603,12 @@
             }
           };
 
-          // 通知をクリックした際に通知を削除（自分の通知のみ）
+          /**
+           * 通知削除
+           * 現在のユーザーの通知のみを削除（他ユーザーの通知は削除しない）
+           */
           const deleteNotification = async (notificationId) => {
             try {
-              console.log('通知削除開始:', notificationId);
-
               const { error } = await supabaseClient
                 .from('notifications')
                 .delete()
@@ -1630,9 +1620,7 @@
                 throw error;
               }
 
-              console.log('通知削除完了:', notificationId);
-
-              // 通知リストを再取得
+              // 通知リストを再取得してUIを更新
               if (selectedApplicant) {
                 await fetchNotifications(selectedApplicant.id);
               }
@@ -1642,16 +1630,17 @@
             }
           };
 
-          // 申込者を開いた時に通知を既読にする
+          /**
+           * 通知を既読にする
+           * 申込者詳細画面を開いたときに、その申込者に関する未読通知を既読化
+           * NEWバッジが自動的に消える
+           */
           const markNotificationsAsRead = async (applicantId) => {
             try {
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：通知既読化をスキップ');
                 return;
               }
-
-              console.log('通知既読化開始:', applicantId);
 
               const { error } = await supabaseClient
                 .from('notifications')
@@ -1665,15 +1654,17 @@
                 throw error;
               }
 
-              console.log('通知既読化完了');
-
-              // 全通知リストを再取得（NEWバッジ更新のため）
+              // 全通知リストを再取得してNEWバッジを更新
               await fetchAllNotifications();
             } catch (error) {
               console.error('通知既読化処理エラー:', error);
             }
           };
 
+          /**
+           * ログイン処理
+           * ユーザー認証を実行し、成功時にトークン保存とデータ読み込みを行う
+           */
           const handleLogin = async (e) => {
             e.preventDefault();
             setLoginError('');
@@ -1693,13 +1684,16 @@
               await loadApplicants();
               await fetchAllNotifications();
               await loadApplicantViews();
-              console.log('ログイン成功:', { id: response.user.id, name: response.user.name });
             } catch (error) {
               console.error('Login failed:', error);
               setLoginError(error.message || 'ログインに失敗しました。');
             }
           };
 
+          /**
+           * ログアウト処理
+           * トークンを削除し、アプリケーション状態をリセット
+           */
           const handleLogout = () => {
             setIsLoggedIn(false);
             setCurrentUser(null);
@@ -1718,22 +1712,36 @@
             }));
           };
 
+          /**
+           * ステータスの色を取得
+           * 申込日からの経過日数に基づいて色を決定
+           * - 10日超過：赤
+           * - 5日超過：黄
+           * - それ以外：緑
+           */
           const getStatusColor = (status, applicationDate) => {
             const today = new Date();
             const appDate = new Date(applicationDate);
             const daysPassed = Math.floor((today - appDate) / (1000 * 60 * 60 * 24));
-            
+
             if (daysPassed > 10) return 'status-red';
             if (daysPassed > 5) return 'status-yellow';
             return 'status-green';
           };
 
+          /**
+           * 経過時間を日本語形式でフォーマット
+           * - 0日：今日
+           * - 1日：1日前
+           * - 7日未満：N日前
+           * - 7日以上：日付（YYYY-MM-DD）
+           */
           const formatTimeAgo = (timestamp) => {
             const today = new Date();
             const date = new Date(timestamp);
             const diffTime = Math.abs(today - date);
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 0) return '今日';
             if (diffDays === 1) return '1日前';
             if (diffDays < 7) return `${diffDays}日前`;
@@ -1741,6 +1749,10 @@
           };
 
 
+          /**
+           * ソート処理
+           * 同じキーをクリックすると昇順⇔降順を切り替え
+           */
           const handleSort = (key) => {
             let direction = 'asc';
             if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -1749,6 +1761,12 @@
             setSortConfig({ key, direction });
           };
 
+          /**
+           * ソートアイコンを取得
+           * - 非選択：↕
+           * - 昇順：↑
+           * - 降順：↓
+           */
           const getSortIcon = (key) => {
             if (sortConfig.key !== key) return '↕';
             return sortConfig.direction === 'asc' ? '↑' : '↓';
@@ -1777,6 +1795,10 @@
             return sortableApplicants;
           }, [applicants, sortConfig]);
 
+          /**
+           * フォーム入力変更処理
+           * 申込者編集フォームの入力値を状態に反映
+           */
           const handleInputChange = (e) => {
             const { name, value } = e.target;
             setFormData(prev => ({
@@ -1785,6 +1807,10 @@
             }));
           };
 
+          /**
+           * 申込者編集開始
+           * 既存の申込者データをフォームに設定し、編集モーダルを表示
+           */
           const handleEdit = (applicant, e) => {
             e.stopPropagation();
             setEditingApplicant(applicant);
@@ -1809,12 +1835,20 @@
             setShowEditModal(true);
           };
 
+          /**
+           * 申込者削除開始
+           * 削除確認モーダルを表示
+           */
           const handleDelete = (applicant, e) => {
             e.stopPropagation();
             setDeletingApplicant(applicant);
             setShowDeleteModal(true);
           };
 
+          /**
+           * 申込者編集保存
+           * フォームデータをバリデーションしてデータベースに保存
+           */
           const handleEditSubmit = async (e) => {
             e.preventDefault();
             if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
@@ -1869,6 +1903,10 @@
             }
           };
 
+          /**
+           * 申込者削除の確定
+           * データベースから申込者を削除し、リストを再読み込み
+           */
           const confirmDelete = async () => {
             try {
               await apiClient.deleteApplicant(deletingApplicant.id);
@@ -1881,6 +1919,10 @@
             }
           };
 
+          /**
+           * 新規申込者登録
+           * フォームデータをバリデーションしてデータベースに登録
+           */
           const handleSubmit = async (e) => {
             e.preventDefault();
             if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
@@ -1934,6 +1976,11 @@
             }
           };
 
+          /**
+           * ステータス更新処理
+           * アクションボタンクリック時に呼ばれ、依存関係をチェックして投稿フォームを表示
+           * 例：健康診断書受領をクリックすると、健康診断書依頼が未完了なら自動追加
+           */
           const handleStatusUpdate = (type) => {
             // アクションの依存関係を定義
             const actionDependencies = {
@@ -1985,7 +2032,10 @@
             setReplyTo(null);
           };
 
-          // メモ自動保存処理
+          /**
+           * メモ変更時の自動保存処理
+           * デバウンス処理により、入力停止後500msでデータベースに保存
+           */
           const handleMemoChange = (e) => {
             const newContent = e.target.value;
             setMemoContent(newContent);
@@ -2057,6 +2107,10 @@
           }, []);
 
 
+          /**
+           * 返信開始
+           * 投稿に対する返信フォームを表示
+           */
           const handleReply = (postId) => {
             setReplyTo(postId);
             setInlineReplyContent('');
@@ -2065,12 +2119,20 @@
             setPostType('');
           };
 
+          /**
+           * 自由投稿開始
+           * アクションに紐付かない自由な投稿フォームを表示
+           */
           const handleFreePost = () => {
             setPostType('');
             setShowPostForm(true);
             setReplyTo(null);
           };
 
+          /**
+           * インライン返信の送信処理
+           * 投稿に対する返信を作成し、返信通知を送信
+           */
           const handleInlineReplySubmit = async () => {
             if (!inlineReplyContent.trim()) return;
 
@@ -2085,15 +2147,12 @@
                 new Date().toISOString().split('T')[0]
               );
 
-              console.log('インライン返信作成完了:', newReplyData);
-
-              // 返信通知を作成
+              // 返信通知を作成（自分以外の全ユーザーに送信）
               if (replyTo) {
-                console.log('インライン返信モード - 返信通知を作成します');
                 await createReplyNotifications(replyTo, selectedApplicant.id, newReplyData.id);
               }
 
-              // 申込者データを再取得
+              // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
               setApplicants(updatedApplicants);
 
@@ -2108,11 +2167,19 @@
             }
           };
 
+          /**
+           * インライン返信のキャンセル
+           */
           const handleInlineReplyCancel = () => {
             setInlineReplyContent('');
             setReplyTo(null);
           };
 
+          /**
+           * いいね処理（追加・削除）
+           * いいね追加時：通知を作成し、申込者のlast_updated_byを更新
+           * いいね削除時：通知を削除
+           */
           const handleLike = async (applicantId, postId) => {
             const key = `${applicantId}-${postId}`;
             const isCurrentlyLiked = likes[key];
@@ -2120,10 +2187,9 @@
             try {
               if (isCurrentlyLiked) {
                 // いいねを削除
-                console.log('いいね削除開始:', { userId: currentUser.id, postId });
                 await apiClient.removeLike(currentUser.id, postId);
 
-                // 通知を削除
+                // いいね通知を削除
                 const { error: deleteError } = await supabaseClient
                   .from('notifications')
                   .delete()
@@ -2133,8 +2199,6 @@
 
                 if (deleteError) {
                   console.error('通知削除エラー:', deleteError);
-                } else {
-                  console.log('いいね通知削除完了');
                 }
 
                 // ローカル状態を更新
@@ -2144,7 +2208,6 @@
                 }));
               } else {
                 // いいねを追加
-                console.log('いいね追加開始:', { userId: currentUser.id, postId });
                 await apiClient.addLike(currentUser.id, postId);
 
                 // 投稿を取得して通知を作成
@@ -2156,7 +2219,7 @@
                   await createHeartNotifications(applicantId, postId, post);
                 }
 
-                // 申込者のlast_updated_byを更新
+                // 申込者のlast_updated_byを更新（NEWバッジ表示のため）
                 await supabaseClient
                   .from('applicants')
                   .update({
@@ -2181,6 +2244,12 @@
             }
           };
 
+          /**
+           * タイムライン投稿の作成処理
+           * 新規投稿または返信を作成し、適切な通知を送信
+           * - 新規投稿：全ユーザーに通知
+           * - 返信：全ユーザーに返信通知（返信先ユーザー情報を含む）
+           */
           const submitPost = async () => {
             if (!newPost.trim()) return;
 
@@ -2195,27 +2264,23 @@
                 postDate
               );
 
-              console.log('投稿作成完了:', newPostData);
-              console.log('replyTo:', replyTo);
-
               // 通知を作成
               if (replyTo) {
-                // 返信の場合：返信通知を作成
-                console.log('返信モード - 返信通知を作成します');
+                // 返信の場合：返信通知を作成（自分以外の全ユーザーに送信）
                 await createReplyNotifications(replyTo, selectedApplicant.id, newPostData.id);
               } else {
-                // 新規投稿の場合：全ユーザーに通知
-                console.log('新規投稿モード - 全ユーザーに通知');
+                // 新規投稿の場合：投稿通知を作成（自分以外の全ユーザーに送信）
                 await createPostNotifications(selectedApplicant.id, newPostData.id);
               }
 
-              // 申込者データを再取得
+              // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
               setApplicants(updatedApplicants);
 
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // フォームをリセット
               setNewPost('');
               setPostDate(new Date().toISOString().split('T')[0]);
               setShowPostForm(false);
@@ -2227,12 +2292,19 @@
             }
           };
 
+          /**
+           * 投稿編集モーダルを開く
+           */
           const handleEditPost = (post) => {
             setEditingPostId(post.id);
             setEditingContent(post.content);
             setShowEditPostModal(true);
           };
 
+          /**
+           * 投稿編集の保存
+           * 編集後、最新のステータスを再取得
+           */
           const handleSaveEditPost = async () => {
             if (!editingContent.trim()) return;
 
@@ -2247,6 +2319,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setEditingPostId(null);
               setEditingContent('');
               setShowEditPostModal(false);
@@ -2256,22 +2329,33 @@
             }
           };
 
+          /**
+           * 投稿編集のキャンセル
+           */
           const handleCancelEditPost = () => {
             setEditingPostId(null);
             setEditingContent('');
             setShowEditPostModal(false);
           };
 
+          /**
+           * 投稿削除モーダルを開く
+           */
           const handleDeletePost = (postId) => {
             setDeletingPostId(postId);
             setShowDeletePostModal(true);
           };
 
+          /**
+           * 投稿削除の実行
+           * 投稿削除後：
+           * 1. 関連する通知を全て削除
+           * 2. 申込者のステータスを再計算（最新のstatus付き投稿から取得）
+           * 3. UIを更新
+           */
           const confirmDeletePost = async () => {
             try {
-              console.log('投稿削除開始:', deletingPostId);
-
-              // 投稿を削除
+              // 投稿を削除（supabase-client.jsで自動的にステータスを再計算）
               await apiClient.deletePost(selectedApplicant.id, deletingPostId);
 
               // この投稿に関連する全ての通知を削除
@@ -2282,8 +2366,6 @@
 
               if (deleteNotifError) {
                 console.error('通知削除エラー:', deleteNotifError);
-              } else {
-                console.log('投稿に関連する通知を削除しました');
               }
 
               // 申込者リストをリロードして最新のステータスを取得
@@ -2294,6 +2376,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setDeletingPostId(null);
               setShowDeletePostModal(false);
             } catch (error) {
@@ -2302,6 +2385,10 @@
             }
           };
 
+          /**
+           * 返信編集開始
+           * 返信の編集モーダルを表示
+           */
           const handleEditReply = (reply, postId) => {
             setEditingReplyId(reply.id);
             setEditingReplyPostId(postId);
@@ -2309,12 +2396,20 @@
             setShowEditReplyModal(true);
           };
 
+          /**
+           * 返信削除開始
+           * 返信の削除確認モーダルを表示
+           */
           const handleDeleteReply = (replyId, postId) => {
             setDeletingReplyId(replyId);
             setEditingReplyPostId(postId);
             setShowDeleteReplyModal(true);
           };
 
+          /**
+           * 返信編集の保存
+           * 編集した返信内容をローカルストレージに保存
+           */
           const handleSaveEditReply = () => {
             if (!editingReplyContent.trim()) return;
 
@@ -2348,6 +2443,9 @@
             setShowEditReplyModal(false);
           };
 
+          /**
+           * 返信編集のキャンセル
+           */
           const handleCancelEditReply = () => {
             setEditingReplyId(null);
             setEditingReplyContent('');
@@ -2355,11 +2453,16 @@
             setShowEditReplyModal(false);
           };
 
+          /**
+           * 返信削除の実行
+           * 返信削除後：
+           * 1. 関連する通知を全て削除
+           * 2. 申込者のステータスを再計算（最新のstatus付き投稿から取得）
+           * 3. UIを更新
+           */
           const confirmDeleteReply = async () => {
             try {
-              console.log('返信削除開始:', deletingReplyId);
-
-              // 返信を削除（Supabase経由）
+              // 返信を削除（supabase-client.jsで自動的にステータスを再計算）
               await apiClient.deletePost(selectedApplicant.id, deletingReplyId);
 
               // この返信に関連する全ての通知を削除
@@ -2370,8 +2473,6 @@
 
               if (deleteNotifError) {
                 console.error('返信通知削除エラー:', deleteNotifError);
-              } else {
-                console.log('返信に関連する通知を削除しました');
               }
 
               // 申込者リストをリロードして最新のステータスを取得
@@ -2382,6 +2483,7 @@
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
+              // モーダルを閉じる
               setDeletingReplyId(null);
               setEditingReplyPostId(null);
               setShowDeleteReplyModal(false);
@@ -3125,7 +3227,12 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に未読通知があるかチェック（通知ベース）
+                        /**
+                         * NEWバッジ表示判定（通知ベース）
+                         * 条件：この申込者に対する未読通知が存在する
+                         * - 自分以外のユーザーが投稿・返信・いいねをした場合のみ通知が作成される
+                         * - 詳細画面を開くとmarkNotificationsAsReadが実行され、バッジが消える
+                         */
                         const hasUnreadNotifications = allNotifications.some(
                           notif => notif.target_applicant_id === applicant.id &&
                                    notif.viewer_user_id === currentUser.id &&
@@ -3145,7 +3252,7 @@
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
 
-                            // この申込者に関する未読通知を既読にする
+                            // この申込者に関する未読通知を既読にする（NEWバッジが消える）
                             await markNotificationsAsRead(applicant.id);
 
                             fetchNotifications(applicant.id);
@@ -3154,6 +3261,7 @@
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
                             {applicant.name}
+                            {/* NEWバッジ：未読通知がある場合のみ表示 */}
                             {hasUnreadNotifications && (
                               <span style={{
                                 display: 'inline-block',
