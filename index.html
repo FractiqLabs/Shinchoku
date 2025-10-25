@@ -2094,40 +2094,6 @@
             setReplyTo(null);
           };
 
-          // 申込者の進捗ステータスを再計算する関数
-          const recalculateApplicantStatus = (applicant) => {
-            // 最新のaction付き投稿を取得（親投稿・返信の両方を含む）
-            const timelineWithActions = applicant.timeline
-              .filter(post => post.action)
-              .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at));
-
-            if (timelineWithActions.length > 0) {
-              const latestActionPost = timelineWithActions[0];
-              const statusMapping = {
-                '申込書受領': '申込書受領',
-                '実調日程調整中': '実調日程調整中',
-                '実調完了': '実調完了',
-                '健康診断書依頼': '健康診断書待ち',
-                '健康診断書受領': '健康診断書受領',
-                '判定会議中': '判定会議中',
-                '入居決定': '入居決定',
-                '入居不可': '入居不可',
-                '入居日調整中': '入居日調整中',
-                '書類送付済': '書類送付済',
-                '入居準備完了': '入居準備完了',
-                '入居完了': '入居完了',
-                'キャンセル': 'キャンセル'
-              };
-
-              const newStatus = statusMapping[latestActionPost.action];
-              if (newStatus) {
-                return { ...applicant, status: newStatus };
-              }
-            }
-
-            return applicant;
-          };
-
           const handleLike = async (applicantId, postId) => {
             const key = `${applicantId}-${postId}`;
             const isCurrentlyLiked = likes[key];
@@ -2253,23 +2219,12 @@
 
             try {
               await apiClient.updatePost(selectedApplicant.id, editingPostId, editingContent);
-              
-              const updatedApplicants = applicants.map(app => {
-                if (app.id === selectedApplicant.id) {
-                  const updatedTimeline = app.timeline.map(post => {
-                    if (post.id === editingPostId) {
-                      return { ...post, content: editingContent };
-                    }
-                    return post;
-                  });
-                  const appWithUpdatedTimeline = { ...app, timeline: updatedTimeline };
-                  // 進捗ステータスを再計算
-                  return recalculateApplicantStatus(appWithUpdatedTimeline);
-                }
-                return app;
-              });
 
-              setApplicants(updatedApplicants);
+              // 申込者リストをリロードして最新のステータスを取得
+              await loadApplicants();
+
+              // 選択中の申込者を更新
+              const updatedApplicants = await apiClient.getApplicants();
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
@@ -2312,17 +2267,11 @@
                 console.log('投稿に関連する通知を削除しました');
               }
 
-              const updatedApplicants = applicants.map(app => {
-                if (app.id === selectedApplicant.id) {
-                  const updatedTimeline = app.timeline.filter(post => post.id !== deletingPostId);
-                  const appWithUpdatedTimeline = { ...app, timeline: updatedTimeline };
-                  // 進捗ステータスを再計算
-                  return recalculateApplicantStatus(appWithUpdatedTimeline);
-                }
-                return app;
-              });
+              // 申込者リストをリロードして最新のステータスを取得
+              await loadApplicants();
 
-              setApplicants(updatedApplicants);
+              // 選択中の申込者を更新
+              const updatedApplicants = await apiClient.getApplicants();
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
@@ -2406,10 +2355,11 @@
                 console.log('返信に関連する通知を削除しました');
               }
 
-              // 申込者データを再取得
-              const updatedApplicants = await apiClient.getApplicants();
-              setApplicants(updatedApplicants);
+              // 申込者リストをリロードして最新のステータスを取得
+              await loadApplicants();
 
+              // 選択中の申込者を更新
+              const updatedApplicants = await apiClient.getApplicants();
               const updatedSelected = updatedApplicants.find(app => app.id === selectedApplicant.id);
               setSelectedApplicant(updatedSelected);
 
@@ -3175,6 +3125,25 @@
 
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
+
+                            // NEWバッジを消すため、last_updated_byを現在のユーザーに更新
+                            try {
+                              await supabaseClient
+                                .from('applicants')
+                                .update({
+                                  last_updated_by: currentUser.name
+                                })
+                                .eq('id', applicant.id);
+
+                              // ローカルの申込者リストも更新
+                              setApplicants(prev => prev.map(a =>
+                                a.id === applicant.id
+                                  ? { ...a, last_updated_by: currentUser.name }
+                                  : a
+                              ));
+                            } catch (error) {
+                              console.error('last_updated_by更新エラー:', error);
+                            }
 
                             // この申込者に関する未読通知を既読にする
                             await markNotificationsAsRead(applicant.id);
