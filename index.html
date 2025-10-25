@@ -959,11 +959,11 @@
             },
             
             connectSocket() {
-              console.log('WebSocket接続（モック）');
+              // WebSocket接続（モック）
             },
-            
+
             disconnectSocket() {
-              console.log('WebSocket切断（モック）');
+              // WebSocket切断（モック）
             },
             
             on(event, callback) {},
@@ -1050,13 +1050,11 @@
             
             async updatePost(applicantId, postId, content) {
               // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
-              console.log('投稿更新（モック）:', { applicantId, postId, content });
               return { message: '投稿が更新されました' };
             },
-            
+
             async deletePost(applicantId, postId) {
               // モック実装: 実際のサーバーに接続されている場合は、本物のAPIを呼び出す
-              console.log('投稿削除（モック）:', { applicantId, postId });
               return { message: '投稿が削除されました' };
             }
           };
@@ -1159,16 +1157,12 @@
           React.useEffect(() => {
             if (!isLoggedIn || !currentUser) return;
 
-            console.log('リアルタイム監視を開始します');
-
             // 通知テーブルの変更を監視
             const notificationsSubscription = supabaseClient
               .channel('notifications-changes')
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'notifications' },
                 async (payload) => {
-                  console.log('通知テーブル変更検知:', payload);
-
                   // 全通知を再取得
                   await fetchAllNotifications();
 
@@ -1186,8 +1180,6 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'timeline_posts' },
                 async (payload) => {
-                  console.log('投稿テーブル変更検知:', payload);
-
                   // 申込者リストを再取得
                   await loadApplicants();
                 }
@@ -1200,8 +1192,6 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'likes' },
                 async (payload) => {
-                  console.log('いいねテーブル変更検知:', payload);
-
                   // いいね状態を更新（簡易実装：該当投稿のいいね状態を再取得）
                   // より詳細な実装が必要な場合はここで処理
                 }
@@ -1722,22 +1712,36 @@
             }));
           };
 
+          /**
+           * ステータスの色を取得
+           * 申込日からの経過日数に基づいて色を決定
+           * - 10日超過：赤
+           * - 5日超過：黄
+           * - それ以外：緑
+           */
           const getStatusColor = (status, applicationDate) => {
             const today = new Date();
             const appDate = new Date(applicationDate);
             const daysPassed = Math.floor((today - appDate) / (1000 * 60 * 60 * 24));
-            
+
             if (daysPassed > 10) return 'status-red';
             if (daysPassed > 5) return 'status-yellow';
             return 'status-green';
           };
 
+          /**
+           * 経過時間を日本語形式でフォーマット
+           * - 0日：今日
+           * - 1日：1日前
+           * - 7日未満：N日前
+           * - 7日以上：日付（YYYY-MM-DD）
+           */
           const formatTimeAgo = (timestamp) => {
             const today = new Date();
             const date = new Date(timestamp);
             const diffTime = Math.abs(today - date);
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 0) return '今日';
             if (diffDays === 1) return '1日前';
             if (diffDays < 7) return `${diffDays}日前`;
@@ -1745,6 +1749,10 @@
           };
 
 
+          /**
+           * ソート処理
+           * 同じキーをクリックすると昇順⇔降順を切り替え
+           */
           const handleSort = (key) => {
             let direction = 'asc';
             if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -1753,6 +1761,12 @@
             setSortConfig({ key, direction });
           };
 
+          /**
+           * ソートアイコンを取得
+           * - 非選択：↕
+           * - 昇順：↑
+           * - 降順：↓
+           */
           const getSortIcon = (key) => {
             if (sortConfig.key !== key) return '↕';
             return sortConfig.direction === 'asc' ? '↑' : '↓';
@@ -1781,6 +1795,10 @@
             return sortableApplicants;
           }, [applicants, sortConfig]);
 
+          /**
+           * フォーム入力変更処理
+           * 申込者編集フォームの入力値を状態に反映
+           */
           const handleInputChange = (e) => {
             const { name, value } = e.target;
             setFormData(prev => ({
@@ -1789,6 +1807,10 @@
             }));
           };
 
+          /**
+           * 申込者編集開始
+           * 既存の申込者データをフォームに設定し、編集モーダルを表示
+           */
           const handleEdit = (applicant, e) => {
             e.stopPropagation();
             setEditingApplicant(applicant);
@@ -1813,12 +1835,20 @@
             setShowEditModal(true);
           };
 
+          /**
+           * 申込者削除開始
+           * 削除確認モーダルを表示
+           */
           const handleDelete = (applicant, e) => {
             e.stopPropagation();
             setDeletingApplicant(applicant);
             setShowDeleteModal(true);
           };
 
+          /**
+           * 申込者編集保存
+           * フォームデータをバリデーションしてデータベースに保存
+           */
           const handleEditSubmit = async (e) => {
             e.preventDefault();
             if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
@@ -1873,6 +1903,10 @@
             }
           };
 
+          /**
+           * 申込者削除の確定
+           * データベースから申込者を削除し、リストを再読み込み
+           */
           const confirmDelete = async () => {
             try {
               await apiClient.deleteApplicant(deletingApplicant.id);
@@ -1885,6 +1919,10 @@
             }
           };
 
+          /**
+           * 新規申込者登録
+           * フォームデータをバリデーションしてデータベースに登録
+           */
           const handleSubmit = async (e) => {
             e.preventDefault();
             if (!formData.surname || !formData.givenName || !formData.age || !formData.careLevel || !formData.applicationDate) {
