@@ -1468,7 +1468,7 @@
               let rootPostAuthor = parentPost.author;
 
 
-              // parent_post_idがnullでない場合、さらに遡って元投稿を探す
+              // parent_post_idがnullでない場合、さらに遡って元投稿を探す（ネストされた返信対応）
               if (parentPost.parent_post_id) {
                 let currentPost = parentPost;
 
@@ -1486,8 +1486,6 @@
                   rootPostAuthor = ancestorPost.author;
                 }
               }
-
-              console.log('元投稿ID:', rootPostId, '元投稿作成者:', rootPostAuthor);
 
               // 3. 返信先の投稿者のユーザー情報を取得
               const { data: targetUser, error: targetUserError } = await supabaseClient
@@ -1510,9 +1508,8 @@
                 throw usersError;
               }
 
-              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
-
               // 5. 自分以外の全ユーザーに通知を作成
+              // target_user_id/target_user_nameを含めることで、通知メッセージを適切に表示
               const notifications = allUsers
                 .filter(user => user.id !== currentUser.id)
                 .map(user => ({
@@ -1523,22 +1520,18 @@
                   target_user_id: targetUser?.id || null,
                   target_user_name: targetUser?.name || parentPost.author,
                   target_applicant_id: applicantId,
-                  target_post_id: replyId, // 返信自体のIDを設定
+                  target_post_id: replyId,
                   created_at: new Date().toISOString()
                 }));
 
-              console.log('作成する通知:', notifications);
-
               if (notifications.length > 0) {
-                // 重複を無視して挿入（ユニーク制約でエラーになる場合はスキップ）
+                // ユニーク制約による重複エラーは無視
                 const { error: notifError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (notifError && !notifError.message?.includes('duplicate')) {
                   console.error('返信通知作成エラー:', notifError);
-                } else {
-                  console.log('返信通知を作成しました');
                 }
               }
 
@@ -1547,12 +1540,13 @@
             }
           };
 
-          // いいね時の通知を作成（投稿者以外の全ユーザーに通知）
+          /**
+           * いいね時の通知作成
+           * 自分以外の全ユーザーに通知を送信し、いいねされた投稿者情報を含める
+           */
           const createHeartNotifications = async (applicantId, postId, post) => {
             try {
-              console.log('いいね通知作成開始:', { applicantId, postId, post });
-
-              // 投稿者のユーザー情報を取得
+              // いいねされた投稿者のユーザー情報を取得
               const { data: targetUser, error: targetUserError } = await supabaseClient
                 .from('users')
                 .select('id, name')
@@ -1573,9 +1567,8 @@
                 return;
               }
 
-              console.log('通知対象ユーザー（全ユーザー）:', allUsers);
-
               // 自分以外の全ユーザーに通知を作成
+              // target_user_id/target_user_nameを含めることで、通知メッセージを適切に表示
               const notifications = allUsers
                 .filter(user => user.id !== currentUser.id)
                 .map(user => ({
@@ -1589,17 +1582,14 @@
                   target_post_id: postId
                 }));
 
-              console.log('いいね通知を作成します:', notifications);
-
               if (notifications.length > 0) {
+                // ユニーク制約による重複エラーは無視
                 const { error: insertError } = await supabaseClient
                   .from('notifications')
                   .insert(notifications);
 
                 if (insertError && !insertError.message?.includes('duplicate')) {
                   console.error('いいね通知作成エラー:', insertError);
-                } else {
-                  console.log('いいね通知作成完了');
                 }
               }
             } catch (error) {
@@ -1607,11 +1597,12 @@
             }
           };
 
-          // 通知をクリックした際に通知を削除（自分の通知のみ）
+          /**
+           * 通知削除
+           * 現在のユーザーの通知のみを削除（他ユーザーの通知は削除しない）
+           */
           const deleteNotification = async (notificationId) => {
             try {
-              console.log('通知削除開始:', notificationId);
-
               const { error } = await supabaseClient
                 .from('notifications')
                 .delete()
@@ -1623,9 +1614,7 @@
                 throw error;
               }
 
-              console.log('通知削除完了:', notificationId);
-
-              // 通知リストを再取得
+              // 通知リストを再取得してUIを更新
               if (selectedApplicant) {
                 await fetchNotifications(selectedApplicant.id);
               }
@@ -1635,16 +1624,17 @@
             }
           };
 
-          // 申込者を開いた時に通知を既読にする
+          /**
+           * 通知を既読にする
+           * 申込者詳細画面を開いたときに、その申込者に関する未読通知を既読化
+           * NEWバッジが自動的に消える
+           */
           const markNotificationsAsRead = async (applicantId) => {
             try {
               // ログインしていない場合は何もしない
               if (!currentUser) {
-                console.log('未ログイン：通知既読化をスキップ');
                 return;
               }
-
-              console.log('通知既読化開始:', applicantId);
 
               const { error } = await supabaseClient
                 .from('notifications')
@@ -1658,9 +1648,7 @@
                 throw error;
               }
 
-              console.log('通知既読化完了');
-
-              // 全通知リストを再取得（NEWバッジ更新のため）
+              // 全通知リストを再取得してNEWバッジを更新
               await fetchAllNotifications();
             } catch (error) {
               console.error('通知既読化処理エラー:', error);
@@ -3118,7 +3106,12 @@
                     </thead>
                     <tbody>
                       {sortedApplicants.map((applicant) => {
-                        // この申込者に未読通知があるかチェック（通知ベース）
+                        /**
+                         * NEWバッジ表示判定（通知ベース）
+                         * 条件：この申込者に対する未読通知が存在する
+                         * - 自分以外のユーザーが投稿・返信・いいねをした場合のみ通知が作成される
+                         * - 詳細画面を開くとmarkNotificationsAsReadが実行され、バッジが消える
+                         */
                         const hasUnreadNotifications = allNotifications.some(
                           notif => notif.target_applicant_id === applicant.id &&
                                    notif.viewer_user_id === currentUser.id &&
@@ -3138,7 +3131,7 @@
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
 
-                            // この申込者に関する未読通知を既読にする
+                            // この申込者に関する未読通知を既読にする（NEWバッジが消える）
                             await markNotificationsAsRead(applicant.id);
 
                             fetchNotifications(applicant.id);
@@ -3147,6 +3140,7 @@
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
                             {applicant.name}
+                            {/* NEWバッジ：未読通知がある場合のみ表示 */}
                             {hasUnreadNotifications && (
                               <span style={{
                                 display: 'inline-block',
