@@ -273,6 +273,7 @@ async function recalculateApplicantStatus(applicantId) {
 
     if (latestActionPost && latestActionPost.action) {
       const statusMapping = {
+        '相談受付中': '相談受付中',
         '申込書受領': '申込書受領',
         '実調日程調整中': '実調日程調整中',
         '実調完了': '実調完了',
@@ -394,6 +395,7 @@ app.post('/api/applicants/:id/posts', authenticateToken, async (req, res) => {
     // ステータス更新ロジック
     if (action && !parentPostId) {
       const statusMapping = {
+        '相談受付中': '相談受付中',
         '申込書受領': '申込書受領',
         '実調日程調整中': '実調日程調整中',
         '実調完了': '実調完了',
@@ -401,10 +403,12 @@ app.post('/api/applicants/:id/posts', authenticateToken, async (req, res) => {
         '健康診断書受領': '健康診断書受領',
         '判定会議中': '判定会議中',
         '入居決定': '入居決定',
+        '入居不可': '入居不可',
         '入居日調整中': '入居日調整中',
         '書類送付済': '書類送付済',
         '入居準備完了': '入居準備完了',
-        '入居完了': '入居完了'
+        '入居完了': '入居完了',
+        'キャンセル': 'キャンセル'
       };
 
       if (statusMapping[action]) {
