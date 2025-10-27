@@ -2152,6 +2152,9 @@
                 await createReplyNotifications(replyTo, selectedApplicant.id, newReplyData.id);
               }
 
+              // 全通知を再取得してNEWバッジを更新
+              await fetchAllNotifications();
+
               // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
               setApplicants(updatedApplicants);
@@ -2206,6 +2209,9 @@
                   ...prev,
                   [key]: false
                 }));
+
+                // 全通知を再取得してNEWバッジを更新
+                await fetchAllNotifications();
               } else {
                 // いいねを追加
                 await apiClient.addLike(currentUser.id, postId);
@@ -2233,6 +2239,9 @@
                   ...prev,
                   [key]: true
                 }));
+
+                // 全通知を再取得してNEWバッジを更新
+                await fetchAllNotifications();
 
                 // 申込者リストを再取得（NEWバッジ更新のため）
                 await loadApplicants();
@@ -2272,6 +2281,9 @@
                 // 新規投稿の場合：投稿通知を作成（自分以外の全ユーザーに送信）
                 await createPostNotifications(selectedApplicant.id, newPostData.id);
               }
+
+              // 全通知を再取得してNEWバッジを更新
+              await fetchAllNotifications();
 
               // 申込者データを再取得してUIを更新
               const updatedApplicants = await apiClient.getApplicants();
