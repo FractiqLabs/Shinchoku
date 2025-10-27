@@ -2627,7 +2627,7 @@
                     </div>
                     <div className="info-section">
                       <h3>KP情報</h3>
-                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}</div>}
+                      {selectedApplicant.kp && <div className="info-item">{selectedApplicant.kp}{selectedApplicant.kpRelationship && `（${selectedApplicant.kpRelationship}）`}</div>}
                       {selectedApplicant.kpContact && <div className="info-item">連絡先: {selectedApplicant.kpContact}</div>}
                       {selectedApplicant.kpAddress && <div className="info-item">住所: {selectedApplicant.kpAddress}</div>}
                     </div>
