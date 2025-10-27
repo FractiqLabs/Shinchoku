@@ -329,6 +329,7 @@ const createSupabaseApiClient = () => {
     async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
       // ステータスマッピング
       const statusMapping = {
+        '相談受付中': '相談受付中',
         '申込書受領': '申込書受領',
         '実調日程調整中': '実調日程調整中',
         '実調完了': '実調完了',
