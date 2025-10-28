@@ -1182,6 +1182,14 @@
                 async (payload) => {
                   // 申込者リストを再取得
                   await loadApplicants();
+
+                  // 全通知を再取得してNEWバッジを即時更新
+                  await fetchAllNotifications();
+
+                  // 現在選択中の申込者の通知も再取得
+                  if (selectedApplicant) {
+                    await fetchNotifications(selectedApplicant.id);
+                  }
                 }
               )
               .subscribe();
@@ -1192,8 +1200,13 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'likes' },
                 async (payload) => {
-                  // いいね状態を更新（簡易実装：該当投稿のいいね状態を再取得）
-                  // より詳細な実装が必要な場合はここで処理
+                  // 全通知を再取得してNEWバッジを即時更新
+                  await fetchAllNotifications();
+
+                  // いいね状態を再読み込み（現在選択中の申込者のみ）
+                  if (selectedApplicant) {
+                    await loadLikesForApplicant(selectedApplicant.id);
+                  }
                 }
               )
               .subscribe();
