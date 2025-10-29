@@ -1359,7 +1359,7 @@
           /**
            * 通知取得（特定の申込者用）
            * 申込者詳細画面で表示する通知を取得
-           * 現在のユーザー宛ての通知のみを取得
+           * 現在のユーザー宛ての未読通知のみを取得
            */
           const fetchNotifications = async (applicantId) => {
             try {
@@ -1378,6 +1378,7 @@
                 .select('*')
                 .eq('target_applicant_id', applicantId)
                 .eq('viewer_user_id', currentUser.id)
+                .eq('is_read', false)
                 .order('created_at', { ascending: false });
 
               if (error) {
@@ -1618,6 +1619,7 @@
 
           /**
            * 通知削除
+           * ※現在は使用していません。通知は既読化のみで、削除はしていません。
            * 現在のユーザーの通知のみを削除（他ユーザーの通知は削除しない）
            */
           const deleteNotification = async (notificationId) => {
