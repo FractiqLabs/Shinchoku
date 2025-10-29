@@ -1359,7 +1359,7 @@
           /**
            * 通知取得（特定の申込者用）
            * 申込者詳細画面で表示する通知を取得
-           * 現在のユーザー宛ての通知のみを取得
+           * 現在のユーザー宛ての未読通知のみを取得
            */
           const fetchNotifications = async (applicantId) => {
             try {
@@ -1378,6 +1378,7 @@
                 .select('*')
                 .eq('target_applicant_id', applicantId)
                 .eq('viewer_user_id', currentUser.id)
+                .eq('is_read', false)
                 .order('created_at', { ascending: false });
 
               if (error) {
@@ -1618,6 +1619,7 @@
 
           /**
            * 通知削除
+           * ※現在は使用していません。通知は既読化のみで、削除はしていません。
            * 現在のユーザーの通知のみを削除（他ユーザーの通知は削除しない）
            */
           const deleteNotification = async (notificationId) => {
@@ -1644,9 +1646,8 @@
           };
 
           /**
-           * 通知を既読にする
-           * 申込者詳細画面を開いたときに、その申込者に関する未読通知を既読化
-           * NEWバッジが自動的に消える
+           * 通知を既読にする（申込者単位）
+           * ※現在は使用していません。通知は個別にクリック時のみ既読になります。
            */
           const markNotificationsAsRead = async (applicantId) => {
             try {
@@ -1669,6 +1670,41 @@
 
               // 全通知リストを再取得してNEWバッジを更新
               await fetchAllNotifications();
+            } catch (error) {
+              console.error('通知既読化処理エラー:', error);
+            }
+          };
+
+          /**
+           * 単一の通知を既読にする
+           * 「新しい通知」をクリックしたときに呼ばれる
+           * NEWバッジは該当申込者のすべての通知が既読になったときのみ消える
+           */
+          const markSingleNotificationAsRead = async (notificationId) => {
+            try {
+              // ログインしていない場合は何もしない
+              if (!currentUser) {
+                return;
+              }
+
+              const { error } = await supabaseClient
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', notificationId)
+                .eq('viewer_user_id', currentUser.id);
+
+              if (error) {
+                console.error('通知既読化エラー:', error);
+                throw error;
+              }
+
+              // 全通知リストを再取得してNEWバッジを更新
+              await fetchAllNotifications();
+
+              // 詳細画面の通知も再取得
+              if (selectedApplicant) {
+                await fetchNotifications(selectedApplicant.id);
+              }
             } catch (error) {
               console.error('通知既読化処理エラー:', error);
             }
@@ -2789,8 +2825,11 @@
                               return (
                                 <div
                                   key={notif.id}
-                                  onClick={() => {
-                                    deleteNotification(notif.id);
+                                  onClick={async () => {
+                                    // 通知を既読にする（削除ではなく既読化）
+                                    await markSingleNotificationAsRead(notif.id);
+
+                                    // 投稿にスクロールしてハイライト
                                     const postElement = document.getElementById(`post-${notif.target_post_id}`);
                                     if (postElement) {
                                       postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3256,7 +3295,7 @@
                          * NEWバッジ表示判定（通知ベース）
                          * 条件：この申込者に対する未読通知が存在する
                          * - 自分以外のユーザーが投稿・返信・いいねをした場合のみ通知が作成される
-                         * - 詳細画面を開くとmarkNotificationsAsReadが実行され、バッジが消える
+                         * - 「新しい通知」をクリックすると該当通知が既読になり、すべて既読になるとバッジが消える
                          */
                         const hasUnreadNotifications = allNotifications.some(
                           notif => notif.target_applicant_id === applicant.id &&
@@ -3277,9 +3316,7 @@
                             // この申込者の閲覧時刻を更新
                             await updateApplicantView(applicant.id);
 
-                            // この申込者に関する未読通知を既読にする（NEWバッジが消える）
-                            await markNotificationsAsRead(applicant.id);
-
+                            // 詳細画面の通知を取得（既読処理はしない）
                             fetchNotifications(applicant.id);
                           }}
                         >
