@@ -1212,11 +1212,27 @@
               )
               .subscribe();
 
+            // 申込者テーブルの変更を監視（last_updated_byの変更を検知）
+            const applicantsSubscription = supabaseClient
+              .channel('applicants-changes')
+              .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'applicants' },
+                async (payload) => {
+                  // 申込者リストを再取得
+                  await loadApplicants();
+
+                  // 全通知を再取得してNEWバッジを即時更新
+                  await fetchAllNotifications();
+                }
+              )
+              .subscribe();
+
             // クリーンアップ関数（コンポーネントアンマウント時にリアルタイム監視を停止）
             return () => {
               supabaseClient.removeChannel(notificationsSubscription);
               supabaseClient.removeChannel(postsSubscription);
               supabaseClient.removeChannel(likesSubscription);
+              supabaseClient.removeChannel(applicantsSubscription);
             };
           }, [isLoggedIn, currentUser, selectedApplicant]);
 
