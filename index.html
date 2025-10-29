@@ -1086,6 +1086,7 @@
           const [timelineSearchQuery, setTimelineSearchQuery] = React.useState('');
           const [inlineReplyContent, setInlineReplyContent] = React.useState('');
           const [likes, setLikes] = React.useState({});
+          const [likeCounts, setLikeCounts] = React.useState({});
 
           // 通知管理
           const [notifications, setNotifications] = React.useState([]);
@@ -1203,7 +1204,7 @@
                   // 全通知を再取得してNEWバッジを即時更新
                   await fetchAllNotifications();
 
-                  // いいね状態を再読み込み（現在選択中の申込者のみ）
+                  // いいね状態と総数を再読み込み（現在選択中の申込者のみ）
                   if (selectedApplicant) {
                     await loadLikesForApplicant(selectedApplicant.id);
                   }
@@ -1300,8 +1301,8 @@
           /**
            * いいね状態の読み込み（特定の申込者用）
            * 申込者詳細画面を開いた時に、その申込者のすべての投稿に対する
-           * 現在のユーザーのいいね状態を読み込む
-           * これにより、いいねボタンの表示状態（押されているか）を正しく表示できる
+           * いいね総数と現在のユーザーのいいね状態を読み込む
+           * これにより、いいねボタンの表示状態（押されているか）と総数を正しく表示できる
            */
           const loadLikesForApplicant = async (applicantId) => {
             try {
@@ -1325,6 +1326,26 @@
               }
 
               const postIds = posts.map(p => p.id);
+
+              // すべてのユーザーのいいねを取得（いいね総数を計算するため）
+              const { data: allLikes, error: allLikesError } = await supabaseClient
+                .from('likes')
+                .select('post_id')
+                .in('post_id', postIds);
+
+              if (allLikesError) {
+                console.error('いいね総数取得エラー:', allLikesError);
+                return;
+              }
+
+              // いいね総数を計算
+              const newLikeCounts = {};
+              if (allLikes) {
+                allLikes.forEach(like => {
+                  const key = `${applicantId}-${like.post_id}`;
+                  newLikeCounts[key] = (newLikeCounts[key] || 0) + 1;
+                });
+              }
 
               // この申込者の投稿に対する現在のユーザーのいいねを取得
               const { data: userLikes, error: likesError } = await supabaseClient
@@ -1350,6 +1371,11 @@
               setLikes(prev => ({
                 ...prev,
                 ...newLikes
+              }));
+
+              setLikeCounts(prev => ({
+                ...prev,
+                ...newLikeCounts
               }));
             } catch (error) {
               console.error('いいね状態読み込みエラー:', error);
@@ -2229,16 +2255,28 @@
 
           /**
            * いいね処理（追加・削除）
-           * いいね追加時：通知を作成し、申込者のlast_updated_byを更新
-           * いいね削除時：通知を削除
+           * データベースから実際のいいね状態を確認してからトグル処理を行う
+           * これにより他のユーザーのいいねに影響を与えない
            */
           const handleLike = async (applicantId, postId) => {
             const key = `${applicantId}-${postId}`;
-            const isCurrentlyLiked = likes[key];
 
             try {
-              if (isCurrentlyLiked) {
-                // いいねを削除
+              // データベースから実際のいいね状態を確認
+              const { data: existingLike, error: checkError } = await supabaseClient
+                .from('likes')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .eq('post_id', postId)
+                .maybeSingle();
+
+              if (checkError) {
+                console.error('いいね状態確認エラー:', checkError);
+                throw checkError;
+              }
+
+              if (existingLike) {
+                // 既にいいねしている場合：自分のいいねのみ削除
                 await apiClient.removeLike(currentUser.id, postId);
 
                 // いいね通知を削除
@@ -2253,16 +2291,10 @@
                   console.error('通知削除エラー:', deleteError);
                 }
 
-                // ローカル状態を更新
-                setLikes(prev => ({
-                  ...prev,
-                  [key]: false
-                }));
-
                 // 全通知を再取得してNEWバッジを更新
                 await fetchAllNotifications();
               } else {
-                // いいねを追加
+                // まだいいねしていない場合：いいねを追加
                 await apiClient.addLike(currentUser.id, postId);
 
                 // 投稿を取得して通知を作成
@@ -2283,18 +2315,40 @@
                   })
                   .eq('id', applicantId);
 
-                // ローカル状態を更新
-                setLikes(prev => ({
-                  ...prev,
-                  [key]: true
-                }));
-
                 // 全通知を再取得してNEWバッジを更新
                 await fetchAllNotifications();
 
                 // 申込者リストを再取得（NEWバッジ更新のため）
                 await loadApplicants();
               }
+
+              // いいね総数と自分のいいね状態を再取得
+              const { count, error: countError } = await supabaseClient
+                .from('likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('post_id', postId);
+
+              if (countError) {
+                console.error('いいね総数取得エラー:', countError);
+              } else {
+                setLikeCounts(prev => ({
+                  ...prev,
+                  [key]: count || 0
+                }));
+              }
+
+              // 自分のいいね状態を更新
+              const { data: myLike } = await supabaseClient
+                .from('likes')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .eq('post_id', postId)
+                .maybeSingle();
+
+              setLikes(prev => ({
+                ...prev,
+                [key]: !!myLike
+              }));
             } catch (error) {
               console.error('いいね処理エラー:', error);
               console.error('エラー詳細:', JSON.stringify(error, null, 2));
@@ -2917,7 +2971,7 @@
                                   onClick={() => handleLike(selectedApplicant.id, item.id)}
                                   className={`post-action ${likes[`${selectedApplicant.id}-${item.id}`] ? 'liked' : ''}`}
                                 >
-                                  ♡ {likes[`${selectedApplicant.id}-${item.id}`] ? '1' : '0'}
+                                  ♡ {likeCounts[`${selectedApplicant.id}-${item.id}`] || 0}
                                 </button>
                                 <button onClick={() => handleReply(item.id)} className="post-action">
                                   💬 返信
@@ -2951,7 +3005,7 @@
                                           className={`post-action ${likes[`${selectedApplicant.id}-${reply.id}`] ? 'liked' : ''}`}
                                           style={{fontSize: '12px'}}
                                         >
-                                          ♡ {likes[`${selectedApplicant.id}-${reply.id}`] ? '1' : '0'}
+                                          ♡ {likeCounts[`${selectedApplicant.id}-${reply.id}`] || 0}
                                         </button>
                                         <button onClick={() => handleReply(item.id)} className="post-action" style={{fontSize: '12px'}}>
                                           💬 返信
