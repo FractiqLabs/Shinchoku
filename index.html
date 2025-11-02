@@ -1408,16 +1408,21 @@
            * 通知取得（特定の申込者用）
            * 申込者詳細画面で表示する通知を取得
            * 現在のユーザー宛ての未読通知のみを取得
+           * @param {number} applicantId - 申込者ID
+           * @param {object} user - ユーザー情報（省略時は currentUser を使用）
            */
-          const fetchNotifications = async (applicantId) => {
+          const fetchNotifications = async (applicantId, user = null) => {
             try {
               if (!applicantId) {
                 setNotifications([]);
                 return;
               }
 
+              // ユーザー情報を決定（引数優先、なければ state から取得）
+              const targetUser = user || currentUser;
+
               // ログインしていない場合は何もしない
-              if (!currentUser) {
+              if (!targetUser) {
                 return;
               }
 
@@ -1425,7 +1430,7 @@
                 .from('notifications')
                 .select('*')
                 .eq('target_applicant_id', applicantId)
-                .eq('viewer_user_id', currentUser.id)
+                .eq('viewer_user_id', targetUser.id)
                 .eq('is_read', false)
                 .order('created_at', { ascending: false });
 
@@ -1444,20 +1449,24 @@
            * 全申込者の通知取得（NEWバッジ用）
            * 現在のユーザー宛ての全通知を取得し、一覧画面でのNEWバッジ表示に使用
            * 未読通知がある申込者にはNEWバッジが表示される
+           * @param {object} user - ユーザー情報（省略時は currentUser を使用）
            */
-          const fetchAllNotifications = async () => {
+          const fetchAllNotifications = async (user = null) => {
             try {
+              // ユーザー情報を決定（引数優先、なければ state から取得）
+              const targetUser = user || currentUser;
+
               // ログインしていない場合は何もしない
-              if (!currentUser) {
+              if (!targetUser) {
                 console.log('[DEBUG] fetchAllNotifications: currentUserが未定義のため処理をスキップ');
                 return;
               }
 
-              console.log(`[DEBUG] fetchAllNotifications: 通知を取得中... (viewer_user_id=${currentUser.id})`);
+              console.log(`[DEBUG] fetchAllNotifications: 通知を取得中... (viewer_user_id=${targetUser.id})`);
               const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
-                .eq('viewer_user_id', currentUser.id)
+                .eq('viewer_user_id', targetUser.id)
                 .order('created_at', { ascending: false });
 
               if (error) {
@@ -1813,7 +1822,7 @@
 
               setLoginForm({ id: '', password: '' });
               await loadApplicants();
-              await fetchAllNotifications();
+              await fetchAllNotifications(response.user);  // ← ログイン直後は response.user を渡す
               await loadApplicantViews();
             } catch (error) {
               console.error('Login failed:', error);
