@@ -1164,6 +1164,10 @@
               .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'notifications' },
                 async (payload) => {
+                  console.log('[DEBUG] 🔔 通知テーブルに変更がありました！', payload);
+                  console.log('[DEBUG] イベントタイプ:', payload.eventType);
+                  console.log('[DEBUG] 変更されたレコード:', payload.new || payload.old);
+
                   // 全通知を再取得
                   await fetchAllNotifications();
 
@@ -1173,7 +1177,9 @@
                   }
                 }
               )
-              .subscribe();
+              .subscribe((status) => {
+                console.log('[DEBUG] 通知テーブルのリアルタイム監視状態:', status);
+              });
 
             // タイムライン投稿テーブルの変更を監視
             const postsSubscription = supabaseClient
@@ -1443,9 +1449,11 @@
             try {
               // ログインしていない場合は何もしない
               if (!currentUser) {
+                console.log('[DEBUG] fetchAllNotifications: currentUserが未定義のため処理をスキップ');
                 return;
               }
 
+              console.log(`[DEBUG] fetchAllNotifications: 通知を取得中... (viewer_user_id=${currentUser.id})`);
               const { data, error } = await supabaseClient
                 .from('notifications')
                 .select('*')
@@ -1455,6 +1463,22 @@
               if (error) {
                 console.error('全通知取得エラー:', error);
                 return;
+              }
+
+              console.log(`[DEBUG] fetchAllNotifications: ${data?.length || 0}件の通知を取得しました`);
+              console.log('[DEBUG] 取得した通知データ:', data);
+
+              // 未読通知の統計を表示
+              const unreadNotifications = (data || []).filter(n => !n.is_read);
+              console.log(`[DEBUG] 未読通知: ${unreadNotifications.length}件`);
+              if (unreadNotifications.length > 0) {
+                console.log('[DEBUG] 未読通知の詳細:', unreadNotifications.map(n => ({
+                  id: n.id,
+                  type: n.type,
+                  applicant_id: n.target_applicant_id,
+                  is_read: n.is_read,
+                  created_at: n.created_at
+                })));
               }
 
               setAllNotifications(data || []);
@@ -1469,15 +1493,19 @@
            */
           const createPostNotifications = async (applicantId, postId) => {
             try {
+              console.log(`[DEBUG] createPostNotifications: 投稿通知を作成中... (applicantId=${applicantId}, postId=${postId})`);
+
               // 全ユーザーを取得
               const { data: allUsers, error: usersError } = await supabaseClient
                 .from('users')
                 .select('id, name');
 
               if (usersError) {
-                console.error('ユーザー取得エラー:', usersError);
+                console.error('[ERROR] ユーザー取得エラー:', usersError);
                 return;
               }
+
+              console.log(`[DEBUG] 取得したユーザー数: ${allUsers.length}人`, allUsers);
 
               // 自分以外のユーザーに通知を作成
               const notifications = allUsers
@@ -1490,20 +1518,32 @@
                   target_user_id: null,
                   target_user_name: null,
                   target_applicant_id: applicantId,
-                  target_post_id: postId
+                  target_post_id: postId,
+                  is_read: false
                 }));
 
-              if (notifications.length > 0) {
-                const { error: insertError } = await supabaseClient
-                  .from('notifications')
-                  .insert(notifications);
+              console.log(`[DEBUG] 作成する通知数: ${notifications.length}件`, notifications);
 
-                if (insertError && !insertError.message?.includes('duplicate')) {
-                  console.error('通知作成エラー:', insertError);
+              if (notifications.length > 0) {
+                const { data: insertedData, error: insertError } = await supabaseClient
+                  .from('notifications')
+                  .insert(notifications)
+                  .select();
+
+                if (insertError) {
+                  if (insertError.message?.includes('duplicate')) {
+                    console.log('[DEBUG] 重複通知のためスキップされました');
+                  } else {
+                    console.error('[ERROR] 通知作成エラー:', insertError);
+                    console.error('[ERROR] エラー詳細:', JSON.stringify(insertError, null, 2));
+                  }
+                } else {
+                  console.log(`[DEBUG] ✅ ${insertedData?.length || 0}件の通知を作成しました`, insertedData);
                 }
               }
             } catch (error) {
-              console.error('投稿通知作成処理エラー:', error);
+              console.error('[ERROR] 投稿通知作成処理エラー:', error);
+              console.error('[ERROR] エラー詳細:', error.stack);
             }
           };
 
@@ -3367,11 +3407,24 @@
                          * - 自分以外のユーザーが投稿・返信・いいねをした場合のみ通知が作成される
                          * - 「新しい通知」をクリックすると該当通知が既読になり、すべて既読になるとバッジが消える
                          */
-                        const hasUnreadNotifications = allNotifications.some(
+                        const applicantNotifications = allNotifications.filter(
                           notif => notif.target_applicant_id === applicant.id &&
-                                   notif.viewer_user_id === currentUser.id &&
-                                   !notif.is_read
+                                   notif.viewer_user_id === currentUser.id
                         );
+                        const unreadApplicantNotifications = applicantNotifications.filter(n => !n.is_read);
+                        const hasUnreadNotifications = unreadApplicantNotifications.length > 0;
+
+                        // デバッグログ（申込者ごとに1回だけ出力）
+                        if (applicant.id === 1 || hasUnreadNotifications) {
+                          console.log(`[DEBUG] NEWバッジ判定 - 申込者: ${applicant.name} (ID: ${applicant.id})`);
+                          console.log(`  - 全通知数: ${allNotifications.length}`);
+                          console.log(`  - この申込者への通知数: ${applicantNotifications.length}`);
+                          console.log(`  - この申込者への未読通知数: ${unreadApplicantNotifications.length}`);
+                          console.log(`  - NEWバッジ表示: ${hasUnreadNotifications ? 'YES ✅' : 'NO'}`);
+                          if (unreadApplicantNotifications.length > 0) {
+                            console.log('  - 未読通知の詳細:', unreadApplicantNotifications);
+                          }
+                        }
 
                         return (
                         <tr
