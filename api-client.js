@@ -120,6 +120,10 @@ class APIClient {
           cm_contact: options.body.cmContact,
           assignee: options.body.assignee,
           notes: options.body.notes,
+          gender: options.body.gender,
+          room_number: options.body.roomNumber,
+          move_in_date: options.body.moveInDate,
+          municipality: null, // サーバー側で自動計算
           status: '申込書受領',
           timeline: []
         };
@@ -150,7 +154,11 @@ class APIClient {
             care_manager_name: options.body.careManagerName,
             cm_contact: options.body.cmContact,
             assignee: options.body.assignee,
-            notes: options.body.notes
+            notes: options.body.notes,
+            gender: options.body.gender,
+            room_number: options.body.roomNumber,
+            move_in_date: options.body.moveInDate,
+            municipality: null // サーバー側で自動計算
           };
           saveLocalData(data);
           return { message: '申込者情報が更新されました' };
@@ -269,6 +277,11 @@ class APIClient {
     return await this.request(`/applicants/${applicantId}/posts/${postId}`, {
       method: 'DELETE',
     });
+  }
+
+  // 統計データ取得
+  async getStatistics() {
+    return await this.request('/statistics');
   }
 
   // WebSocket関連

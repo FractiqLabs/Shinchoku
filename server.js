@@ -155,30 +155,63 @@ app.get('/api/applicants/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// 住所から市区町村を抽出する関数
+function extractMunicipality(address) {
+  if (!address) return null;
+
+  // 市区町村のパターンマッチング
+  const patterns = [
+    /([^都道府県]{2,3}[都道府県])([^市区町村]+[市区町村])/,  // 東京都中央区
+    /([^都道府県]+[都道府県])([^市]+[市])/,  // さいたま市
+    /さいたま市([^区]+区)/,  // さいたま市○○区
+    /([^都道府県]+[都道府県])([^郡]+郡[^町村]+[町村])/,  // 郡部
+  ];
+
+  for (const pattern of patterns) {
+    const match = address.match(pattern);
+    if (match) {
+      if (address.includes('さいたま市')) {
+        // さいたま市の場合は区まで含める
+        const wardMatch = address.match(/さいたま市([^区]+区)/);
+        if (wardMatch) {
+          return `さいたま市${wardMatch[1]}`;
+        }
+        return 'さいたま市';
+      }
+      return match[1] + match[2];
+    }
+  }
+
+  return null;
+}
+
 // 申込者新規作成
 app.post('/api/applicants', authenticateToken, async (req, res) => {
   try {
     const {
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
-      assignee, notes
+      assignee, notes, gender, roomNumber, moveInDate
     } = req.body;
 
     if (!surname || !givenName || !age || !careLevel) {
       return res.status(400).json({ error: '必須項目が不足しています' });
     }
 
+    // 住所から市区町村を自動抽出
+    const municipality = extractMunicipality(address);
+
     const dateFunc = process.env.DB_TYPE === 'postgres' ? 'CURRENT_DATE' : "DATE('now')";
     const result = await db.run(`
       INSERT INTO applicants (
         surname, given_name, age, care_level, address, kp, kp_relationship,
         kp_contact, kp_address, care_manager, care_manager_name, cm_contact,
-        assignee, notes, application_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${dateFunc}) RETURNING id
+        assignee, notes, gender, room_number, move_in_date, municipality, application_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${dateFunc}) RETURNING id
     `, [
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
-      assignee || '担当者未定', notes
+      assignee || '担当者未定', notes, gender, roomNumber, moveInDate, municipality
     ]);
 
     // リアルタイム同期: 新規申込者をすべてのクライアントに通知
@@ -202,24 +235,28 @@ app.put('/api/applicants/:id', authenticateToken, async (req, res) => {
     const {
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
-      assignee, notes
+      assignee, notes, gender, roomNumber, moveInDate
     } = req.body;
 
     if (!surname || !givenName || !age || !careLevel) {
       return res.status(400).json({ error: '必須項目が不足しています' });
     }
 
+    // 住所から市区町村を自動抽出
+    const municipality = extractMunicipality(address);
+
     const result = await db.run(`
-      UPDATE applicants SET 
+      UPDATE applicants SET
         surname = ?, given_name = ?, age = ?, care_level = ?, address = ?,
         kp = ?, kp_relationship = ?, kp_contact = ?, kp_address = ?,
         care_manager = ?, care_manager_name = ?, cm_contact = ?,
-        assignee = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+        assignee = ?, notes = ?, gender = ?, room_number = ?, move_in_date = ?,
+        municipality = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
-      assignee, notes, id
+      assignee, notes, gender, roomNumber, moveInDate, municipality, id
     ]);
 
     if (result.changes === 0) {
@@ -255,6 +292,104 @@ app.delete('/api/applicants/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('申込者削除エラー:', error);
     res.status(500).json({ error: 'データの削除に失敗しました' });
+  }
+});
+
+// 統計データ取得
+app.get('/api/statistics', authenticateToken, async (req, res) => {
+  try {
+    // 全申込者データを取得
+    const applicants = await db.all('SELECT * FROM applicants ORDER BY id');
+
+    // 基本統計
+    const totalCount = applicants.length;
+    const completedCount = applicants.filter(a => a.status === '入居完了').length;
+    const cancelledCount = applicants.filter(a => a.status === 'キャンセル').length;
+    const averageAge = totalCount > 0
+      ? Math.round(applicants.reduce((sum, a) => sum + a.age, 0) / totalCount * 10) / 10
+      : 0;
+
+    // 市区町村別分布
+    const municipalityDistribution = {};
+    applicants.forEach(a => {
+      const mun = a.municipality || 'その他';
+      municipalityDistribution[mun] = (municipalityDistribution[mun] || 0) + 1;
+    });
+
+    // 要介護度別分布
+    const careLevelDistribution = {};
+    applicants.forEach(a => {
+      const level = a.care_level || '不明';
+      careLevelDistribution[level] = (careLevelDistribution[level] || 0) + 1;
+    });
+
+    // ステータス別分布
+    const statusDistribution = {};
+    applicants.forEach(a => {
+      const status = a.status || '不明';
+      statusDistribution[status] = (statusDistribution[status] || 0) + 1;
+    });
+
+    // 年齢分布（10歳刻み）
+    const ageDistribution = {
+      '70歳未満': 0,
+      '70-79歳': 0,
+      '80-89歳': 0,
+      '90歳以上': 0
+    };
+    applicants.forEach(a => {
+      if (a.age < 70) ageDistribution['70歳未満']++;
+      else if (a.age < 80) ageDistribution['70-79歳']++;
+      else if (a.age < 90) ageDistribution['80-89歳']++;
+      else ageDistribution['90歳以上']++;
+    });
+
+    // 性別分布
+    const genderDistribution = {};
+    applicants.forEach(a => {
+      const gender = a.gender || '不明';
+      genderDistribution[gender] = (genderDistribution[gender] || 0) + 1;
+    });
+
+    // 月別申込数（過去12ヶ月）
+    const monthlyApplications = {};
+    applicants.forEach(a => {
+      if (a.application_date) {
+        const month = a.application_date.substring(0, 7); // YYYY-MM
+        monthlyApplications[month] = (monthlyApplications[month] || 0) + 1;
+      }
+    });
+
+    // 月別入居数（過去12ヶ月）
+    const monthlyMoveIns = {};
+    applicants.forEach(a => {
+      if (a.move_in_date) {
+        const month = a.move_in_date.substring(0, 7); // YYYY-MM
+        monthlyMoveIns[month] = (monthlyMoveIns[month] || 0) + 1;
+      }
+    });
+
+    res.json({
+      summary: {
+        totalCount,
+        completedCount,
+        cancelledCount,
+        averageAge,
+        femaleRatio: genderDistribution['女']
+          ? Math.round(genderDistribution['女'] / totalCount * 1000) / 10
+          : 0
+      },
+      municipalityDistribution,
+      careLevelDistribution,
+      statusDistribution,
+      ageDistribution,
+      genderDistribution,
+      monthlyApplications,
+      monthlyMoveIns
+    });
+  } catch (error) {
+    console.error('統計データ取得エラー:', error);
+    res.status(500).json({ error: '統計データの取得に失敗しました' });
   }
 });
 
