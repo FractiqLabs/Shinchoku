@@ -46,7 +46,8 @@ const createSupabaseApiClient = () => {
       const passwordMapping = {
         '藤堂　友未枝': 'admin1',
         '吉野　隼人': 'admin2',
-        '田中　慎治': 'admin3'
+        '田中　慎治': 'admin3',
+        '岡　和宏': 'admin4'
       };
 
       if (passwordMapping[users.name] !== password) {

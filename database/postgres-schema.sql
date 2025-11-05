@@ -116,10 +116,11 @@ CREATE INDEX IF NOT EXISTS idx_user_applicant_views_applicant
 ON user_applicant_views(applicant_id);
 
 -- 初期ユーザーデータ挿入
-INSERT INTO users (username, password_hash, name) VALUES 
+INSERT INTO users (username, password_hash, name) VALUES
 ('a', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '藤堂　友未枝'),
 ('b', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '吉野　隼人'),
-('c', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '田中　慎治')
+('c', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '田中　慎治'),
+('d', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '岡　和宏')
 ON CONFLICT (username) DO NOTHING;
 
 -- サンプル申込者データ
