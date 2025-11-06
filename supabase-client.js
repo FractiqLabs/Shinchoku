@@ -142,6 +142,10 @@ const createSupabaseApiClient = () => {
               notes: applicant.notes || '',
               status: applicant.status,
               applicationDate: applicant.application_date,
+              gender: applicant.gender || '',
+              roomNumber: applicant.room_number || '',
+              moveInDate: applicant.move_in_date || '',
+              municipality: applicant.municipality || '',
               timeline: timelineWithReplies
             };
           })
@@ -446,6 +450,111 @@ const createSupabaseApiClient = () => {
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
       return !!data;
+    },
+
+    /**
+     * 統計データを取得
+     * @returns {Promise<Object>} 統計データ
+     */
+    async getStatistics() {
+      try {
+        const { data: applicants, error } = await supabase
+          .from('applicants')
+          .select('*')
+          .order('id');
+
+        if (error) throw error;
+
+        // 基本統計
+        const totalCount = applicants.length;
+        const completedCount = applicants.filter(a => a.status === '入居完了').length;
+        const cancelledCount = applicants.filter(a => a.status === 'キャンセル').length;
+        const averageAge = totalCount > 0
+          ? Math.round(applicants.reduce((sum, a) => sum + a.age, 0) / totalCount * 10) / 10
+          : 0;
+
+        // 市区町村別分布
+        const municipalityDistribution = {};
+        applicants.forEach(a => {
+          const mun = a.municipality || 'その他';
+          municipalityDistribution[mun] = (municipalityDistribution[mun] || 0) + 1;
+        });
+
+        // 要介護度別分布
+        const careLevelDistribution = {};
+        applicants.forEach(a => {
+          const level = a.care_level || '不明';
+          careLevelDistribution[level] = (careLevelDistribution[level] || 0) + 1;
+        });
+
+        // ステータス別分布
+        const statusDistribution = {};
+        applicants.forEach(a => {
+          const status = a.status || '不明';
+          statusDistribution[status] = (statusDistribution[status] || 0) + 1;
+        });
+
+        // 年齢分布（10歳刻み）
+        const ageDistribution = {
+          '70歳未満': 0,
+          '70-79歳': 0,
+          '80-89歳': 0,
+          '90歳以上': 0
+        };
+        applicants.forEach(a => {
+          if (a.age < 70) ageDistribution['70歳未満']++;
+          else if (a.age < 80) ageDistribution['70-79歳']++;
+          else if (a.age < 90) ageDistribution['80-89歳']++;
+          else ageDistribution['90歳以上']++;
+        });
+
+        // 性別分布
+        const genderDistribution = {};
+        applicants.forEach(a => {
+          const gender = a.gender || '不明';
+          genderDistribution[gender] = (genderDistribution[gender] || 0) + 1;
+        });
+
+        // 月別申込数
+        const monthlyApplications = {};
+        applicants.forEach(a => {
+          if (a.application_date) {
+            const month = a.application_date.substring(0, 7);
+            monthlyApplications[month] = (monthlyApplications[month] || 0) + 1;
+          }
+        });
+
+        // 月別入居数
+        const monthlyMoveIns = {};
+        applicants.forEach(a => {
+          if (a.move_in_date) {
+            const month = a.move_in_date.substring(0, 7);
+            monthlyMoveIns[month] = (monthlyMoveIns[month] || 0) + 1;
+          }
+        });
+
+        return {
+          summary: {
+            totalCount,
+            completedCount,
+            cancelledCount,
+            averageAge,
+            femaleRatio: genderDistribution['女']
+              ? Math.round(genderDistribution['女'] / totalCount * 1000) / 10
+              : 0
+          },
+          municipalityDistribution,
+          careLevelDistribution,
+          statusDistribution,
+          ageDistribution,
+          genderDistribution,
+          monthlyApplications,
+          monthlyMoveIns
+        };
+      } catch (error) {
+        console.error('統計データ取得エラー:', error);
+        return null;
+      }
     }
   };
 };

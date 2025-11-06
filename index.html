@@ -1130,7 +1130,10 @@
             cmContact: '',
             assignee: '',
             notes: '',
-            applicationDate: ''
+            applicationDate: '',
+            gender: '',
+            roomNumber: '',
+            moveInDate: ''
           });
 
           const users = {
@@ -1931,7 +1934,10 @@
               cmContact: applicant.cmContact,
               assignee: applicant.assignee,
               notes: applicant.notes || '',
-              applicationDate: applicant.applicationDate || ''
+              applicationDate: applicant.applicationDate || '',
+              gender: applicant.gender || '',
+              roomNumber: applicant.roomNumber || '',
+              moveInDate: applicant.moveInDate || ''
             });
             setShowEditModal(true);
           };
@@ -1973,7 +1979,10 @@
                 cmContact: formData.cmContact,
                 assignee: formData.assignee,
                 notes: formData.notes,
-                applicationDate: formData.applicationDate
+                applicationDate: formData.applicationDate,
+                gender: formData.gender,
+                roomNumber: formData.roomNumber,
+                moveInDate: formData.moveInDate
               };
 
               await apiClient.updateApplicant(editingApplicant.id, applicantData);
@@ -1994,7 +2003,10 @@
                 cmContact: '',
                 assignee: '',
                 notes: '',
-                applicationDate: ''
+                applicationDate: '',
+                gender: '',
+                roomNumber: '',
+                moveInDate: ''
               });
               setEditingApplicant(null);
               setShowEditModal(false);
@@ -2042,6 +2054,9 @@
                 kpRelationship: formData.kpRelationship,
                 kpContact: formData.kpContact,
                 kpAddress: formData.kpAddress,
+                gender: formData.gender,
+                roomNumber: formData.roomNumber,
+                moveInDate: formData.moveInDate,
                 careManager: formData.careManager,
                 careManagerName: formData.careManagerName,
                 cmContact: formData.cmContact,
@@ -2068,7 +2083,10 @@
                 cmContact: '',
                 assignee: '',
                 notes: '',
-                applicationDate: ''
+                applicationDate: '',
+                gender: '',
+                roomNumber: '',
+                moveInDate: ''
               });
               setShowModal(false);
             } catch (error) {
@@ -2764,8 +2782,12 @@
                     <div className="info-section">
                       <h3>基本情報</h3>
                       <div className="info-item">申込日: {selectedApplicant.applicationDate}</div>
+                      {selectedApplicant.moveInDate && <div className="info-item">入居日: {selectedApplicant.moveInDate}</div>}
+                      {selectedApplicant.gender && <div className="info-item">性別: {selectedApplicant.gender}</div>}
+                      {selectedApplicant.roomNumber && <div className="info-item">部屋番号: {selectedApplicant.roomNumber}</div>}
                       {selectedApplicant.assignee && <div className="info-item">担当者: {selectedApplicant.assignee}</div>}
                       {selectedApplicant.address && <div className="info-item">住所: {selectedApplicant.address}</div>}
+                      {selectedApplicant.municipality && <div className="info-item">市区町村: {selectedApplicant.municipality}</div>}
                     </div>
                     <div className="info-section">
                       <h3>KP情報</h3>
@@ -3531,6 +3553,31 @@
                             </select>
                           </div>
                         </div>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label className="form-label">性別</label>
+                            <select
+                              name="gender"
+                              value={formData.gender}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            >
+                              <option value="">選択してください</option>
+                              <option value="男">男</option>
+                              <option value="女">女</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">部屋番号</label>
+                            <input
+                              type="text"
+                              name="roomNumber"
+                              value={formData.roomNumber}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            />
+                          </div>
+                        </div>
                         <div className="form-group">
                           <label className="form-label">住所</label>
                           <input
@@ -3650,16 +3697,28 @@
                             placeholder="特記事項やメモを入力してください..."
                           />
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">申込日 *</label>
-                          <input
-                            type="date"
-                            name="applicationDate"
-                            value={formData.applicationDate}
-                            onChange={handleInputChange}
-                            className="form-input"
-                            required
-                          />
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label className="form-label">申込日 *</label>
+                            <input
+                              type="date"
+                              name="applicationDate"
+                              value={formData.applicationDate}
+                              onChange={handleInputChange}
+                              className="form-input"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">入居日</label>
+                            <input
+                              type="date"
+                              name="moveInDate"
+                              value={formData.moveInDate}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            />
+                          </div>
                         </div>
                       </form>
                     </div>
@@ -3740,6 +3799,31 @@
                             </select>
                           </div>
                         </div>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label className="form-label">性別</label>
+                            <select
+                              name="gender"
+                              value={formData.gender}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            >
+                              <option value="">選択してください</option>
+                              <option value="男">男</option>
+                              <option value="女">女</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">部屋番号</label>
+                            <input
+                              type="text"
+                              name="roomNumber"
+                              value={formData.roomNumber}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            />
+                          </div>
+                        </div>
                         <div className="form-group">
                           <label className="form-label">住所</label>
                           <input
@@ -3859,16 +3943,28 @@
                             placeholder="特記事項やメモを入力してください..."
                           />
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">申込日 *</label>
-                          <input
-                            type="date"
-                            name="applicationDate"
-                            value={formData.applicationDate}
-                            onChange={handleInputChange}
-                            className="form-input"
-                            required
-                          />
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label className="form-label">申込日 *</label>
+                            <input
+                              type="date"
+                              name="applicationDate"
+                              value={formData.applicationDate}
+                              onChange={handleInputChange}
+                              className="form-input"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">入居日</label>
+                            <input
+                              type="date"
+                              name="moveInDate"
+                              value={formData.moveInDate}
+                              onChange={handleInputChange}
+                              className="form-input"
+                            />
+                          </div>
                         </div>
                       </form>
                     </div>
