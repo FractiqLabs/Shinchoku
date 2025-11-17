@@ -3136,6 +3136,7 @@
                               <th>年齢</th>
                               <th>要介護度</th>
                               <th>担当CM</th>
+                              <th style={{width: '120px'}}>操作</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -3149,6 +3150,35 @@
                                 <td>{applicant.age}歳</td>
                                 <td>{applicant.careLevel}</td>
                                 <td>{applicant.careManagerName || '未設定'}</td>
+                                <td onClick={(e) => e.stopPropagation()}>
+                                  <div className="action-buttons">
+                                    <button
+                                      className="btn btn-small btn-edit"
+                                      onClick={(e) => handleEdit(applicant, e)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        padding: '4px',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                    </button>
+                                    <button
+                                      className="btn btn-small btn-delete"
+                                      onClick={(e) => handleDelete(applicant, e)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        padding: '4px',
+                                        cursor: 'pointer',
+                                        marginLeft: '8px'
+                                      }}
+                                    >
+                                      <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
