@@ -3126,34 +3126,48 @@
                           入居完了者はいません
                         </div>
                       ) : (
-                        completedApplicants.map(applicant => (
-                          <div key={applicant.id} className="completed-applicant-item">
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">申込日：</span>
-                              {applicant.applicationDate || '未設定'}
-                            </div>
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">入居日：</span>
-                              {applicant.moveInDate || '未設定'}
-                            </div>
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">名前：</span>
-                              {applicant.name}
-                            </div>
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">年齢：</span>
-                              {applicant.age}歳
-                            </div>
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">要介護度：</span>
-                              {applicant.careLevel}
-                            </div>
-                            <div className="completed-item-row">
-                              <span className="completed-item-label">担当CM：</span>
-                              {applicant.careManagerName || '未設定'}
-                            </div>
-                          </div>
-                        ))
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>申込日</th>
+                              <th>入居日</th>
+                              <th>名前</th>
+                              <th>年齢</th>
+                              <th>要介護度</th>
+                              <th>担当CM</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {completedApplicants.map(applicant => (
+                              <tr
+                                key={applicant.id}
+                                onClick={async () => {
+                                  setSelectedApplicant(applicant);
+                                  setCurrentView('detail');
+
+                                  // この申込者のいいね状態を読み込む
+                                  await loadLikesForApplicant(applicant.id);
+
+                                  // この申込者の閲覧時刻を更新
+                                  await updateApplicantView(applicant.id);
+
+                                  // 詳細画面の通知を取得（既読処理はしない）
+                                  fetchNotifications(applicant.id);
+                                }}
+                                style={{cursor: 'pointer'}}
+                              >
+                                <td>{applicant.applicationDate || '未設定'}</td>
+                                <td>{applicant.moveInDate || '未設定'}</td>
+                                <td style={{fontWeight: '500', color: '#2c3e50'}}>
+                                  {applicant.name}
+                                </td>
+                                <td>{applicant.age}歳</td>
+                                <td>{applicant.careLevel}</td>
+                                <td>{applicant.careManagerName || '未設定'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       )}
                     </div>
 
