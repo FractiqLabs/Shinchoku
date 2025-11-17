@@ -3170,7 +3170,32 @@
                                   <div className="action-buttons">
                                     <button
                                       className="btn btn-small btn-edit"
-                                      onClick={(e) => handleEdit(applicant, e)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingApplicant(applicant);
+                                        const nameParts = applicant.name.split('　');
+                                        setFormData({
+                                          surname: nameParts[0] || '',
+                                          givenName: nameParts[1] || '',
+                                          age: applicant.age.toString(),
+                                          careLevel: applicant.careLevel,
+                                          address: applicant.address || '',
+                                          kp: applicant.kp,
+                                          kpRelationship: applicant.kpRelationship || '',
+                                          kpContact: applicant.kpContact,
+                                          kpAddress: applicant.kpAddress || '',
+                                          careManager: applicant.careManager,
+                                          careManagerName: applicant.careManagerName || '',
+                                          cmContact: applicant.cmContact,
+                                          assignee: applicant.assignee,
+                                          notes: applicant.notes || '',
+                                          applicationDate: applicant.applicationDate || '',
+                                          gender: applicant.gender || '',
+                                          roomNumber: applicant.roomNumber || '',
+                                          moveInDate: applicant.moveInDate || ''
+                                        });
+                                        setShowEditModal(true);
+                                      }}
                                       style={{
                                         background: 'none',
                                         border: 'none',
@@ -3182,7 +3207,11 @@
                                     </button>
                                     <button
                                       className="btn btn-small btn-delete"
-                                      onClick={(e) => handleDelete(applicant, e)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingApplicant(applicant);
+                                        setShowDeleteModal(true);
+                                      }}
                                       style={{
                                         background: 'none',
                                         border: 'none',
