@@ -3141,7 +3141,23 @@
                           </thead>
                           <tbody>
                             {completedApplicants.map(applicant => (
-                              <tr key={applicant.id}>
+                              <tr
+                                key={applicant.id}
+                                onClick={async () => {
+                                  setSelectedApplicant(applicant);
+                                  setCurrentView('detail');
+
+                                  // この申込者のいいね状態を読み込む
+                                  await loadLikesForApplicant(applicant.id);
+
+                                  // この申込者の閲覧時刻を更新
+                                  await updateApplicantView(applicant.id);
+
+                                  // 詳細画面の通知を取得（既読処理はしない）
+                                  fetchNotifications(applicant.id);
+                                }}
+                                style={{cursor: 'pointer'}}
+                              >
                                 <td>{applicant.applicationDate || '未設定'}</td>
                                 <td>{applicant.moveInDate || '未設定'}</td>
                                 <td style={{fontWeight: '500', color: '#2c3e50'}}>
