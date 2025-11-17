@@ -1026,6 +1026,55 @@
             height: 300px;
         }
 
+        .completed-list-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 32px;
+        }
+
+        .completed-list-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 12px;
+        }
+
+        .completed-applicant-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid #28a745;
+            background: #f8f9fa;
+            border-radius: 4px;
+            line-height: 1.8;
+        }
+
+        .completed-applicant-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .completed-item-row {
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .completed-item-label {
+            display: inline-block;
+            font-weight: 600;
+            color: #2c3e50;
+            min-width: 100px;
+        }
+
+        .no-completed-message {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
         .export-section {
             display: flex;
             gap: 12px;
@@ -3011,10 +3060,20 @@
 
           // ダッシュボードビュー
           if (currentView === 'dashboard') {
+            // 入居完了者のフィルタリング
+            const completedApplicants = applicants
+              .filter(app => app.status === '入居完了')
+              .sort((a, b) => {
+                // 申込日で降順ソート（新しい順）
+                const dateA = new Date(a.applicationDate || 0);
+                const dateB = new Date(b.applicationDate || 0);
+                return dateB - dateA;
+              });
+
             return (
               <div className="dashboard-container">
                 <div className="dashboard-header">
-                  <h1 className="dashboard-title">📊 入居申込目録 統計ダッシュボード</h1>
+                  <h1 className="dashboard-title">入居申込目録 統計ダッシュボード</h1>
                   <button
                     className="btn-back"
                     onClick={() => setCurrentView('list')}
@@ -3025,7 +3084,6 @@
 
                 {!statistics ? (
                   <div style={{textAlign: 'center', padding: '60px 0', color: '#6c757d'}}>
-                    <div style={{fontSize: '48px', marginBottom: '16px'}}>📊</div>
                     <div>統計データを読み込んでいます...</div>
                   </div>
                 ) : (
@@ -3059,6 +3117,44 @@
                           <span className="summary-card-unit">%</span>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="completed-list-section">
+                      <h2 className="completed-list-title">入居完了者一覧</h2>
+                      {completedApplicants.length === 0 ? (
+                        <div className="no-completed-message">
+                          入居完了者はいません
+                        </div>
+                      ) : (
+                        completedApplicants.map(applicant => (
+                          <div key={applicant.id} className="completed-applicant-item">
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">申込日：</span>
+                              {applicant.applicationDate || '未設定'}
+                            </div>
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">入居日：</span>
+                              {applicant.moveInDate || '未設定'}
+                            </div>
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">名前：</span>
+                              {applicant.name}
+                            </div>
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">年齢：</span>
+                              {applicant.age}歳
+                            </div>
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">要介護度：</span>
+                              {applicant.careLevel}
+                            </div>
+                            <div className="completed-item-row">
+                              <span className="completed-item-label">担当CM：</span>
+                              {applicant.careManagerName || '未設定'}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
 
                     <div className="charts-grid">
@@ -3096,7 +3192,7 @@
                           downloadCSV(csvContent, `入居申込目録_${new Date().toISOString().split('T')[0]}.csv`);
                         }}
                       >
-                        📥 CSVエクスポート
+                        CSVエクスポート
                       </button>
                     </div>
                   </>
@@ -3767,7 +3863,7 @@
                           setCurrentView('dashboard');
                         }}
                       >
-                        📊 ダッシュボード
+                        ダッシュボード
                       </button>
                       <button className="btn btn-primary" onClick={() => setShowModal(true)}>新規登録</button>
                     </div>
