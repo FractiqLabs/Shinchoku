@@ -2070,12 +2070,13 @@
           };
 
           const sortedApplicants = React.useMemo(() => {
-            let sortableApplicants = [...applicants];
+            // 「入居完了」以外の申込者のみをフィルタリング
+            let sortableApplicants = [...applicants].filter(app => app.status !== '入居完了');
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
-                
+
                 if (sortConfig.key === 'applicationDate') {
                   aValue = new Date(aValue);
                   bValue = new Date(bValue);
@@ -2083,7 +2084,7 @@
                   aValue = parseInt(aValue);
                   bValue = parseInt(bValue);
                 }
-                
+
                 if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -3139,23 +3140,7 @@
                           </thead>
                           <tbody>
                             {completedApplicants.map(applicant => (
-                              <tr
-                                key={applicant.id}
-                                onClick={async () => {
-                                  setSelectedApplicant(applicant);
-                                  setCurrentView('detail');
-
-                                  // この申込者のいいね状態を読み込む
-                                  await loadLikesForApplicant(applicant.id);
-
-                                  // この申込者の閲覧時刻を更新
-                                  await updateApplicantView(applicant.id);
-
-                                  // 詳細画面の通知を取得（既読処理はしない）
-                                  fetchNotifications(applicant.id);
-                                }}
-                                style={{cursor: 'pointer'}}
-                              >
+                              <tr key={applicant.id}>
                                 <td>{applicant.applicationDate || '未設定'}</td>
                                 <td>{applicant.moveInDate || '未設定'}</td>
                                 <td style={{fontWeight: '500', color: '#2c3e50'}}>
@@ -3864,7 +3849,7 @@
                   <div className="stat-row">
                     <h2 className="section-title">申込者一覧</h2>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <span className="stat-count">{applicants.length}件</span>
+                      <span className="stat-count">{sortedApplicants.length}件</span>
                       <button
                         className="btn"
                         style={{
