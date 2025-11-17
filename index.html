@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="supabase-config.js"></script>
     <script src="supabase-client.js"></script>
     <style>
@@ -939,6 +940,132 @@
                 transform: translateY(0);
             }
         }
+
+        /* ダッシュボード用スタイル */
+        .dashboard-container {
+            padding: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .dashboard-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .summary-card-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .summary-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .summary-card-unit {
+            font-size: 18px;
+            color: #6c757d;
+            margin-left: 4px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .chart-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .export-section {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -1115,6 +1242,9 @@
           const [savingStatus, setSavingStatus] = React.useState('idle'); // idle | saving | saved | error
           const saveTimerRef = React.useRef(null);
 
+          // ダッシュボード統計データ
+          const [statistics, setStatistics] = React.useState(null);
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1249,6 +1379,20 @@
               setApplicants(data);
             } catch (error) {
               console.error('Failed to load applicants:', error);
+            }
+          };
+
+          /**
+           * 統計データの取得
+           * ダッシュボード表示用の統計データを取得
+           */
+          const loadStatistics = async () => {
+            try {
+              const data = await apiClient.getStatistics();
+              setStatistics(data);
+            } catch (error) {
+              console.error('Failed to load statistics:', error);
+              setStatistics(null);
             }
           };
 
@@ -2225,6 +2369,164 @@
             };
           }, []);
 
+          // ダッシュボードのグラフ描画
+          React.useEffect(() => {
+            if (currentView === 'dashboard' && statistics && typeof Chart !== 'undefined') {
+              // 既存のチャートを破棄
+              const charts = ['municipalityChart', 'careLevelChart', 'ageChart', 'statusChart'];
+              charts.forEach(chartId => {
+                const canvas = document.getElementById(chartId);
+                if (canvas) {
+                  const existingChart = Chart.getChart(canvas);
+                  if (existingChart) {
+                    existingChart.destroy();
+                  }
+                }
+              });
+
+              // 少し遅延を入れてからグラフを描画
+              setTimeout(() => {
+                // 市区町村別分布グラフ
+                const municipalityCanvas = document.getElementById('municipalityChart');
+                if (municipalityCanvas) {
+                  new Chart(municipalityCanvas, {
+                    type: 'bar',
+                    data: {
+                      labels: Object.keys(statistics.municipalityDistribution),
+                      datasets: [{
+                        label: '申込数',
+                        data: Object.values(statistics.municipalityDistribution),
+                        backgroundColor: '#4e73df'
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false }
+                      }
+                    }
+                  });
+                }
+
+                // 要介護度別分布グラフ
+                const careLevelCanvas = document.getElementById('careLevelChart');
+                if (careLevelCanvas) {
+                  new Chart(careLevelCanvas, {
+                    type: 'pie',
+                    data: {
+                      labels: Object.keys(statistics.careLevelDistribution),
+                      datasets: [{
+                        data: Object.values(statistics.careLevelDistribution),
+                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false
+                    }
+                  });
+                }
+
+                // 年齢分布グラフ
+                const ageCanvas = document.getElementById('ageChart');
+                if (ageCanvas) {
+                  new Chart(ageCanvas, {
+                    type: 'bar',
+                    data: {
+                      labels: Object.keys(statistics.ageDistribution),
+                      datasets: [{
+                        label: '人数',
+                        data: Object.values(statistics.ageDistribution),
+                        backgroundColor: '#1cc88a'
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false }
+                      }
+                    }
+                  });
+                }
+
+                // 入居状況グラフ
+                const statusCanvas = document.getElementById('statusChart');
+                if (statusCanvas) {
+                  new Chart(statusCanvas, {
+                    type: 'doughnut',
+                    data: {
+                      labels: Object.keys(statistics.statusDistribution),
+                      datasets: [{
+                        data: Object.values(statistics.statusDistribution),
+                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false
+                    }
+                  });
+                }
+              }, 100);
+            }
+          }, [currentView, statistics]);
+
+          // CSVエクスポート関数
+          const generateCSV = () => {
+            if (!applicants || applicants.length === 0) {
+              return '';
+            }
+
+            const headers = [
+              'ID', '氏名', '年齢', '性別', '要介護度', '住所', '市区町村',
+              '申込日', '入居日', '部屋番号', 'ステータス', '担当者',
+              'KP', 'KP続柄', 'KP連絡先', 'KP住所',
+              'ケアマネ所属', 'ケアマネ名', 'ケアマネ連絡先', '備考'
+            ];
+
+            const rows = applicants.map(app => [
+              app.id,
+              app.name,
+              app.age,
+              app.gender || '',
+              app.careLevel,
+              app.address || '',
+              app.municipality || '',
+              app.applicationDate || '',
+              app.moveInDate || '',
+              app.roomNumber || '',
+              app.status,
+              app.assignee || '',
+              app.kp || '',
+              app.kpRelationship || '',
+              app.kpContact || '',
+              app.kpAddress || '',
+              app.careManager || '',
+              app.careManagerName || '',
+              app.cmContact || '',
+              app.notes || ''
+            ]);
+
+            return [headers, ...rows]
+              .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+              .join('\n');
+          };
+
+          const downloadCSV = (content, filename) => {
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
 
           /**
            * 返信開始
@@ -2703,6 +3005,102 @@
                     </button>
                   </form>
                 </div>
+              </div>
+            );
+          }
+
+          // ダッシュボードビュー
+          if (currentView === 'dashboard') {
+            return (
+              <div className="dashboard-container">
+                <div className="dashboard-header">
+                  <h1 className="dashboard-title">📊 入居申込目録 統計ダッシュボード</h1>
+                  <button
+                    className="btn-back"
+                    onClick={() => setCurrentView('list')}
+                  >
+                    ← 申込者一覧に戻る
+                  </button>
+                </div>
+
+                {!statistics ? (
+                  <div style={{textAlign: 'center', padding: '60px 0', color: '#6c757d'}}>
+                    <div style={{fontSize: '48px', marginBottom: '16px'}}>📊</div>
+                    <div>統計データを読み込んでいます...</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="summary-cards">
+                      <div className="summary-card">
+                        <div className="summary-card-label">総申込数</div>
+                        <div className="summary-card-value">
+                          {statistics.summary.totalCount}
+                          <span className="summary-card-unit">件</span>
+                        </div>
+                      </div>
+                      <div className="summary-card">
+                        <div className="summary-card-label">入居完了</div>
+                        <div className="summary-card-value">
+                          {statistics.summary.completedCount}
+                          <span className="summary-card-unit">件</span>
+                        </div>
+                      </div>
+                      <div className="summary-card">
+                        <div className="summary-card-label">平均年齢</div>
+                        <div className="summary-card-value">
+                          {statistics.summary.averageAge}
+                          <span className="summary-card-unit">歳</span>
+                        </div>
+                      </div>
+                      <div className="summary-card">
+                        <div className="summary-card-label">女性比率</div>
+                        <div className="summary-card-value">
+                          {statistics.summary.femaleRatio}
+                          <span className="summary-card-unit">%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="charts-grid">
+                      <div className="chart-card">
+                        <h3 className="chart-card-title">市区町村別分布</h3>
+                        <div className="chart-container">
+                          <canvas id="municipalityChart"></canvas>
+                        </div>
+                      </div>
+                      <div className="chart-card">
+                        <h3 className="chart-card-title">要介護度別分布</h3>
+                        <div className="chart-container">
+                          <canvas id="careLevelChart"></canvas>
+                        </div>
+                      </div>
+                      <div className="chart-card">
+                        <h3 className="chart-card-title">年齢分布</h3>
+                        <div className="chart-container">
+                          <canvas id="ageChart"></canvas>
+                        </div>
+                      </div>
+                      <div className="chart-card">
+                        <h3 className="chart-card-title">入居状況</h3>
+                        <div className="chart-container">
+                          <canvas id="statusChart"></canvas>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="export-section">
+                      <button
+                        className="btn-export"
+                        onClick={() => {
+                          const csvContent = generateCSV();
+                          downloadCSV(csvContent, `入居申込目録_${new Date().toISOString().split('T')[0]}.csv`);
+                        }}
+                      >
+                        📥 CSVエクスポート
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             );
           }
@@ -3357,6 +3755,20 @@
                     <h2 className="section-title">申込者一覧</h2>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                       <span className="stat-count">{applicants.length}件</span>
+                      <button
+                        className="btn"
+                        style={{
+                          background: '#17a2b8',
+                          color: 'white',
+                          border: 'none'
+                        }}
+                        onClick={async () => {
+                          await loadStatistics();
+                          setCurrentView('dashboard');
+                        }}
+                      >
+                        📊 ダッシュボード
+                      </button>
                       <button className="btn btn-primary" onClick={() => setShowModal(true)}>新規登録</button>
                     </div>
                   </div>
