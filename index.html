@@ -1145,6 +1145,26 @@
           };
 
           React.useEffect(() => {
+            const applyRouteView = () => {
+              const path = window.location.pathname;
+              if (path === '/dashboard') {
+                setCurrentView('dashboard');
+              } else {
+                setCurrentView('list');
+              }
+            };
+
+            applyRouteView();
+
+            const handlePopState = () => applyRouteView();
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+              window.removeEventListener('popstate', handlePopState);
+            };
+          }, []);
+
+          React.useEffect(() => {
             const token = localStorage.getItem('authToken');
             if (token) {
               // Supabaseのdummy-tokenはそのまま使用（検証スキップ）
