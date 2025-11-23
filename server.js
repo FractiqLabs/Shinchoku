@@ -599,14 +599,6 @@ app.get('/credits.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'credits.html'));
 });
 
-// SPAルーティング対応：API以外のパスはindex.htmlを返す
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 // WebSocket接続管理
 io.on('connection', (socket) => {
   console.log('クライアントが接続しました:', socket.id);
