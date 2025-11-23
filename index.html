@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>シンチョク. | 特養入居進捗管理アプリ</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -3186,10 +3186,10 @@
                               {currentUser && item.author === currentUser.name && (
                                 <div className="post-hover-actions">
                                   <button onClick={() => handleEditPost(item)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                    <img src="edit-icon.png" alt="編集" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                    <img src="/edit-icon.png" alt="編集" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
                                   </button>
                                   <button onClick={() => handleDeletePost(item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                    <img src="delete-icon.png" alt="削除" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                    <img src="/delete-icon.png" alt="削除" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
                                   </button>
                                 </div>
                               )}
@@ -3214,10 +3214,10 @@
                                       {currentUser && reply.author === currentUser.name && (
                                         <div className="post-hover-actions">
                                           <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                            <img src="edit-icon.png" alt="編集" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                            <img src="/edit-icon.png" alt="編集" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
                                           </button>
                                           <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                            <img src="delete-icon.png" alt="削除" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                            <img src="/delete-icon.png" alt="削除" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
                                           </button>
                                         </div>
                                       )}
@@ -3632,7 +3632,7 @@
                                   cursor: 'pointer'
                                 }}
                               >
-                                <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                <img src="/edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
                               <button
                                 className="btn btn-small btn-delete"
@@ -3645,7 +3645,7 @@
                                   marginLeft: '8px'
                                 }}
                               >
-                                <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                <img src="/delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
                             </div>
                           </td>
