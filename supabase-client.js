@@ -141,8 +141,6 @@ const createSupabaseApiClient = () => {
               assignee: applicant.assignee || '',
               notes: applicant.notes || '',
               status: applicant.status,
-              lastUpdatedBy: applicant.last_updated_by || '',
-              lastUpdatedAt: applicant.last_updated_at || applicant.updated_at || applicant.application_date,
               applicationDate: applicant.application_date,
               gender: applicant.gender || '',
               roomNumber: applicant.room_number || '',
