@@ -5,17 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>シンチョク. | 特養入居進捗管理アプリ</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-    <script src="supabase-client.js"></script>
+    <script src="/supabase-config.js"></script>
+    <script src="/supabase-client.js"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
-            src: url('fonts/kirin-Regular.ttf') format('truetype');
+            src: url('/fonts/kirin-Regular.ttf') format('truetype');
         }
         * {
             box-sizing: border-box;
@@ -1075,8 +1075,10 @@
           const [showDeleteModal, setShowDeleteModal] = React.useState(false);
           const [editingApplicant, setEditingApplicant] = React.useState(null);
           const [deletingApplicant, setDeletingApplicant] = React.useState(null);
-          const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
+          const [listSortConfig, setListSortConfig] = React.useState({ key: null, direction: 'asc' });
+          const [dashboardSortConfig, setDashboardSortConfig] = React.useState({ key: null, direction: 'asc' });
           const [applicants, setApplicants] = React.useState([]);
+          const [dashboardSearchQuery, setDashboardSearchQuery] = React.useState('');
           
           const [newPost, setNewPost] = React.useState('');
           const [postDate, setPostDate] = React.useState(new Date().toISOString().split('T')[0]);
@@ -1141,6 +1143,26 @@
             'b': { password: 'admin2', name: '吉野　隼人' },
             'c': { password: 'admin3', name: '田中　慎治' }
           };
+
+          React.useEffect(() => {
+            const applyRouteView = () => {
+              const path = window.location.pathname;
+              if (path === '/dashboard') {
+                setCurrentView('dashboard');
+              } else {
+                setCurrentView('list');
+              }
+            };
+
+            applyRouteView();
+
+            const handlePopState = () => applyRouteView();
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+              window.removeEventListener('popstate', handlePopState);
+            };
+          }, []);
 
           React.useEffect(() => {
             const token = localStorage.getItem('authToken');
@@ -1794,6 +1816,16 @@
             }
           };
 
+          const navigateTo = (view) => {
+            setCurrentView(view);
+
+            if (view === 'dashboard') {
+              window.history.pushState({}, '', '/dashboard');
+            } else {
+              window.history.pushState({}, '', '/');
+            }
+          };
+
           /**
            * ログアウト処理
            * トークンを削除し、アプリケーション状態をリセット
@@ -1804,7 +1836,7 @@
             localStorage.removeItem('authToken');
             apiClient.clearToken();
             apiClient.disconnectSocket();
-            setCurrentView('list');
+            navigateTo('list');
             setApplicants([]);
           };
 
@@ -1852,17 +1884,58 @@
             return timestamp.split('T')[0];
           };
 
+          const activeApplicants = React.useMemo(() => {
+            return applicants.filter(applicant => applicant.status !== '入居完了');
+          }, [applicants]);
+
+          const dashboardApplicants = React.useMemo(() => {
+            return applicants.filter(applicant => applicant.status === '入居完了');
+          }, [applicants]);
+
+          const sortApplicantsData = (items, sortConfig) => {
+            const sortableApplicants = [...items];
+            if (sortConfig.key) {
+              sortableApplicants.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                if (['applicationDate', 'lastUpdatedAt'].includes(sortConfig.key)) {
+                  aValue = aValue ? new Date(aValue) : new Date(0);
+                  bValue = bValue ? new Date(bValue) : new Date(0);
+                } else if (sortConfig.key === 'age') {
+                  aValue = parseInt(aValue);
+                  bValue = parseInt(bValue);
+                } else {
+                  aValue = aValue || '';
+                  bValue = bValue || '';
+                }
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+              });
+            }
+            return sortableApplicants;
+          };
 
           /**
            * ソート処理
            * 同じキーをクリックすると昇順⇔降順を切り替え
            */
-          const handleSort = (key) => {
+          const handleListSort = (key) => {
             let direction = 'asc';
-            if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            if (listSortConfig.key === key && listSortConfig.direction === 'asc') {
               direction = 'desc';
             }
-            setSortConfig({ key, direction });
+            setListSortConfig({ key, direction });
+          };
+
+          const handleDashboardSort = (key) => {
+            let direction = 'asc';
+            if (dashboardSortConfig.key === key && dashboardSortConfig.direction === 'asc') {
+              direction = 'desc';
+            }
+            setDashboardSortConfig({ key, direction });
           };
 
           /**
@@ -1871,33 +1944,37 @@
            * - 昇順：↑
            * - 降順：↓
            */
-          const getSortIcon = (key) => {
+          const getSortIcon = (key, sortConfig) => {
             if (sortConfig.key !== key) return '↕';
             return sortConfig.direction === 'asc' ? '↑' : '↓';
           };
 
           const sortedApplicants = React.useMemo(() => {
-            let sortableApplicants = [...applicants];
-            if (sortConfig.key) {
-              sortableApplicants.sort((a, b) => {
-                let aValue = a[sortConfig.key];
-                let bValue = b[sortConfig.key];
-                
-                if (sortConfig.key === 'applicationDate') {
-                  aValue = new Date(aValue);
-                  bValue = new Date(bValue);
-                } else if (sortConfig.key === 'age') {
-                  aValue = parseInt(aValue);
-                  bValue = parseInt(bValue);
-                }
-                
-                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-              });
-            }
-            return sortableApplicants;
-          }, [applicants, sortConfig]);
+            return sortApplicantsData(activeApplicants, listSortConfig);
+          }, [activeApplicants, listSortConfig]);
+
+          const filteredDashboardApplicants = React.useMemo(() => {
+            const query = dashboardSearchQuery.trim().toLowerCase();
+            const filtered = dashboardApplicants.filter((applicant) => {
+              if (!query) return true;
+              return (
+                (applicant.name || '').toLowerCase().includes(query) ||
+                (applicant.careManagerName || '').toLowerCase().includes(query) ||
+                (applicant.assignee || '').toLowerCase().includes(query)
+              );
+            });
+
+            return sortApplicantsData(filtered, dashboardSortConfig);
+          }, [dashboardApplicants, dashboardSearchQuery, dashboardSortConfig]);
+
+          const openApplicantDetail = async (applicant) => {
+            setSelectedApplicant(applicant);
+            setCurrentView('detail');
+
+            await loadLikesForApplicant(applicant.id);
+            await updateApplicantView(applicant.id);
+            fetchNotifications(applicant.id);
+          };
 
           /**
            * フォーム入力変更処理
@@ -2707,6 +2784,163 @@
             );
           }
 
+          if (currentView === 'dashboard') {
+            return (
+              <div className="container">
+                <div className="page-header">
+                  <div className="header-user-section">
+                    <div>
+                      <h1 className="main-title">シンチョク.</h1>
+                      <p className="subtitle">入居進捗管理支援システム</p>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                      <div style={{textAlign: 'right'}}>
+                        <div className="user-greeting">
+                          こんにちは、{currentUser?.name}さん
+                        </div>
+                        <button onClick={handleLogout} className="logout-btn">
+                          ログアウト
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <div className="stat-row" style={{alignItems: 'flex-start'}}>
+                      <div>
+                        <h2 className="section-title">ダッシュボード</h2>
+                        <p className="subtitle">ステータスが「入居完了」の申込者一覧</p>
+                      </div>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                        <span className="stat-count">{filteredDashboardApplicants.length}件</span>
+                        <input
+                          type="text"
+                          value={dashboardSearchQuery}
+                          onChange={(e) => setDashboardSearchQuery(e.target.value)}
+                          placeholder="氏名・担当CM・担当ケアマネで検索"
+                          className="form-input"
+                          style={{width: '240px'}}
+                        />
+                        <button className="btn btn-secondary" onClick={() => navigateTo('list')}>
+                          申込者一覧へ戻る
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card-content">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th onClick={() => handleDashboardSort('applicationDate')}>
+                            申込日
+                            <span className="sort-icon">{getSortIcon('applicationDate', dashboardSortConfig)}</span>
+                          </th>
+                          <th onClick={() => handleDashboardSort('name')}>
+                            名前
+                            <span className="sort-icon">{getSortIcon('name', dashboardSortConfig)}</span>
+                          </th>
+                          <th onClick={() => handleDashboardSort('age')}>
+                            年齢
+                            <span className="sort-icon">{getSortIcon('age', dashboardSortConfig)}</span>
+                          </th>
+                          <th onClick={() => handleDashboardSort('careLevel')}>
+                            要介護度
+                            <span className="sort-icon">{getSortIcon('careLevel', dashboardSortConfig)}</span>
+                          </th>
+                          <th onClick={() => handleDashboardSort('status')}>
+                            ステータス
+                            <span className="sort-icon">{getSortIcon('status', dashboardSortConfig)}</span>
+                          </th>
+                          <th onClick={() => handleDashboardSort('assignee')}>
+                            担当CM
+                            <span className="sort-icon">{getSortIcon('assignee', dashboardSortConfig)}</span>
+                          </th>
+                          <th style={{width: '120px'}}>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredDashboardApplicants.map((applicant) => {
+                          const hasUnreadNotifications = allNotifications.some(
+                            notif => notif.target_applicant_id === applicant.id &&
+                                     notif.viewer_user_id === currentUser.id &&
+                                     !notif.is_read
+                          );
+
+                          return (
+                            <tr
+                              key={applicant.id}
+                              onClick={() => openApplicantDetail(applicant)}
+                            >
+                              <td>{applicant.applicationDate}</td>
+                              <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
+                                {applicant.name}
+                                {hasUnreadNotifications && (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    marginLeft: '6px',
+                                    backgroundColor: '#dc3545',
+                                    color: '#ffffff',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    padding: '2px 6px',
+                                    borderRadius: '8px',
+                                    verticalAlign: 'middle'
+                                  }}>
+                                    NEW
+                                  </span>
+                                )}
+                              </td>
+                              <td>{applicant.age}歳</td>
+                              <td>{applicant.careLevel}</td>
+                              <td>
+                                <span className={`status-badge ${getStatusColor(applicant.status, applicant.applicationDate)}`}>
+                                  {applicant.status}
+                                </span>
+                              </td>
+                              <td style={{fontWeight: '500', color: '#495057'}}>{applicant.assignee || '担当者未定'}</td>
+                              <td onClick={(e) => e.stopPropagation()}>
+                                <div className="action-buttons">
+                                  <button
+                                    className="btn btn-small btn-edit"
+                                    onClick={(e) => handleEdit(applicant, e)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: '4px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <img src="/edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                  </button>
+                                  <button
+                                    className="btn btn-small btn-delete"
+                                    onClick={(e) => handleDelete(applicant, e)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: '4px',
+                                      cursor: 'pointer',
+                                      marginLeft: '8px'
+                                    }}
+                                  >
+                                    <img src="/delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           if (currentView === 'detail' && selectedApplicant) {
             const allActions = [
               '相談受付中', '申込書受領', '実調日程調整中', '実調完了', '健康診断書依頼',
@@ -2725,8 +2959,8 @@
               <div className="container">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                   <div style={{display: 'flex', alignItems: 'center'}}>
-                    <div 
-                      onClick={() => setCurrentView('list')}
+                    <div
+                      onClick={() => navigateTo('list')}
                       style={{
                         fontFamily: 'kirin-Regular, sans-serif',
                         fontSize: '28px',
@@ -3006,10 +3240,10 @@
                               {currentUser && item.author === currentUser.name && (
                                 <div className="post-hover-actions">
                                   <button onClick={() => handleEditPost(item)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                    <img src="edit-icon.png" alt="編集" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                    <img src="/edit-icon.png" alt="編集" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
                                   </button>
                                   <button onClick={() => handleDeletePost(item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                    <img src="delete-icon.png" alt="削除" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
+                                    <img src="/delete-icon.png" alt="削除" style={{width: '18px', height: '18px', verticalAlign: 'middle'}} />
                                   </button>
                                 </div>
                               )}
@@ -3034,10 +3268,10 @@
                                       {currentUser && reply.author === currentUser.name && (
                                         <div className="post-hover-actions">
                                           <button onClick={() => handleEditReply(reply, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                            <img src="edit-icon.png" alt="編集" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                            <img src="/edit-icon.png" alt="編集" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
                                           </button>
                                           <button onClick={() => handleDeleteReply(reply.id, item.id)} className="btn-icon" style={{background: 'none', border: 'none', padding: '4px', cursor: 'pointer'}}>
-                                            <img src="delete-icon.png" alt="削除" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
+                                            <img src="/delete-icon.png" alt="削除" style={{width: '16px', height: '16px', verticalAlign: 'middle'}} />
                                           </button>
                                         </div>
                                       )}
@@ -3356,7 +3590,8 @@
                   <div className="stat-row">
                     <h2 className="section-title">申込者一覧</h2>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <span className="stat-count">{applicants.length}件</span>
+                      <span className="stat-count">{activeApplicants.length}件</span>
+                      <button className="btn btn-primary" onClick={() => navigateTo('dashboard')}>ダッシュボード</button>
                       <button className="btn btn-primary" onClick={() => setShowModal(true)}>新規登録</button>
                     </div>
                   </div>
@@ -3365,29 +3600,29 @@
                   <table className="table">
                     <thead>
                       <tr>
-                        <th onClick={() => handleSort('applicationDate')}>
+                        <th onClick={() => handleListSort('applicationDate')}>
                           申込日
-                          <span className="sort-icon">{getSortIcon('applicationDate')}</span>
+                          <span className="sort-icon">{getSortIcon('applicationDate', listSortConfig)}</span>
                         </th>
-                        <th onClick={() => handleSort('name')}>
+                        <th onClick={() => handleListSort('name')}>
                           名前
-                          <span className="sort-icon">{getSortIcon('name')}</span>
+                          <span className="sort-icon">{getSortIcon('name', listSortConfig)}</span>
                         </th>
-                        <th onClick={() => handleSort('age')}>
+                        <th onClick={() => handleListSort('age')}>
                           年齢
-                          <span className="sort-icon">{getSortIcon('age')}</span>
+                          <span className="sort-icon">{getSortIcon('age', listSortConfig)}</span>
                         </th>
-                        <th onClick={() => handleSort('careLevel')}>
+                        <th onClick={() => handleListSort('careLevel')}>
                           要介護度
-                          <span className="sort-icon">{getSortIcon('careLevel')}</span>
+                          <span className="sort-icon">{getSortIcon('careLevel', listSortConfig)}</span>
                         </th>
-                        <th onClick={() => handleSort('status')}>
+                        <th onClick={() => handleListSort('status')}>
                           ステータス
-                          <span className="sort-icon">{getSortIcon('status')}</span>
+                          <span className="sort-icon">{getSortIcon('status', listSortConfig)}</span>
                         </th>
-                        <th onClick={() => handleSort('assignee')}>
+                        <th onClick={() => handleListSort('assignee')}>
                           担当CM
-                          <span className="sort-icon">{getSortIcon('assignee')}</span>
+                          <span className="sort-icon">{getSortIcon('assignee', listSortConfig)}</span>
                         </th>
                         <th style={{width: '120px'}}>操作</th>
                       </tr>
@@ -3409,19 +3644,7 @@
                         return (
                         <tr
                           key={applicant.id}
-                          onClick={async () => {
-                            setSelectedApplicant(applicant);
-                            setCurrentView('detail');
-
-                            // この申込者のいいね状態を読み込む
-                            await loadLikesForApplicant(applicant.id);
-
-                            // この申込者の閲覧時刻を更新
-                            await updateApplicantView(applicant.id);
-
-                            // 詳細画面の通知を取得（既読処理はしない）
-                            fetchNotifications(applicant.id);
-                          }}
+                          onClick={() => openApplicantDetail(applicant)}
                         >
                           <td>{applicant.applicationDate}</td>
                           <td style={{fontWeight: '500', color: '#2c3e50', position: 'relative'}}>
@@ -3463,7 +3686,7 @@
                                   cursor: 'pointer'
                                 }}
                               >
-                                <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                <img src="/edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
                               <button
                                 className="btn btn-small btn-delete"
@@ -3476,7 +3699,7 @@
                                   marginLeft: '8px'
                                 }}
                               >
-                                <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
+                                <img src="/delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
                               </button>
                             </div>
                           </td>
