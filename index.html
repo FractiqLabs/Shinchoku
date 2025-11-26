@@ -3429,7 +3429,6 @@
                           <th>名前</th>
                           <th>年齢</th>
                           <th>要介護度</th>
-                          <th style={{width: '120px'}}>操作</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3470,11 +3469,18 @@
                                   type="date"
                                   defaultValue={applicant.moveInDate || ''}
                                   onChange={(e) => {
-                                    if (e.target.value) {
-                                      handleMoveInDateUpdate(applicant, e.target.value);
+                                    const newDate = e.target.value;
+                                    if (newDate) {
+                                      // 日付が選択された場合のみ保存処理を実行
+                                      handleMoveInDateUpdate(applicant, newDate);
                                     }
                                   }}
-                                  onBlur={() => setEditingMoveInDateApplicantId(null)}
+                                  onBlur={() => {
+                                    // onChange処理が完了するまで少し待つ（onChangeが先に実行されるようにする）
+                                    setTimeout(() => {
+                                      setEditingMoveInDateApplicantId(null);
+                                    }, 100);
+                                  }}
                                   autoFocus
                                   style={{
                                     width: '100%',
@@ -3494,34 +3500,6 @@
                             <td>{applicant.name}</td>
                             <td>{applicant.age}歳</td>
                             <td>{applicant.careLevel}</td>
-                            <td onClick={(e) => e.stopPropagation()}>
-                              <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                                <button
-                                  onClick={(e) => handleEdit(applicant, e)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: '4px'
-                                  }}
-                                  title="編集"
-                                >
-                                  <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px'}} />
-                                </button>
-                                <button
-                                  onClick={(e) => handleDelete(applicant, e)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: '4px'
-                                  }}
-                                  title="削除"
-                                >
-                                  <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px'}} />
-                                </button>
-                              </div>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
