@@ -99,9 +99,9 @@ app.get('/api/applicants', authenticateToken, async (req, res) => {
     const applicants = await db.all(`
       SELECT id, surname, given_name, age, care_level, address, kp, kp_relationship,
              kp_contact, kp_address, care_manager, care_manager_name, cm_contact,
-             assignee, notes, status, application_date,
+             assignee, notes, status, application_date, gender, room_number, move_in_date, municipality,
              (surname || '　' || given_name) as name
-      FROM applicants 
+      FROM applicants
       ORDER BY application_date DESC
     `);
 
