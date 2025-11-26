@@ -1097,6 +1097,9 @@
           // 申込者閲覧履歴管理
           const [applicantViews, setApplicantViews] = React.useState({});
 
+          // ダッシュボード入居日編集用
+          const [editingMoveInDateApplicantId, setEditingMoveInDateApplicantId] = React.useState(null);
+
           const [editingPostId, setEditingPostId] = React.useState(null);
           const [editingContent, setEditingContent] = React.useState('');
           const [deletingPostId, setDeletingPostId] = React.useState(null);
@@ -1924,6 +1927,7 @@
            * 既存の申込者データをフォームに設定し、編集モーダルを表示
            */
           const handleEdit = (applicant, e) => {
+            e.preventDefault();
             e.stopPropagation();
             setEditingApplicant(applicant);
             const nameParts = applicant.name.split('　');
@@ -1955,9 +1959,48 @@
            * 削除確認モーダルを表示
            */
           const handleDelete = (applicant, e) => {
+            e.preventDefault();
             e.stopPropagation();
             setDeletingApplicant(applicant);
             setShowDeleteModal(true);
+          };
+
+          /**
+           * 入居日更新処理（ダッシュボード用）
+           * 入居日を即座にデータベースに保存
+           */
+          const handleMoveInDateUpdate = async (applicant, newMoveInDate) => {
+            try {
+              await apiClient.updateApplicant(applicant.id, {
+                surname: applicant.name.split('　')[0],
+                givenName: applicant.name.split('　')[1],
+                age: applicant.age,
+                careLevel: applicant.careLevel,
+                address: applicant.address,
+                kp: applicant.kp,
+                kpRelationship: applicant.kpRelationship,
+                kpContact: applicant.kpContact,
+                kpAddress: applicant.kpAddress,
+                careManager: applicant.careManager,
+                careManagerName: applicant.careManagerName,
+                cmContact: applicant.cmContact,
+                assignee: applicant.assignee,
+                notes: applicant.notes,
+                applicationDate: applicant.applicationDate,
+                gender: applicant.gender,
+                roomNumber: applicant.roomNumber,
+                moveInDate: newMoveInDate
+              });
+
+              // 申込者データを再取得してUIを更新
+              await loadApplicants();
+
+              // 編集状態をクリア
+              setEditingMoveInDateApplicantId(null);
+            } catch (error) {
+              console.error('入居日更新エラー:', error);
+              alert('入居日の更新に失敗しました');
+            }
           };
 
           /**
@@ -2433,30 +2476,6 @@
                 postDate
               );
 
-              // 「入居完了」の場合、入居日を更新
-              if (postType === '入居完了' && moveInDate) {
-                await apiClient.updateApplicant(selectedApplicant.id, {
-                  surname: selectedApplicant.name.split('　')[0],
-                  givenName: selectedApplicant.name.split('　')[1],
-                  age: selectedApplicant.age,
-                  careLevel: selectedApplicant.careLevel,
-                  address: selectedApplicant.address,
-                  kp: selectedApplicant.kp,
-                  kpRelationship: selectedApplicant.kpRelationship,
-                  kpContact: selectedApplicant.kpContact,
-                  kpAddress: selectedApplicant.kpAddress,
-                  careManager: selectedApplicant.careManager,
-                  careManagerName: selectedApplicant.careManagerName,
-                  cmContact: selectedApplicant.cmContact,
-                  assignee: selectedApplicant.assignee,
-                  notes: selectedApplicant.notes,
-                  applicationDate: selectedApplicant.applicationDate,
-                  gender: selectedApplicant.gender,
-                  roomNumber: selectedApplicant.roomNumber,
-                  moveInDate: moveInDate
-                });
-              }
-
               // 通知を作成
               if (replyTo) {
                 // 返信の場合：返信通知を作成（自分以外の全ユーザーに送信）
@@ -2901,37 +2920,6 @@
                               今日
                             </button>
                           </div>
-                          {postType === '入居完了' && (
-                            <div style={{marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center'}}>
-                              <label style={{fontWeight: '500', fontSize: '14px', color: '#495057'}}>入居日:</label>
-                              <input
-                                type="date"
-                                value={moveInDate}
-                                onChange={(e) => setMoveInDate(e.target.value)}
-                                style={{
-                                  padding: '6px 10px',
-                                  border: '1px solid #dee2e6',
-                                  borderRadius: '6px',
-                                  fontSize: '14px',
-                                  outline: 'none'
-                                }}
-                              />
-                              <button
-                                onClick={() => setMoveInDate(new Date().toISOString().split('T')[0])}
-                                style={{
-                                  padding: '6px 12px',
-                                  border: '1px solid #007bff',
-                                  borderRadius: '6px',
-                                  fontSize: '14px',
-                                  backgroundColor: '#fff',
-                                  color: '#007bff',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                今日
-                              </button>
-                            </div>
-                          )}
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
@@ -3465,7 +3453,44 @@
                             style={{cursor: 'pointer'}}
                           >
                             <td>{applicant.applicationDate}</td>
-                            <td>{applicant.moveInDate || '-'}</td>
+                            <td
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingMoveInDateApplicantId(applicant.id);
+                              }}
+                              style={{
+                                cursor: 'pointer',
+                                position: 'relative',
+                                color: applicant.moveInDate ? '#2c3e50' : '#6c757d'
+                              }}
+                              title="クリックして入居日を設定"
+                            >
+                              {editingMoveInDateApplicantId === applicant.id ? (
+                                <input
+                                  type="date"
+                                  defaultValue={applicant.moveInDate || ''}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleMoveInDateUpdate(applicant, e.target.value);
+                                    }
+                                  }}
+                                  onBlur={() => setEditingMoveInDateApplicantId(null)}
+                                  autoFocus
+                                  style={{
+                                    width: '100%',
+                                    padding: '4px 8px',
+                                    border: '1px solid #007bff',
+                                    borderRadius: '4px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    backgroundColor: '#fff'
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                applicant.moveInDate || '-'
+                              )}
+                            </td>
                             <td>{applicant.name}</td>
                             <td>{applicant.age}歳</td>
                             <td>{applicant.careLevel}</td>
