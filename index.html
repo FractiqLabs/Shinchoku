@@ -1251,7 +1251,22 @@
           const loadApplicants = async () => {
             try {
               const data = await apiClient.getApplicants();
-              setApplicants(data);
+              // snake_case から camelCase への変換
+              const camelCaseData = data.map(app => ({
+                ...app,
+                careLevel: app.care_level || app.careLevel,
+                applicationDate: app.application_date || app.applicationDate,
+                kpRelationship: app.kp_relationship || app.kpRelationship,
+                kpContact: app.kp_contact || app.kpContact,
+                kpAddress: app.kp_address || app.kpAddress,
+                careManager: app.care_manager || app.careManager,
+                careManagerName: app.care_manager_name || app.careManagerName,
+                cmContact: app.cm_contact || app.cmContact,
+                givenName: app.given_name || app.givenName,
+                roomNumber: app.room_number || app.roomNumber,
+                moveInDate: app.move_in_date || app.moveInDate
+              }));
+              setApplicants(camelCaseData);
             } catch (error) {
               console.error('Failed to load applicants:', error);
             }
