@@ -331,7 +331,7 @@ const createSupabaseApiClient = () => {
      * @param {string|null} postDate - 投稿日付（YYYY-MM-DD形式）
      * @returns {Promise<object>} 作成された投稿データ
      */
-    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null, moveInDate = null) {
+    async createTimelinePost(applicantId, author, content, action = null, parentPostId = null, postDate = null) {
       // ステータスマッピング
       const statusMapping = {
         '相談受付中': '相談受付中',
@@ -353,8 +353,6 @@ const createSupabaseApiClient = () => {
       // actionがある場合はstatusもマッピング
       const status = action ? statusMapping[action] : null;
 
-      const effectivePostDate = moveInDate || postDate || new Date().toISOString().split('T')[0];
-
       const { data, error } = await supabase
         .from('timeline_posts')
         .insert([{
@@ -364,7 +362,7 @@ const createSupabaseApiClient = () => {
           action: action,
           status: status,
           parent_post_id: parentPostId,
-          post_date: effectivePostDate
+          post_date: postDate || new Date().toISOString().split('T')[0]
         }])
         .select()
         .single();
@@ -380,9 +378,6 @@ const createSupabaseApiClient = () => {
       // ステータス更新が必要な場合
       if (status) {
         updateData.status = status;
-        if (status === '入居完了' && moveInDate) {
-          updateData.move_in_date = moveInDate;
-        }
       }
 
       // 申込者情報を更新

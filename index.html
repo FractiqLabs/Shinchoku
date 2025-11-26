@@ -1069,7 +1069,6 @@
           const [loginForm, setLoginForm] = React.useState({ id: '', password: '' });
           const [loginError, setLoginError] = React.useState('');
           const [currentView, setCurrentView] = React.useState('list');
-          const [previousView, setPreviousView] = React.useState('list');
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
           const [showModal, setShowModal] = React.useState(false);
           const [showEditModal, setShowEditModal] = React.useState(false);
@@ -1081,7 +1080,6 @@
           
           const [newPost, setNewPost] = React.useState('');
           const [postDate, setPostDate] = React.useState(new Date().toISOString().split('T')[0]);
-          const [moveInDateInput, setMoveInDateInput] = React.useState('');
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
@@ -1145,11 +1143,6 @@
           };
 
           React.useEffect(() => {
-            const path = window.location.pathname;
-            if (path === '/dashboard') {
-              setCurrentView('dashboard');
-              setPreviousView('dashboard');
-            }
             const token = localStorage.getItem('authToken');
             if (token) {
               // Supabaseのdummy-tokenはそのまま使用（検証スキップ）
@@ -1162,19 +1155,6 @@
                 localStorage.removeItem('authToken');
               }
             }
-          }, []);
-
-          React.useEffect(() => {
-            const handlePopState = () => {
-              const path = window.location.pathname;
-              const targetView = path === '/dashboard' ? 'dashboard' : 'list';
-              setCurrentView(targetView);
-              setPreviousView(targetView);
-              setSelectedApplicant(null);
-            };
-
-            window.addEventListener('popstate', handlePopState);
-            return () => window.removeEventListener('popstate', handlePopState);
           }, []);
 
           // リアルタイム監視の設定
@@ -1896,21 +1876,13 @@
             return sortConfig.direction === 'asc' ? '↑' : '↓';
           };
 
-          const activeApplicants = React.useMemo(() => {
-            return applicants.filter(applicant => applicant.status !== '入居完了');
-          }, [applicants]);
-
-          const dashboardApplicants = React.useMemo(() => {
-            return applicants.filter(applicant => applicant.status === '入居完了');
-          }, [applicants]);
-
-          const sortApplicantsList = React.useCallback((targetApplicants) => {
-            let sortableApplicants = [...targetApplicants];
+          const sortedApplicants = React.useMemo(() => {
+            let sortableApplicants = [...applicants];
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
-
+                
                 if (sortConfig.key === 'applicationDate') {
                   aValue = new Date(aValue);
                   bValue = new Date(bValue);
@@ -1918,25 +1890,14 @@
                   aValue = parseInt(aValue);
                   bValue = parseInt(bValue);
                 }
-
+                
                 if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
               });
             }
             return sortableApplicants;
-          }, [sortConfig]);
-
-          const sortedApplicants = React.useMemo(() => sortApplicantsList(activeApplicants), [activeApplicants, sortApplicantsList]);
-          const sortedDashboardApplicants = React.useMemo(() => sortApplicantsList(dashboardApplicants), [dashboardApplicants, sortApplicantsList]);
-
-          React.useEffect(() => {
-            if (currentView === 'dashboard') {
-              window.history.replaceState({}, '', '/dashboard');
-            } else if (currentView === 'list') {
-              window.history.replaceState({}, '', '/');
-            }
-          }, [currentView]);
+          }, [applicants, sortConfig]);
 
           /**
            * フォーム入力変更処理
@@ -2188,11 +2149,6 @@
             setPostType(type);
             setShowPostForm(true);
             setReplyTo(null);
-            if (type === '入居完了') {
-              setMoveInDateInput(selectedApplicant.moveInDate || '');
-            } else {
-              setMoveInDateInput('');
-            }
           };
 
           /**
@@ -2290,7 +2246,6 @@
             setPostType('');
             setShowPostForm(true);
             setReplyTo(null);
-            setMoveInDateInput('');
           };
 
           /**
@@ -2455,10 +2410,6 @@
             if (!newPost.trim()) return;
 
             try {
-              const moveInDateToSave = postType === '入居完了'
-                ? (moveInDateInput || postDate)
-                : null;
-
               // Supabaseにタイムライン投稿を作成
               const newPostData = await apiClient.createTimelinePost(
                 selectedApplicant.id,
@@ -2466,8 +2417,7 @@
                 newPost,
                 postType || null,
                 replyTo,
-                postDate,
-                moveInDateToSave
+                postDate
               );
 
               // 通知を作成
@@ -2495,7 +2445,6 @@
               setShowPostForm(false);
               setPostType('');
               setReplyTo(null);
-              setMoveInDateInput('');
             } catch (error) {
               console.error('投稿の作成に失敗しました:', error);
               alert('投稿の作成に失敗しました: ' + error.message);
@@ -2776,11 +2725,8 @@
               <div className="container">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                   <div style={{display: 'flex', alignItems: 'center'}}>
-                    <div
-                      onClick={() => {
-                        setCurrentView(previousView || 'list');
-                        setSelectedApplicant(null);
-                      }}
+                    <div 
+                      onClick={() => setCurrentView('list')}
                       style={{
                         fontFamily: 'kirin-Regular, sans-serif',
                         fontSize: '28px',
@@ -2924,37 +2870,12 @@
                             rows="3"
                             placeholder="メモを入力するかアクションを追加..."
                           />
-                          {postType === '入居完了' && (
-                            <div style={{ marginTop: '12px' }}>
-                              <label style={{
-                                display: 'block',
-                                fontWeight: '500',
-                                fontSize: '14px',
-                                color: '#495057',
-                                marginBottom: '6px'
-                              }}>入居日</label>
-                              <input
-                                type="date"
-                                value={moveInDateInput || ''}
-                                onChange={(e) => setMoveInDateInput(e.target.value)}
-                                style={{
-                                  width: '100%',
-                                  padding: '10px 12px',
-                                  border: '1px solid #dee2e6',
-                                  borderRadius: '6px',
-                                  fontSize: '14px',
-                                  outline: 'none'
-                                }}
-                              />
-                            </div>
-                          )}
                           <div className="form-actions">
                             <button
                               onClick={() => {
                                 setShowPostForm(false);
                                 setPostType('');
                                 setReplyTo(null);
-                                setMoveInDateInput('');
                               }}
                               className="btn btn-secondary"
                             >
@@ -3409,111 +3330,6 @@
             );
           }
 
-          if (currentView === 'dashboard') {
-            return (
-              <div className="container">
-                <div className="page-header">
-                  <div className="header-user-section">
-                    <div>
-                      <h1 className="main-title">シンチョク.</h1>
-                      <p className="subtitle">入居進捗管理支援システム</p>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <div style={{textAlign: 'right'}}>
-                        <div className="user-greeting">
-                          こんにちは、{currentUser?.name}さん
-                        </div>
-                        <button onClick={handleLogout} className="logout-btn">
-                          ログアウト
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <div className="stat-row">
-                      <h2 className="section-title">ダッシュボード</h2>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                        <span className="stat-count">{sortedDashboardApplicants.length}件</span>
-                        <button className="btn btn-primary" onClick={() => {
-                          setCurrentView('list');
-                          setPreviousView('list');
-                        }}>申込者一覧へ</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="card-content">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>入居日</th>
-                          <th>名前</th>
-                          <th>年齢</th>
-                          <th>要介護度</th>
-                          <th>KP</th>
-                          <th style={{width: '120px'}}>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedDashboardApplicants.map((applicant) => (
-                          <tr
-                            key={applicant.id}
-                            onClick={async () => {
-                              setSelectedApplicant(applicant);
-                              setCurrentView('detail');
-                              setPreviousView('dashboard');
-
-                              await loadLikesForApplicant(applicant.id);
-                              await updateApplicantView(applicant.id);
-                              fetchNotifications(applicant.id);
-                            }}
-                          >
-                            <td>{applicant.moveInDate || '-'}</td>
-                            <td style={{fontWeight: '500', color: '#2c3e50'}}>{applicant.name}</td>
-                            <td>{applicant.age}歳</td>
-                            <td>{applicant.careLevel}</td>
-                            <td>{applicant.kp || '-'}</td>
-                            <td onClick={(e) => e.stopPropagation()}>
-                              <div className="action-buttons">
-                                <button
-                                  className="btn btn-small btn-edit"
-                                  onClick={(e) => handleEdit(applicant, e)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '4px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
-                                </button>
-                                <button
-                                  className="btn btn-small btn-delete"
-                                  onClick={(e) => handleDelete(applicant, e)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '4px',
-                                    cursor: 'pointer',
-                                    marginLeft: '8px'
-                                  }}
-                                >
-                                  <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px', verticalAlign: 'middle'}} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
           return (
             <div className="container">
               <div className="page-header">
@@ -3540,12 +3356,8 @@
                   <div className="stat-row">
                     <h2 className="section-title">申込者一覧</h2>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <span className="stat-count">{sortedApplicants.length}件</span>
+                      <span className="stat-count">{applicants.length}件</span>
                       <button className="btn btn-primary" onClick={() => setShowModal(true)}>新規登録</button>
-                      <button className="btn btn-primary" onClick={() => {
-                        setCurrentView('dashboard');
-                        setPreviousView('dashboard');
-                      }}>ダッシュボード</button>
                     </div>
                   </div>
                 </div>
@@ -3600,7 +3412,6 @@
                           onClick={async () => {
                             setSelectedApplicant(applicant);
                             setCurrentView('detail');
-                            setPreviousView('list');
 
                             // この申込者のいいね状態を読み込む
                             await loadLikesForApplicant(applicant.id);

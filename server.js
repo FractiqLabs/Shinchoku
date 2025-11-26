@@ -30,11 +30,6 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname)));
 
-// ダッシュボードの直接アクセスに対応
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 // JWTトークン検証ミドルウェア
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
