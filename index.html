@@ -3482,6 +3482,8 @@
                               {editingMoveInDateApplicantId === applicant.id ? (
                                 <input
                                   type="date"
+                                  id={`move_in_date_${applicant.id}`}
+                                  name="move_in_date"
                                   defaultValue={applicant.moveInDate || ''}
                                   onChange={(e) => {
                                     const newDate = e.target.value;
@@ -3491,10 +3493,17 @@
                                     }
                                   }}
                                   onBlur={() => {
-                                    // onChange処理が完了するまで少し待つ（onChangeが先に実行されるようにする）
+                                    // 日付が選択されなかった場合のために、少し遅延を入れてから編集状態をクリア
+                                    // handleMoveInDateUpdateが完了する時間を確保（500ms）
                                     setTimeout(() => {
                                       setEditingMoveInDateApplicantId(null);
-                                    }, 100);
+                                    }, 500);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    // Escキーで即座にキャンセル
+                                    if (e.key === 'Escape') {
+                                      setEditingMoveInDateApplicantId(null);
+                                    }
                                   }}
                                   autoFocus
                                   style={{
