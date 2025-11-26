@@ -1069,6 +1069,7 @@
           const [loginForm, setLoginForm] = React.useState({ id: '', password: '' });
           const [loginError, setLoginError] = React.useState('');
           const [currentView, setCurrentView] = React.useState('list');
+          const [previousView, setPreviousView] = React.useState('list');
           const [selectedApplicant, setSelectedApplicant] = React.useState(null);
           const [showModal, setShowModal] = React.useState(false);
           const [showEditModal, setShowEditModal] = React.useState(false);
@@ -1080,6 +1081,7 @@
           
           const [newPost, setNewPost] = React.useState('');
           const [postDate, setPostDate] = React.useState(new Date().toISOString().split('T')[0]);
+          const [moveInDate, setMoveInDate] = React.useState('');
           const [showPostForm, setShowPostForm] = React.useState(false);
           const [postType, setPostType] = React.useState('');
           const [replyTo, setReplyTo] = React.useState(null);
@@ -1877,7 +1879,8 @@
           };
 
           const sortedApplicants = React.useMemo(() => {
-            let sortableApplicants = [...applicants];
+            // 入居完了の申込者を除外
+            let sortableApplicants = applicants.filter(app => app.status !== '入居完了');
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
@@ -1898,6 +1901,11 @@
             }
             return sortableApplicants;
           }, [applicants, sortConfig]);
+
+          // ダッシュボード用：入居完了の申込者のみ
+          const dashboardApplicants = React.useMemo(() => {
+            return applicants.filter(app => app.status === '入居完了');
+          }, [applicants]);
 
           /**
            * フォーム入力変更処理
@@ -2149,6 +2157,11 @@
             setPostType(type);
             setShowPostForm(true);
             setReplyTo(null);
+
+            // 「入居完了」が選択された場合、入居日をリセット
+            if (type === '入居完了') {
+              setMoveInDate('');
+            }
           };
 
           /**
@@ -2420,6 +2433,30 @@
                 postDate
               );
 
+              // 「入居完了」の場合、入居日を更新
+              if (postType === '入居完了' && moveInDate) {
+                await apiClient.updateApplicant(selectedApplicant.id, {
+                  surname: selectedApplicant.name.split('　')[0],
+                  givenName: selectedApplicant.name.split('　')[1],
+                  age: selectedApplicant.age,
+                  careLevel: selectedApplicant.careLevel,
+                  address: selectedApplicant.address,
+                  kp: selectedApplicant.kp,
+                  kpRelationship: selectedApplicant.kpRelationship,
+                  kpContact: selectedApplicant.kpContact,
+                  kpAddress: selectedApplicant.kpAddress,
+                  careManager: selectedApplicant.careManager,
+                  careManagerName: selectedApplicant.careManagerName,
+                  cmContact: selectedApplicant.cmContact,
+                  assignee: selectedApplicant.assignee,
+                  notes: selectedApplicant.notes,
+                  applicationDate: selectedApplicant.applicationDate,
+                  gender: selectedApplicant.gender,
+                  roomNumber: selectedApplicant.roomNumber,
+                  moveInDate: moveInDate
+                });
+              }
+
               // 通知を作成
               if (replyTo) {
                 // 返信の場合：返信通知を作成（自分以外の全ユーザーに送信）
@@ -2442,6 +2479,7 @@
               // フォームをリセット
               setNewPost('');
               setPostDate(new Date().toISOString().split('T')[0]);
+              setMoveInDate('');
               setShowPostForm(false);
               setPostType('');
               setReplyTo(null);
@@ -2725,8 +2763,8 @@
               <div className="container">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                   <div style={{display: 'flex', alignItems: 'center'}}>
-                    <div 
-                      onClick={() => setCurrentView('list')}
+                    <div
+                      onClick={() => setCurrentView(previousView)}
                       style={{
                         fontFamily: 'kirin-Regular, sans-serif',
                         fontSize: '28px',
@@ -2863,6 +2901,37 @@
                               今日
                             </button>
                           </div>
+                          {postType === '入居完了' && (
+                            <div style={{marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center'}}>
+                              <label style={{fontWeight: '500', fontSize: '14px', color: '#495057'}}>入居日:</label>
+                              <input
+                                type="date"
+                                value={moveInDate}
+                                onChange={(e) => setMoveInDate(e.target.value)}
+                                style={{
+                                  padding: '6px 10px',
+                                  border: '1px solid #dee2e6',
+                                  borderRadius: '6px',
+                                  fontSize: '14px',
+                                  outline: 'none'
+                                }}
+                              />
+                              <button
+                                onClick={() => setMoveInDate(new Date().toISOString().split('T')[0])}
+                                style={{
+                                  padding: '6px 12px',
+                                  border: '1px solid #007bff',
+                                  borderRadius: '6px',
+                                  fontSize: '14px',
+                                  backgroundColor: '#fff',
+                                  color: '#007bff',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                今日
+                              </button>
+                            </div>
+                          )}
                           <textarea
                             value={newPost}
                             onChange={(e) => setNewPost(e.target.value)}
@@ -2875,6 +2944,7 @@
                               onClick={() => {
                                 setShowPostForm(false);
                                 setPostType('');
+                                setMoveInDate('');
                                 setReplyTo(null);
                               }}
                               className="btn btn-secondary"
@@ -3330,6 +3400,113 @@
             );
           }
 
+          if (currentView === 'dashboard') {
+            return (
+              <div className="container">
+                <div className="page-header">
+                  <div className="header-user-section">
+                    <div>
+                      <h1 className="main-title">シンチョク.</h1>
+                      <p className="subtitle">入居進捗管理支援システム</p>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                      <div style={{textAlign: 'right'}}>
+                        <div className="user-greeting">
+                          こんにちは、{currentUser?.name}さん
+                        </div>
+                        <button onClick={handleLogout} className="logout-btn">
+                          ログアウト
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <div className="stat-row">
+                      <h2 className="section-title">ダッシュボード</h2>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                        <span className="stat-count">{dashboardApplicants.length}件</span>
+                        <button className="btn btn-primary" onClick={() => setCurrentView('list')}>申込者一覧に戻る</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="card-content">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>申込日</th>
+                          <th>入居日</th>
+                          <th>名前</th>
+                          <th>年齢</th>
+                          <th>要介護度</th>
+                          <th style={{width: '120px'}}>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboardApplicants.map((applicant) => (
+                          <tr
+                            key={applicant.id}
+                            onClick={async () => {
+                              setSelectedApplicant(applicant);
+                              setPreviousView('dashboard');
+                              setCurrentView('detail');
+
+                              // この申込者のいいね状態を読み込む
+                              await loadLikesForApplicant(applicant.id);
+
+                              // この申込者の閲覧時刻を更新
+                              await updateApplicantView(applicant.id);
+
+                              // 詳細画面の通知を取得（既読処理はしない）
+                              fetchNotifications(applicant.id);
+                            }}
+                            style={{cursor: 'pointer'}}
+                          >
+                            <td>{applicant.applicationDate}</td>
+                            <td>{applicant.moveInDate || '-'}</td>
+                            <td>{applicant.name}</td>
+                            <td>{applicant.age}歳</td>
+                            <td>{applicant.careLevel}</td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
+                                <button
+                                  onClick={(e) => handleEdit(applicant, e)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '4px'
+                                  }}
+                                  title="編集"
+                                >
+                                  <img src="edit-icon.png" alt="編集" style={{width: '20px', height: '20px'}} />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDelete(applicant, e)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '4px'
+                                  }}
+                                  title="削除"
+                                >
+                                  <img src="delete-icon.png" alt="削除" style={{width: '20px', height: '20px'}} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div className="container">
               <div className="page-header">
@@ -3356,8 +3533,9 @@
                   <div className="stat-row">
                     <h2 className="section-title">申込者一覧</h2>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <span className="stat-count">{applicants.length}件</span>
+                      <span className="stat-count">{sortedApplicants.length}件</span>
                       <button className="btn btn-primary" onClick={() => setShowModal(true)}>新規登録</button>
+                      <button className="btn btn-primary" onClick={() => setCurrentView('dashboard')}>ダッシュボード</button>
                     </div>
                   </div>
                 </div>
@@ -3411,6 +3589,7 @@
                           key={applicant.id}
                           onClick={async () => {
                             setSelectedApplicant(applicant);
+                            setPreviousView('list');
                             setCurrentView('detail');
 
                             // この申込者のいいね状態を読み込む
