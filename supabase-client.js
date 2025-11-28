@@ -257,6 +257,29 @@ const createSupabaseApiClient = () => {
     },
 
     /**
+     * 入居日を更新（専用エンドポイント・軽量）
+     * @param {number} id - 申込者ID
+     * @param {string} moveInDate - 入居日（YYYY-MM-DD形式）
+     * @returns {Promise<{message: string, move_in_date: string}>} 更新メッセージ
+     */
+    async updateMoveInDate(id, moveInDate) {
+      const { error } = await supabase
+        .from('applicants')
+        .update({
+          move_in_date: moveInDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      return {
+        message: '入居日が更新されました',
+        move_in_date: moveInDate
+      };
+    },
+
+    /**
      * 投稿内容を更新
      * @param {number} applicantId - 申込者ID（未使用、互換性のため保持）
      * @param {number} postId - 投稿ID
