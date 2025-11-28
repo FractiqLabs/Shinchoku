@@ -169,7 +169,23 @@ class APIClient {
         return { message: '申込者が削除されました' };
       }
     }
-    
+
+    // 入居日更新（専用エンドポイント）
+    if (endpoint.match(/^\/applicants\/\d+\/move-in-date$/)) {
+      const id = parseInt(endpoint.split('/')[2]);
+      const data = getLocalData();
+
+      if (method === 'PUT') {
+        const index = data.findIndex(app => app.id === id);
+        if (index !== -1) {
+          data[index].move_in_date = options.body.move_in_date;
+          saveLocalData(data);
+          return { message: '入居日が更新されました', move_in_date: options.body.move_in_date };
+        }
+        throw new Error('申込者が見つかりません');
+      }
+    }
+
     throw new Error('Unsupported operation in localStorage fallback');
   }
 
@@ -255,6 +271,13 @@ class APIClient {
   async deleteApplicant(id) {
     return await this.request(`/applicants/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async updateMoveInDate(id, moveInDate) {
+    return await this.request(`/applicants/${id}/move-in-date`, {
+      method: 'PUT',
+      body: { move_in_date: moveInDate },
     });
   }
 

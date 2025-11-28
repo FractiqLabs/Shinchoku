@@ -277,6 +277,39 @@ app.put('/api/applicants/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// 入居日更新エンドポイント（専用・軽量）
+app.put('/api/applicants/:id/move-in-date', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { move_in_date } = req.body;
+
+    if (!move_in_date) {
+      return res.status(400).json({ error: '入居日が指定されていません' });
+    }
+
+    const result = await db.run(
+      'UPDATE applicants SET move_in_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [move_in_date, id]
+    );
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: '申込者が見つかりません' });
+    }
+
+    // リアルタイム同期: 入居日更新をすべてのクライアントに通知
+    io.emit('applicantUpdate', {
+      applicantId: id,
+      move_in_date: move_in_date,
+      updatedBy: req.user.name
+    });
+
+    res.json({ message: '入居日が更新されました', move_in_date });
+  } catch (error) {
+    console.error('入居日更新エラー:', error);
+    res.status(500).json({ error: '入居日の更新に失敗しました' });
+  }
+});
+
 // 申込者削除
 app.delete('/api/applicants/:id', authenticateToken, async (req, res) => {
   try {
