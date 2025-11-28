@@ -201,8 +201,8 @@ const createSupabaseApiClient = () => {
         .from('timeline_posts')
         .insert([{
           applicant_id: newApplicant.id,
-          author: '自動',
-          content: '申込を受け付けました',
+          author: 'シンチョク.',
+          content: `${data.surname}　${data.givenName}さんのタイムラインを作成しました。さあ、始めよう！`,
           action: null
         }]);
 
