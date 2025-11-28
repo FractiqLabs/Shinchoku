@@ -1097,9 +1097,6 @@
           // 申込者閲覧履歴管理
           const [applicantViews, setApplicantViews] = React.useState({});
 
-          // ダッシュボード入居日編集用
-          const [editingMoveInDateApplicantId, setEditingMoveInDateApplicantId] = React.useState(null);
-
           const [editingPostId, setEditingPostId] = React.useState(null);
           const [editingContent, setEditingContent] = React.useState('');
           const [deletingPostId, setDeletingPostId] = React.useState(null);
@@ -1981,39 +1978,21 @@
           };
 
           /**
-           * 入居日更新処理（ダッシュボード用）
-           * 入居日を即座にデータベースに保存
+           * 入居日変更ハンドラー（専用エンドポイント使用・軽量）
+           * onChange で即座に保存
            */
-          const handleMoveInDateUpdate = async (applicant, newMoveInDate) => {
-            try {
-              await apiClient.updateApplicant(applicant.id, {
-                surname: applicant.name.split('　')[0],
-                givenName: applicant.name.split('　')[1],
-                age: applicant.age,
-                careLevel: applicant.careLevel,
-                address: applicant.address,
-                kp: applicant.kp,
-                kpRelationship: applicant.kpRelationship,
-                kpContact: applicant.kpContact,
-                kpAddress: applicant.kpAddress,
-                careManager: applicant.careManager,
-                careManagerName: applicant.careManagerName,
-                cmContact: applicant.cmContact,
-                assignee: applicant.assignee,
-                notes: applicant.notes,
-                applicationDate: applicant.applicationDate,
-                gender: applicant.gender,
-                roomNumber: applicant.roomNumber,
-                moveInDate: newMoveInDate
-              });
+          const handleMoveInDateChange = async (applicantId, newDate) => {
+            if (!newDate) return;
 
-              // 申込者データを再取得してUIを更新
+            try {
+              await apiClient.updateMoveInDate(applicantId, newDate);
+
+              // 申込者リストを再取得
               await loadApplicants();
 
-              // 編集状態をクリア
-              setEditingMoveInDateApplicantId(null);
+              console.log('入居日が更新されました:', newDate);
             } catch (error) {
-              console.error('入居日更新エラー:', error);
+              console.error('入居日の更新に失敗しました:', error);
               alert('入居日の更新に失敗しました');
             }
           };
@@ -3467,59 +3446,21 @@
                             style={{cursor: 'pointer'}}
                           >
                             <td>{applicant.applicationDate}</td>
-                            <td
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingMoveInDateApplicantId(applicant.id);
-                              }}
-                              style={{
-                                cursor: 'pointer',
-                                position: 'relative',
-                                color: applicant.moveInDate ? '#2c3e50' : '#6c757d'
-                              }}
-                              title="クリックして入居日を設定"
-                            >
-                              {editingMoveInDateApplicantId === applicant.id ? (
-                                <input
-                                  type="date"
-                                  id={`move_in_date_${applicant.id}`}
-                                  name="move_in_date"
-                                  defaultValue={applicant.moveInDate || ''}
-                                  onChange={(e) => {
-                                    const newDate = e.target.value;
-                                    if (newDate) {
-                                      // 日付が選択された場合のみ保存処理を実行
-                                      handleMoveInDateUpdate(applicant, newDate);
-                                    }
-                                  }}
-                                  onBlur={() => {
-                                    // 日付が選択されなかった場合のために、少し遅延を入れてから編集状態をクリア
-                                    // handleMoveInDateUpdateが完了する時間を確保（500ms）
-                                    setTimeout(() => {
-                                      setEditingMoveInDateApplicantId(null);
-                                    }, 500);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    // Escキーで即座にキャンセル
-                                    if (e.key === 'Escape') {
-                                      setEditingMoveInDateApplicantId(null);
-                                    }
-                                  }}
-                                  autoFocus
-                                  style={{
-                                    width: '100%',
-                                    padding: '4px 8px',
-                                    border: '1px solid #007bff',
-                                    borderRadius: '4px',
-                                    fontSize: '14px',
-                                    outline: 'none',
-                                    backgroundColor: '#fff'
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              ) : (
-                                applicant.moveInDate || '-'
-                              )}
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="date"
+                                id={`move_in_date_${applicant.id}`}
+                                name="move_in_date"
+                                value={applicant.moveInDate || ''}
+                                onChange={(e) => handleMoveInDateChange(applicant.id, e.target.value)}
+                                style={{
+                                  border: '1px solid #dee2e6',
+                                  borderRadius: '4px',
+                                  padding: '4px 8px',
+                                  fontSize: '14px',
+                                  cursor: 'pointer'
+                                }}
+                              />
                             </td>
                             <td>{applicant.name}</td>
                             <td>{applicant.age}歳</td>
