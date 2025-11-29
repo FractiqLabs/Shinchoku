@@ -1872,11 +1872,23 @@
             setApplicants([]);
           };
 
+          const handlePasswordButtonClick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowPasswordModal(true);
+          };
+
           const handlePasswordChange = async (e) => {
             e.preventDefault();
+            e.stopPropagation();
 
             if (passwordForm.newPassword !== passwordForm.confirmPassword) {
               alert('新しいパスワードが一致しません');
+              return;
+            }
+
+            if (passwordForm.newPassword.length < 8) {
+              alert('パスワードは8文字以上である必要があります');
               return;
             }
 
@@ -3479,7 +3491,7 @@
                           こんにちは、{currentUser?.name}さん
                         </div>
                         <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
-                          <button onClick={() => setShowPasswordModal(true)} className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 12px'}}>
+                          <button onClick={handlePasswordButtonClick} type="button" className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 12px'}}>
                             パスワード変更
                           </button>
                           <button onClick={handleLogout} className="logout-btn">
@@ -4243,13 +4255,28 @@
               )}
 
               {showPasswordModal && (
-                <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+                <div className="modal-overlay" onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPasswordModal(false);
+                }}>
                   <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px'}}>
                     <div className="modal-header">
                       <h3 className="modal-title">パスワード変更</h3>
-                      <button className="modal-close" onClick={() => setShowPasswordModal(false)}>×</button>
+                      <button
+                        className="modal-close"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowPasswordModal(false);
+                        }}
+                      >×</button>
                     </div>
-                    <form onSubmit={handlePasswordChange}>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handlePasswordChange(e);
+                    }}>
                       <div className="modal-body">
                         <div className="form-group">
                           <label htmlFor="currentPassword" className="form-label">現在のパスワード</label>
@@ -4260,6 +4287,7 @@
                             value={passwordForm.currentPassword}
                             onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
                             required
+                            autoComplete="current-password"
                           />
                         </div>
                         <div className="form-group">
@@ -4272,6 +4300,7 @@
                             onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
                             required
                             minLength="8"
+                            autoComplete="new-password"
                           />
                         </div>
                         <div className="form-group">
@@ -4284,11 +4313,20 @@
                             onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
                             required
                             minLength="8"
+                            autoComplete="new-password"
                           />
                         </div>
                       </div>
                       <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordModal(false)}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowPasswordModal(false);
+                          }}
+                        >
                           キャンセル
                         </button>
                         <button type="submit" className="btn btn-primary">
