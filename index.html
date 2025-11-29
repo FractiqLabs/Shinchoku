@@ -1872,12 +1872,6 @@
             setApplicants([]);
           };
 
-          const handlePasswordButtonClick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setShowPasswordModal(true);
-          };
-
           const handlePasswordChange = async (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -3491,7 +3485,7 @@
                           こんにちは、{currentUser?.name}さん
                         </div>
                         <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
-                          <button onClick={handlePasswordButtonClick} type="button" className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 12px'}}>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPasswordModal(true); }} type="button" className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 12px'}}>
                             パスワード変更
                           </button>
                           <button onClick={handleLogout} className="logout-btn">
