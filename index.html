@@ -1125,6 +1125,14 @@
           const [savingStatus, setSavingStatus] = React.useState('idle'); // idle | saving | saved | error
           const saveTimerRef = React.useRef(null);
 
+          // パスワード変更管理
+          const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+          const [passwordForm, setPasswordForm] = React.useState({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          });
+
           const [formData, setFormData] = React.useState({
             surname: '',
             givenName: '',
@@ -1166,6 +1174,37 @@
               }
             }
           }, []);
+
+          // 自動ログアウト機能（30分無操作でログアウト）
+          React.useEffect(() => {
+            if (!isLoggedIn) return;
+
+            const AUTO_LOGOUT_TIME = 30 * 60 * 1000; // 30分
+            let logoutTimer = null;
+
+            const resetLogoutTimer = () => {
+              if (logoutTimer) clearTimeout(logoutTimer);
+
+              logoutTimer = setTimeout(() => {
+                handleLogout();
+                alert('セッションがタイムアウトしました。再度ログインしてください。');
+              }, AUTO_LOGOUT_TIME);
+            };
+
+            resetLogoutTimer();
+
+            const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+            events.forEach(event => {
+              document.addEventListener(event, resetLogoutTimer);
+            });
+
+            return () => {
+              events.forEach(event => {
+                document.removeEventListener(event, resetLogoutTimer);
+              });
+              if (logoutTimer) clearTimeout(logoutTimer);
+            };
+          }, [isLoggedIn]);
 
           // リアルタイム監視の設定
           React.useEffect(() => {
@@ -1831,6 +1870,41 @@
             apiClient.disconnectSocket();
             setCurrentView('list');
             setApplicants([]);
+          };
+
+          const handlePasswordChange = async (e) => {
+            e.preventDefault();
+
+            if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+              alert('新しいパスワードが一致しません');
+              return;
+            }
+
+            try {
+              const response = await fetch('/api/change-password', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                  currentPassword: passwordForm.currentPassword,
+                  newPassword: passwordForm.newPassword
+                })
+              });
+
+              if (response.ok) {
+                alert('パスワードを変更しました');
+                setShowPasswordModal(false);
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              } else {
+                const error = await response.json();
+                alert(error.error || 'パスワード変更に失敗しました');
+              }
+            } catch (error) {
+              console.error('パスワード変更エラー:', error);
+              alert('パスワード変更に失敗しました');
+            }
           };
 
           const handleLoginInputChange = (e) => {
@@ -3404,9 +3478,14 @@
                         <div className="user-greeting">
                           こんにちは、{currentUser?.name}さん
                         </div>
-                        <button onClick={handleLogout} className="logout-btn">
-                          ログアウト
-                        </button>
+                        <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
+                          <button onClick={() => setShowPasswordModal(true)} className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 12px'}}>
+                            パスワード変更
+                          </button>
+                          <button onClick={handleLogout} className="logout-btn">
+                            ログアウト
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -4159,6 +4238,64 @@
                         削除
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {showPasswordModal && (
+                <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px'}}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">パスワード変更</h3>
+                      <button className="modal-close" onClick={() => setShowPasswordModal(false)}>×</button>
+                    </div>
+                    <form onSubmit={handlePasswordChange}>
+                      <div className="modal-body">
+                        <div className="form-group">
+                          <label htmlFor="currentPassword" className="form-label">現在のパスワード</label>
+                          <input
+                            type="password"
+                            id="currentPassword"
+                            className="form-input"
+                            value={passwordForm.currentPassword}
+                            onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="newPassword" className="form-label">新しいパスワード（8文字以上）</label>
+                          <input
+                            type="password"
+                            id="newPassword"
+                            className="form-input"
+                            value={passwordForm.newPassword}
+                            onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                            required
+                            minLength="8"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="confirmPassword" className="form-label">新しいパスワード（確認）</label>
+                          <input
+                            type="password"
+                            id="confirmPassword"
+                            className="form-input"
+                            value={passwordForm.confirmPassword}
+                            onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                            required
+                            minLength="8"
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordModal(false)}>
+                          キャンセル
+                        </button>
+                        <button type="submit" className="btn btn-primary">
+                          変更
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               )}
