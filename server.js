@@ -102,44 +102,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// パスワード変更エンドポイント
-app.post('/api/change-password', authenticateToken, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
-
-    // 現在のパスワード確認
-    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
-
-    if (!user) {
-      return res.status(404).json({ error: 'ユーザーが見つかりません' });
-    }
-
-    const isValid = await bcrypt.compare(currentPassword, user.password_hash);
-
-    if (!isValid) {
-      return res.status(401).json({ error: '現在のパスワードが正しくありません' });
-    }
-
-    // パスワード強度チェック
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ error: 'パスワードは8文字以上である必要があります' });
-    }
-
-    // 新しいパスワードをハッシュ化して保存
-    const newHash = await bcrypt.hash(newPassword, 10);
-    await db.run(
-      'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newHash, userId]
-    );
-
-    res.json({ message: 'パスワードを変更しました' });
-  } catch (error) {
-    console.error('パスワード変更エラー:', error);
-    res.status(500).json({ error: 'パスワード変更に失敗しました' });
-  }
-});
-
 // ========== 申込者管理エンドポイント ==========
 
 // 申込者一覧取得
