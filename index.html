@@ -1875,8 +1875,8 @@
           /**
            * ステータスの色を取得
            * 申込日からの経過日数に基づいて色を決定
-           * - 10日超過：赤
-           * - 5日超過：黄
+           * - 25日超過：赤
+           * - 15日超過：黄
            * - それ以外：緑
            */
           const getStatusColor = (status, applicationDate) => {
@@ -1884,8 +1884,8 @@
             const appDate = new Date(applicationDate);
             const daysPassed = Math.floor((today - appDate) / (1000 * 60 * 60 * 24));
 
-            if (daysPassed > 10) return 'status-red';
-            if (daysPassed > 5) return 'status-yellow';
+            if (daysPassed > 25) return 'status-red';
+            if (daysPassed > 15) return 'status-yellow';
             return 'status-green';
           };
 
