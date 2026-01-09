@@ -1933,8 +1933,10 @@
           };
 
           const sortedApplicants = React.useMemo(() => {
-            // 入居完了の申込者を除外
-            let sortableApplicants = applicants.filter(app => app.status !== '入居完了');
+            // 入居完了・入居不可・キャンセルの申込者を除外（ダッシュボード側で管理）
+            let sortableApplicants = applicants.filter(
+              app => !['入居完了', '入居不可', 'キャンセル'].includes(app.status)
+            );
             if (sortConfig.key) {
               sortableApplicants.sort((a, b) => {
                 let aValue = a[sortConfig.key];
@@ -1956,9 +1958,11 @@
             return sortableApplicants;
           }, [applicants, sortConfig]);
 
-          // ダッシュボード用：入居完了の申込者のみ
+          // ダッシュボード用：入居完了・入居不可・キャンセルの申込者
           const dashboardApplicants = React.useMemo(() => {
-            return applicants.filter(app => app.status === '入居完了');
+            return applicants.filter(app =>
+              ['入居完了', '入居不可', 'キャンセル'].includes(app.status)
+            );
           }, [applicants]);
 
           /**
@@ -3486,20 +3490,24 @@
                           >
                             <td>{applicant.applicationDate}</td>
                             <td onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="date"
-                                id={`move_in_date_${applicant.id}`}
-                                name="move_in_date"
-                                value={applicant.moveInDate || ''}
-                                onChange={(e) => handleMoveInDateChange(applicant.id, e.target.value)}
-                                style={{
-                                  border: '1px solid #dee2e6',
-                                  borderRadius: '4px',
-                                  padding: '4px 8px',
-                                  fontSize: '14px',
-                                  cursor: 'pointer'
-                                }}
-                              />
+                              {applicant.status === '入居完了' ? (
+                                <input
+                                  type="date"
+                                  id={`move_in_date_${applicant.id}`}
+                                  name="move_in_date"
+                                  value={applicant.moveInDate || ''}
+                                  onChange={(e) => handleMoveInDateChange(applicant.id, e.target.value)}
+                                  style={{
+                                    border: '1px solid #dee2e6',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    fontSize: '14px',
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              ) : (
+                                <span>{applicant.status}</span>
+                              )}
                             </td>
                             <td>{applicant.name}</td>
                             <td>{applicant.age}歳</td>
