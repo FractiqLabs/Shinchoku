@@ -3486,7 +3486,15 @@
                               // 詳細画面の通知を取得（既読処理はしない）
                               fetchNotifications(applicant.id);
                             }}
-                            style={{cursor: 'pointer'}}
+                            style={{
+                              cursor: 'pointer',
+                              backgroundColor:
+                                applicant.status === '入居不可'
+                                  ? '#fdecea' // 薄い赤系
+                                  : applicant.status === 'キャンセル'
+                                  ? '#e9ecef' // グレー系
+                                  : 'transparent'
+                            }}
                           >
                             <td>{applicant.applicationDate}</td>
                             <td onClick={(e) => e.stopPropagation()}>
