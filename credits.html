@@ -184,6 +184,10 @@
             <div class="version-info">
                 <h3>シンチョク. v1.0.0</h3>
                 <p>特別養護老人ホーム入居進捗管理システム</p>
+                <p style="margin-top: 8px; font-size: 14px; color: #495057;">
+                    Node.js v18.0.0以上 推奨<br>
+                    最終ビルド日: 2024年12月21日
+                </p>
             </div>
             
             <h2>1. 著作権情報</h2>
@@ -193,25 +197,6 @@
                 All rights reserved.
             </div>
             
-            <h2>2. ライセンス</h2>
-            <p>本アプリケーションはMITライセンスの下で提供されています。</p>
-            <div class="license-box">
-                MIT License
-                
-                Permission is hereby granted, free of charge, to any person obtaining a copy
-                of this software and associated documentation files (the "Software"), to deal
-                in the Software without restriction, including without limitation the rights
-                to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-                copies of the Software, and to permit persons to whom the Software is
-                furnished to do so, subject to the following conditions:
-                
-                The above copyright notice and this permission notice shall be included in all
-                copies or substantial portions of the Software.
-                
-                THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-                IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-                FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-            </div>
             
             <h2>3. 使用技術・ライブラリ</h2>
             <p>本アプリケーションは以下のオープンソース技術・ライブラリを使用しています：</p>
@@ -245,54 +230,180 @@
             </div>
             
             <div class="credit-item">
-                <h4>PostgreSQL (node-postgres)</h4>
-                <p>PostgreSQLクライアントライブラリ</p>
+                <h4>PostgreSQL (pg)</h4>
+                <p>PostgreSQLクライアントライブラリ (v8.11.3)</p>
                 <p>ライセンス: MIT License</p>
                 <p>URL: <a href="https://node-postgres.com/" target="_blank">https://node-postgres.com/</a></p>
             </div>
             
             <div class="credit-item">
+                <h4>Supabase</h4>
+                <p>バックエンドサービス（PostgreSQLデータベース、リアルタイム機能）</p>
+                <p>ライセンス: Apache License 2.0</p>
+                <p>URL: <a href="https://supabase.com/" target="_blank">https://supabase.com/</a></p>
+            </div>
+            
+            <div class="credit-item">
                 <h4>Socket.IO</h4>
-                <p>リアルタイム通信ライブラリ</p>
+                <p>リアルタイム通信ライブラリ (v4.7.5)</p>
                 <p>ライセンス: MIT License</p>
                 <p>URL: <a href="https://socket.io/" target="_blank">https://socket.io/</a></p>
             </div>
             
             <div class="credit-item">
                 <h4>bcryptjs</h4>
-                <p>パスワードハッシュ化ライブラリ</p>
+                <p>パスワードハッシュ化ライブラリ (v2.4.3)</p>
                 <p>ライセンス: MIT License</p>
                 <p>URL: <a href="https://github.com/dcodeIO/bcrypt.js" target="_blank">https://github.com/dcodeIO/bcrypt.js</a></p>
             </div>
             
             <div class="credit-item">
                 <h4>jsonwebtoken</h4>
-                <p>JWT実装ライブラリ</p>
+                <p>JWT実装ライブラリ (v9.0.2)</p>
                 <p>ライセンス: MIT License</p>
                 <p>URL: <a href="https://github.com/auth0/node-jsonwebtoken" target="_blank">https://github.com/auth0/node-jsonwebtoken</a></p>
             </div>
             
-            <h2>4. フォント</h2>
+            <div class="credit-item">
+                <h4>Helmet</h4>
+                <p>HTTPセキュリティヘッダー設定ライブラリ (v7.1.0)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://helmetjs.github.io/" target="_blank">https://helmetjs.github.io/</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>express-rate-limit</h4>
+                <p>レート制限ミドルウェア (v7.1.5)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://github.com/express-rate-limit/express-rate-limit" target="_blank">https://github.com/express-rate-limit/express-rate-limit</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>CORS</h4>
+                <p>Cross-Origin Resource Sharing ミドルウェア (v2.8.5)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://github.com/expressjs/cors" target="_blank">https://github.com/expressjs/cors</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>dotenv</h4>
+                <p>環境変数管理ライブラリ (v16.3.1)</p>
+                <p>ライセンス: BSD-2-Clause License</p>
+                <p>URL: <a href="https://github.com/motdotla/dotenv" target="_blank">https://github.com/motdotla/dotenv</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>body-parser</h4>
+                <p>HTTPリクエストボディパーサー (v1.20.2)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://github.com/expressjs/body-parser" target="_blank">https://github.com/expressjs/body-parser</a></p>
+            </div>
+            
+            <h2>4. フロントエンドライブラリ</h2>
+            <div class="credit-item">
+                <h4>React</h4>
+                <p>ユーザーインターフェース構築ライブラリ (v17)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://reactjs.org/" target="_blank">https://reactjs.org/</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>Babel Standalone</h4>
+                <p>JavaScriptトランスパイラ（ブラウザ用）</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://babeljs.io/" target="_blank">https://babeljs.io/</a></p>
+            </div>
+            
+            <div class="credit-item">
+                <h4>Supabase JS Client</h4>
+                <p>Supabase JavaScript クライアントライブラリ (v2)</p>
+                <p>ライセンス: MIT License</p>
+                <p>URL: <a href="https://supabase.com/docs/reference/javascript/introduction" target="_blank">https://supabase.com/docs/reference/javascript/introduction</a></p>
+            </div>
+            
+            <h2>5. フォント</h2>
             <div class="credit-item">
                 <h4>kirin-Regular</h4>
                 <p>アプリケーションタイトル用フォント</p>
                 <p>使用許可を得て利用</p>
             </div>
             
-            <h2>5. 開発支援</h2>
+            <h2>6. 開発支援ツール</h2>
             <p>本アプリケーションの開発において、以下のツール・サービスを利用しました：</p>
             <ul>
+                <li><strong>Node.js</strong> (v18.0.0以上) - JavaScriptランタイム環境</li>
+                <li><strong>npm</strong> - パッケージマネージャー</li>
+                <li><strong>nodemon</strong> (v3.0.1) - 開発時の自動再起動ツール</li>
+                <li><strong>Docker</strong> - コンテナ化技術（開発・デプロイ環境）</li>
+                <li><strong>GitHub</strong> - ソースコード管理・バージョン管理</li>
                 <li><strong>Claude (Anthropic)</strong> - AI開発支援</li>
-                <li><strong>GitHub</strong> - ソースコード管理</li>
-                <li><strong>Docker</strong> - コンテナ化技術</li>
+                <li><strong>Cursor IDE</strong> - 統合開発環境</li>
             </ul>
             
-            <h2>6. 特別な謝辞</h2>
-            <p>本アプリケーションの開発にあたり、特別養護老人ホームの現場で働く皆様からの貴重なご意見をいただきました。心より感謝申し上げます。</p>
+            <h2>7. デプロイメント環境</h2>
+            <p>本アプリケーションは、以下のプラットフォームでのデプロイに対応しています：</p>
+            <ul>
+                <li><strong>Railway</strong> - クラウドプラットフォーム</li>
+                <li><strong>Render</strong> - クラウドプラットフォーム</li>
+                <li><strong>Heroku</strong> - クラウドプラットフォーム</li>
+                <li><strong>Docker Compose</strong> - コンテナオーケストレーション</li>
+                <li><strong>自前サーバー（VPS等）</strong> - Node.js直接実行</li>
+            </ul>
             
-            <h2>7. お問い合わせ</h2>
-            <p>著作権やライセンスに関するお問い合わせは、開発者までご連絡ください。</p>
-            <p>GitHub: <a href="https://github.com/FractiqLabs/Shinchoku" target="_blank">https://github.com/FractiqLabs/Shinchoku</a></p>
+            <h2>8. データベース</h2>
+            <p>本アプリケーションは、以下のデータベースをサポートしています：</p>
+            <ul>
+                <li><strong>SQLite3</strong> (v5.1.6) - 軽量データベース（開発・小規模運用）</li>
+                <li><strong>PostgreSQL</strong> - リレーショナルデータベース（本番環境推奨）</li>
+                <li><strong>Supabase</strong> - PostgreSQLベースのBaaS（バックエンドとしてのサービス）</li>
+            </ul>
+            
+            <h2>9. セキュリティ機能</h2>
+            <p>本アプリケーションは、以下のセキュリティ機能を実装しています：</p>
+            <ul>
+                <li><strong>JWT認証</strong> - トークンベースの認証システム</li>
+                <li><strong>パスワードハッシュ化</strong> - bcryptによる安全なパスワード保存</li>
+                <li><strong>レート制限</strong> - ブルートフォース攻撃対策</li>
+                <li><strong>HTTPS強制</strong> - 暗号化通信の強制（本番環境）</li>
+                <li><strong>セキュリティヘッダー</strong> - HelmetによるHTTPヘッダー保護</li>
+                <li><strong>入力検証</strong> - SQLインジェクション対策</li>
+                <li><strong>CORS設定</strong> - クロスオリジンリクエストの制御</li>
+            </ul>
+            
+            <h2>10. 特別な謝辞</h2>
+            <p>本アプリケーションの開発にあたり、以下の方々・組織から貴重なご意見とご協力をいただきました。心より感謝申し上げます：</p>
+            <ul>
+                <li>特別養護老人ホームで働く現場の皆様</li>
+                <li>ケアマネジャー、介護支援専門員の皆様</li>
+                <li>入居申込者のご家族の皆様</li>
+                <li>オープンソースコミュニティの貢献者の皆様</li>
+            </ul>
+            
+            <h2>11. ライセンス情報</h2>
+            <p>本アプリケーションのソースコードは、MIT Licenseの下で公開されています。詳細については、リポジトリのLICENSEファイルを参照してください。</p>
+            <div class="license-box">
+                MIT License<br><br>
+                Copyright (c) 2024 FractiqLabs<br><br>
+                Permission is hereby granted, free of charge, to any person obtaining a copy
+                of this software and associated documentation files (the "Software"), to deal
+                in the Software without restriction, including without limitation the rights
+                to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+                copies of the Software, and to permit persons to whom the Software is
+                furnished to do so, subject to the following conditions:<br><br>
+                The above copyright notice and this permission notice shall be included in all
+                copies or substantial portions of the Software.<br><br>
+                THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+                IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+                FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+                AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+                LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+                OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+                SOFTWARE.
+            </div>
+            
+            <h2>12. お問い合わせ</h2>
+            <p>著作権、ライセンス、または技術的なお問い合わせについては、所属機関の管理者を通じて開発者までご連絡ください。</p>
+            <p>GitHubリポジトリ: <a href="https://github.com/FractiqLabs/Shinchoku" target="_blank">https://github.com/FractiqLabs/Shinchoku</a>（存在する場合）</p>
             
             <div class="last-updated">
                 最終更新日: 2024年12月21日
