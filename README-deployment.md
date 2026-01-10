@@ -43,8 +43,14 @@ heroku create your-app-name
 heroku addons:create heroku-postgresql:hobby-dev
 
 # 環境変数設定
+# まず強力な秘密鍵を生成
+openssl rand -base64 32
+
+# 環境変数を設定（生成した秘密鍵を使用）
 heroku config:set DB_TYPE=postgres
-heroku config:set JWT_SECRET=your-secret-key
+heroku config:set JWT_SECRET="生成した秘密鍵をここに貼り付け"
+heroku config:set NODE_ENV=production
+heroku config:set ALLOWED_ORIGINS="https://your-app.herokuapp.com"
 
 # デプロイ
 git push heroku main
@@ -58,8 +64,13 @@ railway init
 railway add postgresql
 
 # 環境変数設定（Railway Dashboard）
-# DB_TYPE=postgres
-# DATABASE_URL=自動設定される
+# 1. Railway Dashboardでプロジェクトを開く
+# 2. 「Variables」タブで以下を設定：
+#    - DB_TYPE=postgres
+#    - JWT_SECRET=（openssl rand -base64 32 で生成した秘密鍵）
+#    - NODE_ENV=production
+#    - ALLOWED_ORIGINS=https://your-app.up.railway.app
+#    - DATABASE_URL=自動設定される
 
 # デプロイ
 railway up
@@ -69,18 +80,31 @@ railway up
 ```bash
 # 本番用設定
 cp .env.example .env
-# .envファイルを本番用に編集
+
+# .envファイルを編集して以下を設定：
+# JWT_SECRET=（openssl rand -base64 32 で生成した秘密鍵）
+# NODE_ENV=production
+# ALLOWED_ORIGINS=https://your-domain.com
+# DB_TYPE=postgres
+# （その他のデータベース設定）
 
 # 起動
 docker-compose up -d
 ```
 
+詳細な設定方法は `SECURITY-SETUP.md` を参照してください。
+
 ## 環境変数
 
 ### 必須設定
 - `DB_TYPE`: "postgres" または "sqlite"
-- `JWT_SECRET`: JWT暗号化キー
+- `JWT_SECRET`: JWT暗号化キー（本番環境では必須、未設定時は起動失敗）
 - `NODE_ENV`: "production" または "development"
+
+### セキュリティ設定（本番環境推奨）
+- `ALLOWED_ORIGINS`: CORSで許可するオリジン（カンマ区切り）
+  - 例: `ALLOWED_ORIGINS=https://example.com,https://app.example.com`
+  - 未設定の場合、開発環境では全許可、本番環境では全拒否
 
 ### PostgreSQL使用時
 - `DB_HOST`: データベースホスト
@@ -121,10 +145,30 @@ npm run db:setup
 
 ## セキュリティ注意事項
 
+### 必須設定
+
 1. **JWT_SECRET**: 必ず本番環境用の強力なキーを設定
-2. **データベース認証**: 強力なパスワードを使用
-3. **HTTPS**: 本番環境では必ずHTTPS使用
-4. **ファイアウォール**: 不要なポートは閉じる
+   - 本番環境では環境変数未設定の場合、サーバーは起動しません
+   - 強力なキーの生成方法: `openssl rand -base64 32`
+   - 開発環境では警告が表示されますが、デフォルト値が使用されます
+
+2. **CORS設定**: 本番環境では許可するオリジンを指定
+   - 環境変数 `ALLOWED_ORIGINS` にカンマ区切りで指定
+   - 例: `ALLOWED_ORIGINS=https://example.com,https://app.example.com`
+   - 未設定の場合、本番環境ではすべてのオリジンが拒否されます
+
+3. **データベース認証**: 強力なパスワードを使用
+
+4. **HTTPS**: 本番環境では必ずHTTPS使用
+
+5. **ファイアウォール**: 不要なポートは閉じる
+
+### セキュリティ機能
+
+- **レート制限**: ログイン試行は15分間に5回まで、API呼び出しは1分間に100回まで
+- **セキュリティヘッダー**: Helmetミドルウェアで自動設定
+- **WebSocket認証**: 認証済み接続のみ許可
+- **SQLインジェクション対策**: パラメータ化クエリを使用
 
 ## パフォーマンス最適化
 
