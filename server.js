@@ -7,6 +7,8 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // データベース選択
 const db = process.env.DB_TYPE === 'postgres' 
@@ -15,15 +17,36 @@ const db = process.env.DB_TYPE === 'postgres'
 
 const app = express();
 const server = http.createServer(app);
+
+// CORS設定：環境変数で制御可能
+// 本番環境ではALLOWED_ORIGINSに許可するオリジンをカンマ区切りで設定
+// 例: ALLOWED_ORIGINS=https://example.com,https://app.example.com
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : (process.env.NODE_ENV === 'production' ? [] : ['*']); // 開発環境では全許可
+
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'shinchoku-secret-key-2024';
+
+// JWT_SECRETは必須（本番環境では必ず設定すること）
+let JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('❌ エラー: JWT_SECRET環境変数が設定されていません');
+  console.error('本番環境では必ず強力なJWT_SECRETを設定してください');
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+  // 開発環境では警告のみ（後方互換性のため）
+  console.warn('⚠️  警告: 開発環境ではデフォルト値を使用します（本番環境では使用しないでください）');
+  JWT_SECRET = 'shinchoku-secret-key-2024-dev-only';
+}
 
 // ミドルウェア
 // 本番環境でHTTPSを強制
@@ -37,9 +60,72 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.use(cors());
+// セキュリティヘッダーの設定（helmet）
+app.use(helmet({
+  contentSecurityPolicy: false, // Reactアプリとの互換性のため無効化
+  crossOriginEmbedderPolicy: false // 外部リソースとの互換性のため無効化
+}));
+
+// CORS設定
+app.use(cors({
+  origin: (origin, callback) => {
+    // 開発環境またはoriginが未指定（Postman等）の場合は許可
+    if (!origin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    // 本番環境では許可リストをチェック
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy: Origin not allowed'));
+    }
+  },
+  credentials: true
+}));
+
+// レート制限設定（ブルートフォース攻撃対策）
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分
+  max: 5, // 15分間に5回まで
+  message: { error: 'ログイン試行回数が多すぎます。15分後に再度お試しください。' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1分
+  max: 100, // 1分間に100リクエストまで（通常の使用には影響しない）
+  message: { error: 'リクエストが多すぎます。しばらく待ってから再度お試しください。' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname)));
+
+// ログインエンドポイントにレート制限を適用
+app.use('/api/auth/login', loginLimiter);
+
+// その他のAPIエンドポイントにレート制限を適用
+app.use('/api/', apiLimiter);
+
+// 入力検証ヘルパー関数
+const validateId = (id) => {
+  const numId = parseInt(id, 10);
+  return !isNaN(numId) && numId > 0 && numId.toString() === id.toString();
+};
+
+const validateAge = (age) => {
+  const numAge = parseInt(age, 10);
+  return !isNaN(numAge) && numAge >= 0 && numAge <= 150;
+};
+
+const sanitizeString = (str, maxLength = 1000) => {
+  if (typeof str !== 'string') return null;
+  // 制御文字を除去（改行・タブは許可）
+  const sanitized = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return sanitized.length > maxLength ? sanitized.substring(0, maxLength) : sanitized;
+};
 
 // JWTトークン検証ミドルウェア
 const authenticateToken = (req, res, next) => {
@@ -64,10 +150,21 @@ const authenticateToken = (req, res, next) => {
 // ログイン
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: 'ユーザー名とパスワードが必要です' });
+    }
+
+    // 入力検証とサニタイズ
+    username = sanitizeString(username, 50);
+    if (!username) {
+      return res.status(400).json({ error: 'ユーザー名が無効です' });
+    }
+
+    // パスワードの長さチェック（最小8文字、最大100文字）
+    if (typeof password !== 'string' || password.length < 8 || password.length > 100) {
+      return res.status(400).json({ error: 'パスワードが無効です' });
     }
 
     const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
@@ -97,7 +194,12 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('ログインエラー:', error);
+    // 本番環境では詳細なエラー情報をログに出力しない（セキュリティ対策）
+    if (process.env.NODE_ENV === 'production') {
+      console.error('ログインエラーが発生しました');
+    } else {
+      console.error('ログインエラー:', error);
+    }
     res.status(500).json({ error: 'サーバーエラーが発生しました' });
   }
 });
@@ -127,6 +229,11 @@ app.get('/api/applicants', authenticateToken, async (req, res) => {
 app.get('/api/applicants/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // ID検証
+    if (!validateId(id)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
     
     const applicant = await db.get(`
       SELECT *, (surname || '　' || given_name) as name 
@@ -199,15 +306,48 @@ function extractMunicipality(address) {
 // 申込者新規作成
 app.post('/api/applicants', authenticateToken, async (req, res) => {
   try {
-    const {
+    let {
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
       assignee, notes, gender, roomNumber, moveInDate
     } = req.body;
 
+    // 必須項目チェック
     if (!surname || !givenName || !age || !careLevel) {
       return res.status(400).json({ error: '必須項目が不足しています' });
     }
+
+    // 入力検証とサニタイズ
+    surname = sanitizeString(surname, 50);
+    givenName = sanitizeString(givenName, 50);
+    if (!surname || !givenName) {
+      return res.status(400).json({ error: '氏名が無効です' });
+    }
+
+    if (!validateAge(age)) {
+      return res.status(400).json({ error: '年齢が無効です（0-150の範囲で入力してください）' });
+    }
+    age = parseInt(age, 10);
+
+    careLevel = sanitizeString(careLevel, 20);
+    if (!careLevel) {
+      return res.status(400).json({ error: '要介護度が無効です' });
+    }
+
+    // オプション項目のサニタイズ
+    address = address ? sanitizeString(address, 200) : null;
+    kp = kp ? sanitizeString(kp, 100) : null;
+    kpRelationship = kpRelationship ? sanitizeString(kpRelationship, 50) : null;
+    kpContact = kpContact ? sanitizeString(kpContact, 50) : null;
+    kpAddress = kpAddress ? sanitizeString(kpAddress, 200) : null;
+    careManager = careManager ? sanitizeString(careManager, 50) : null;
+    careManagerName = careManagerName ? sanitizeString(careManagerName, 50) : null;
+    cmContact = cmContact ? sanitizeString(cmContact, 50) : null;
+    assignee = assignee ? sanitizeString(assignee, 50) : '担当者未定';
+    notes = notes ? sanitizeString(notes, 2000) : null;
+    gender = gender ? sanitizeString(gender, 10) : null;
+    roomNumber = roomNumber ? sanitizeString(roomNumber, 20) : null;
+    moveInDate = moveInDate ? sanitizeString(moveInDate, 10) : null;
 
     // 住所から市区町村を自動抽出
     const municipality = extractMunicipality(address);
@@ -243,15 +383,54 @@ app.post('/api/applicants', authenticateToken, async (req, res) => {
 app.put('/api/applicants/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const {
+    
+    // ID検証
+    if (!validateId(id)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
+
+    let {
       surname, givenName, age, careLevel, address, kp, kpRelationship,
       kpContact, kpAddress, careManager, careManagerName, cmContact,
       assignee, notes, gender, roomNumber, moveInDate
     } = req.body;
 
+    // 必須項目チェック
     if (!surname || !givenName || !age || !careLevel) {
       return res.status(400).json({ error: '必須項目が不足しています' });
     }
+
+    // 入力検証とサニタイズ
+    surname = sanitizeString(surname, 50);
+    givenName = sanitizeString(givenName, 50);
+    if (!surname || !givenName) {
+      return res.status(400).json({ error: '氏名が無効です' });
+    }
+
+    if (!validateAge(age)) {
+      return res.status(400).json({ error: '年齢が無効です（0-150の範囲で入力してください）' });
+    }
+    age = parseInt(age, 10);
+
+    careLevel = sanitizeString(careLevel, 20);
+    if (!careLevel) {
+      return res.status(400).json({ error: '要介護度が無効です' });
+    }
+
+    // オプション項目のサニタイズ
+    address = address ? sanitizeString(address, 200) : null;
+    kp = kp ? sanitizeString(kp, 100) : null;
+    kpRelationship = kpRelationship ? sanitizeString(kpRelationship, 50) : null;
+    kpContact = kpContact ? sanitizeString(kpContact, 50) : null;
+    kpAddress = kpAddress ? sanitizeString(kpAddress, 200) : null;
+    careManager = careManager ? sanitizeString(careManager, 50) : null;
+    careManagerName = careManagerName ? sanitizeString(careManagerName, 50) : null;
+    cmContact = cmContact ? sanitizeString(cmContact, 50) : null;
+    assignee = assignee ? sanitizeString(assignee, 50) : null;
+    notes = notes ? sanitizeString(notes, 2000) : null;
+    gender = gender ? sanitizeString(gender, 10) : null;
+    roomNumber = roomNumber ? sanitizeString(roomNumber, 20) : null;
+    moveInDate = moveInDate ? sanitizeString(moveInDate, 10) : null;
 
     // 住所から市区町村を自動抽出
     const municipality = extractMunicipality(address);
@@ -292,10 +471,22 @@ app.put('/api/applicants/:id', authenticateToken, async (req, res) => {
 app.put('/api/applicants/:id/move-in-date', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { move_in_date } = req.body;
+    
+    // ID検証
+    if (!validateId(id)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
+
+    let { move_in_date } = req.body;
 
     if (!move_in_date) {
       return res.status(400).json({ error: '入居日が指定されていません' });
+    }
+
+    // 日付形式の検証（YYYY-MM-DD形式）
+    move_in_date = sanitizeString(move_in_date, 10);
+    if (!move_in_date || !/^\d{4}-\d{2}-\d{2}$/.test(move_in_date)) {
+      return res.status(400).json({ error: '入居日の形式が無効です（YYYY-MM-DD形式で入力してください）' });
     }
 
     const result = await db.run(
@@ -325,6 +516,11 @@ app.put('/api/applicants/:id/move-in-date', authenticateToken, async (req, res) 
 app.delete('/api/applicants/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // ID検証
+    if (!validateId(id)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
 
     const result = await db.run('DELETE FROM applicants WHERE id = ?', [id]);
 
@@ -496,11 +692,23 @@ async function recalculateApplicantStatus(applicantId) {
 app.put('/api/applicants/:applicantId/posts/:postId', authenticateToken, async (req, res) => {
   try {
     const { applicantId, postId } = req.params;
-    const { content } = req.body;
+    
+    // ID検証
+    if (!validateId(applicantId) || !validateId(postId)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
+
+    let { content } = req.body;
     const currentUser = req.user.name;
 
     if (!content) {
       return res.status(400).json({ error: '投稿内容が必要です' });
+    }
+
+    // 投稿内容のサニタイズ
+    content = sanitizeString(content, 5000);
+    if (!content) {
+      return res.status(400).json({ error: '投稿内容が無効です' });
     }
 
     // 投稿の存在確認と作成者チェック
@@ -530,6 +738,12 @@ app.put('/api/applicants/:applicantId/posts/:postId', authenticateToken, async (
 app.delete('/api/applicants/:applicantId/posts/:postId', authenticateToken, async (req, res) => {
   try {
     const { applicantId, postId } = req.params;
+    
+    // ID検証
+    if (!validateId(applicantId) || !validateId(postId)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
+
     const currentUser = req.user.name;
 
     // 投稿の存在確認と作成者チェック
@@ -559,11 +773,41 @@ app.delete('/api/applicants/:applicantId/posts/:postId', authenticateToken, asyn
 app.post('/api/applicants/:id/posts', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { content, action, parentPostId } = req.body;
+    
+    // ID検証
+    if (!validateId(id)) {
+      return res.status(400).json({ error: '無効なIDです' });
+    }
+
+    let { content, action, parentPostId } = req.body;
     const author = req.user.name;
 
     if (!content) {
       return res.status(400).json({ error: '投稿内容が必要です' });
+    }
+
+    // 投稿内容のサニタイズ
+    content = sanitizeString(content, 5000);
+    if (!content) {
+      return res.status(400).json({ error: '投稿内容が無効です' });
+    }
+
+    // actionの検証（許可された値のみ）
+    if (action) {
+      const allowedActions = [
+        '相談受付中', '申込書受領', '実調日程調整中', '実調完了',
+        '健康診断書依頼', '健康診断書受領', '判定会議中', '入居決定',
+        '入居不可', '入居日調整中', '書類送付済', '入居準備完了',
+        '入居完了', 'キャンセル'
+      ];
+      if (!allowedActions.includes(action)) {
+        return res.status(400).json({ error: '無効なアクションです' });
+      }
+    }
+
+    // parentPostIdの検証
+    if (parentPostId && !validateId(parentPostId)) {
+      return res.status(400).json({ error: '無効な親投稿IDです' });
     }
 
     const result = await db.run(`
@@ -644,29 +888,71 @@ app.get('/credits.html', (req, res) => {
 });
 
 // WebSocket接続管理
+// 認証済み接続のみを許可するミドルウェア
+const authenticateSocket = (socket, next) => {
+  // 認証トークンは接続時にクエリパラメータまたはハンドシェイクで送信される
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  
+  if (!token) {
+    // 認証トークンがない場合は接続を拒否せず、後で認証を要求
+    socket.authenticated = false;
+    return next();
+  }
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    socket.user = user;
+    socket.authenticated = true;
+    next();
+  } catch (err) {
+    socket.authenticated = false;
+    next();
+  }
+};
+
+io.use(authenticateSocket);
+
 io.on('connection', (socket) => {
   console.log('クライアントが接続しました:', socket.id);
+
+  // 認証されていない場合は認証を要求
+  if (!socket.authenticated) {
+    socket.emit('authRequired', '認証が必要です');
+  }
 
   // ユーザー認証
   socket.on('authenticate', (token) => {
     try {
       const user = jwt.verify(token, JWT_SECRET);
       socket.user = user;
+      socket.authenticated = true;
       socket.join('authenticated');
       console.log(`ユーザー ${user.name} が認証されました`);
+      socket.emit('authenticated', { user: { id: user.id, username: user.username, name: user.name } });
     } catch (err) {
       socket.emit('authError', '認証に失敗しました');
     }
   });
 
-  // 特定の申込者の詳細ページに参加
-  socket.on('joinApplicant', (applicantId) => {
+  // 認証されていない接続からのイベントをブロック
+  const requireAuth = (eventName, handler) => {
+    socket.on(eventName, (...args) => {
+      if (!socket.authenticated) {
+        socket.emit('authError', '認証が必要です');
+        return;
+      }
+      handler(...args);
+    });
+  };
+
+  // 特定の申込者の詳細ページに参加（認証必須）
+  requireAuth('joinApplicant', (applicantId) => {
     socket.join(`applicant_${applicantId}`);
     console.log(`ユーザーが申込者 ${applicantId} のページに参加しました`);
   });
 
-  // 申込者ページから離脱
-  socket.on('leaveApplicant', (applicantId) => {
+  // 申込者ページから離脱（認証必須）
+  requireAuth('leaveApplicant', (applicantId) => {
     socket.leave(`applicant_${applicantId}`);
     console.log(`ユーザーが申込者 ${applicantId} のページから離脱しました`);
   });
