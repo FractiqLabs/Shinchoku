@@ -55,27 +55,10 @@ class APIClient {
     const method = options.method || 'GET';
     const applicantsKey = 'careFacilityApplicants';
 
+    // セキュリティ強化: 認証エンドポイントのフォールバックを削除
+    // サーバーが利用できない場合は認証を拒否
     if (endpoint === '/auth/login') {
-        const { username, password } = options.body;
-        const users = {
-            'a': { password: 'admin1', name: '藤堂　友未枝' },
-            'b': { password: 'admin2', name: '吉野　隼人' },
-            'c': { password: 'admin3', name: '田中　慎治' }
-        };
-        const user = users[username];
-        if (user && user.password === password) {
-            const mockToken = btoa(unescape(encodeURIComponent(JSON.stringify({
-                id: username,
-                name: user.name,
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
-            }))));
-            return {
-                token: mockToken,
-                user: { id: username, name: user.name }
-            };
-        } else {
-            throw new Error('ユーザーまたはパスワードが正しくありません。');
-        }
+        throw new Error('サーバーに接続できません。ネットワーク接続を確認してください。');
     }
     
     // ローカルストレージからデータを取得
@@ -328,6 +311,18 @@ class APIClient {
 
     this.socket.on('authError', (message) => {
       console.error('認証エラー:', message);
+    });
+
+    this.socket.on('authRequired', (message) => {
+      console.log('認証が必要です:', message);
+      // トークンがある場合は自動で認証を試みる
+      if (this.token) {
+        this.socket.emit('authenticate', this.token);
+      }
+    });
+
+    this.socket.on('authenticated', (data) => {
+      console.log('WebSocket認証成功:', data);
     });
 
     // リアルタイム同期イベント
