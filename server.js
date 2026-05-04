@@ -162,8 +162,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'ユーザー名が無効です' });
     }
 
-    // パスワードの長さチェック（最小8文字、最大100文字）
-    if (typeof password !== 'string' || password.length < 8 || password.length > 100) {
+    // パスワードの長さチェック（最小6文字、最大100文字）
+    if (typeof password !== 'string' || password.length < 6 || password.length > 100) {
       return res.status(400).json({ error: 'パスワードが無効です' });
     }
 
