@@ -7,7 +7,7 @@
 -- 4. 「Run」ボタンをクリック
 
 INSERT INTO users (username, password_hash, name) VALUES
-('d', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '岡　和宏')
+('d', '$2a$10$IIUH.v7URVEIIuYNDoxVpeinANxkDzXgD9B8QYBPUCl5vkiOJAOfK', '岡　和宏')
 ON CONFLICT (username) DO NOTHING;
 
 -- 確認用クエリ

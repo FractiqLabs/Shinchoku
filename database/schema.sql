@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS likes (
 );
 
 -- 初期ユーザーデータ挿入
-INSERT OR IGNORE INTO users (username, password_hash, name) VALUES 
-('a', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '藤堂　友未枝'),
-('b', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '吉野　隼人'),
-('c', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '田中　慎治');
+INSERT OR IGNORE INTO users (username, password_hash, name) VALUES
+('a', '$2a$10$8WSp8maF9Ug0gqQtpIKzgOyw6hjlzgjLAIvnWXL/NxpeiSjVpX4jO', '藤堂　友未枝'),
+('b', '$2a$10$uSgv4slaHXq60but0b2eFu8b7hyUdyyl93EYfpiAQNh44K/3Cd80m', '吉野　隼人'),
+('c', '$2a$10$79Z3lJJW6L2w9vkHIm6Egep.23ZNeUiWg9VjNZw0vw7e6FWK.ROgC', '田中　慎治');
 
 -- サンプル申込者データ
 INSERT OR IGNORE INTO applicants (
