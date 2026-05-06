@@ -23,7 +23,7 @@ const server = http.createServer(app);
 // 例: ALLOWED_ORIGINS=https://example.com,https://app.example.com
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : (process.env.NODE_ENV === 'production' ? [] : ['*']); // 開発環境では全許可
+  : ['*']; // ALLOWED_ORIGINS未設定時は全許可
 
 const io = socketIo(server, {
   cors: {
@@ -34,6 +34,9 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// リバースプロキシ（Railway/Render等）のヘッダーを信頼する
+app.set('trust proxy', 1);
 
 // JWT_SECRETは必須（本番環境では必ず設定すること）
 let JWT_SECRET = process.env.JWT_SECRET;
@@ -49,11 +52,11 @@ if (!JWT_SECRET) {
 }
 
 // ミドルウェア
-// 本番環境でHTTPSを強制
-if (process.env.NODE_ENV === 'production') {
+// 本番環境でHTTPSを強制（307を使いPOSTメソッドを保持。platformがHTTPSを管理する場合はスキップ）
+if (process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS === 'true') {
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
+      res.redirect(307, `https://${req.header('host')}${req.url}`);
     } else {
       next();
     }
@@ -69,12 +72,11 @@ app.use(helmet({
 // CORS設定
 app.use(cors({
   origin: (origin, callback) => {
-    // 開発環境またはoriginが未指定（Postman等）の場合は許可
-    if (!origin || process.env.NODE_ENV !== 'production') {
+    // originが未指定（Postman等）または全許可設定の場合は許可
+    if (!origin || allowedOrigins.includes('*')) {
       return callback(null, true);
     }
-    // 本番環境では許可リストをチェック
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('CORS policy: Origin not allowed'));
