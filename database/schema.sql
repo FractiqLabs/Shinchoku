@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS likes (
 INSERT OR IGNORE INTO users (username, password_hash, name) VALUES
 ('a', '$2a$10$8WSp8maF9Ug0gqQtpIKzgOyw6hjlzgjLAIvnWXL/NxpeiSjVpX4jO', '藤堂　友未枝'),
 ('b', '$2a$10$uSgv4slaHXq60but0b2eFu8b7hyUdyyl93EYfpiAQNh44K/3Cd80m', '吉野　隼人'),
-('c', '$2a$10$79Z3lJJW6L2w9vkHIm6Egep.23ZNeUiWg9VjNZw0vw7e6FWK.ROgC', '田中　慎治');
+('c', '$2a$10$79Z3lJJW6L2w9vkHIm6Egep.23ZNeUiWg9VjNZw0vw7e6FWK.ROgC', '田中　慎治'),
+('d', '$2a$10$IIUH.v7URVEIIuYNDoxVpeinANxkDzXgD9B8QYBPUCl5vkiOJAOfK', '岡　和宏');
 
 -- サンプル申込者データ
 INSERT OR IGNORE INTO applicants (
