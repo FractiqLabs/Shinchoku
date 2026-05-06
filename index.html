@@ -9,7 +9,8 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="supabase-client.js?v=20260504-server-api"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js?v=20260504-server-api-2"></script>
     <script src="api-client.js?v=20251128-fix"></script>
     <style>
         @font-face {
@@ -1848,7 +1849,12 @@
               await loadApplicantViews();
             } catch (error) {
               console.error('Login failed:', error);
-              setLoginError(error.message || 'ログインに失敗しました。');
+              let msg = error.message || 'ログインに失敗しました。';
+              if (msg.includes('405') || msg.includes('404') || msg.includes('Failed to fetch')) {
+                msg = 'サーバーに接続できません。node server.js が起動しているか確認してください。\n' +
+                      '静的ホスティング（GitHub Pages等）でご利用の場合は supabase-config.js の apiUrl を設定してください。';
+              }
+              setLoginError(msg);
             }
           };
 

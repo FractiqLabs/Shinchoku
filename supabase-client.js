@@ -1,6 +1,10 @@
 // APIクライアント（server.js REST API経由）
 const createSupabaseApiClient = () => {
-  const BASE_URL = '/api';
+  // API_CONFIG.apiUrlが設定されていればそちらを使用（静的ホスティング用）
+  // 空の場合は同一オリジンの /api を使用（server.js経由アクセス用）
+  const BASE_URL = (window.API_CONFIG && window.API_CONFIG.apiUrl)
+    ? window.API_CONFIG.apiUrl + '/api'
+    : '/api';
   let _token = localStorage.getItem('authToken');
 
   const headers = () => ({
