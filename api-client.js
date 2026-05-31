@@ -296,6 +296,11 @@ class APIClient {
       return;
     }
 
+    if (typeof io === 'undefined') {
+      console.warn('socket.io クライアントが読み込まれていません。リアルタイム同期は無効です。');
+      return;
+    }
+
     this.socket = io();
     
     this.socket.on('connect', () => {
