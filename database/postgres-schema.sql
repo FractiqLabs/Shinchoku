@@ -117,10 +117,10 @@ ON user_applicant_views(applicant_id);
 
 -- 初期ユーザーデータ挿入
 INSERT INTO users (username, password_hash, name) VALUES
-('a', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '藤堂　友未枝'),
-('b', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '吉野　隼人'),
-('c', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '田中　慎治'),
-('d', '$2a$10$rQQqGqjMZJvPm5f5yP.rSe8QmN3LYx4wGF5M8wHrJ3FrKvE2qzNmy', '岡　和宏')
+('a', '$2a$10$1WQR5txYC/n73gQQVUgqeuKQohZoMxqlvKo2uKV07YikH60nsH6Xy', '藤堂　友未枝'),
+('b', '$2a$10$Xn5W9Dlh2EhU4juw4.pG9OFx5zcBAckbZ8YQvcSc9cY0BB1jDvygG', '吉野　隼人'),
+('c', '$2a$10$IuuRcQe1UItYFy.KcGOZZ.bMkBaj188.ZwKUumVlOfN0lENGbV1mS', '田中　慎治'),
+('d', '$2a$10$VoH9YLpdE49goxJjL21CBeZnziwokqwYQCae3d9M2RR7Im8MZu3kq', '岡　和宏')
 ON CONFLICT (username) DO NOTHING;
 
 -- サンプル申込者データ
