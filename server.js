@@ -49,17 +49,6 @@ if (!JWT_SECRET) {
 }
 
 // ミドルウェア
-// 本番環境でHTTPSを強制
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
-    }
-  });
-}
-
 // セキュリティヘッダーの設定（helmet）
 app.use(helmet({
   contentSecurityPolicy: false, // Reactアプリとの互換性のため無効化
@@ -67,14 +56,14 @@ app.use(helmet({
 }));
 
 // CORS設定
+// Railway/Render等のプラットフォームはHTTPSをプロキシ層で処理するため、
+// ExpressのHTTPSリダイレクトは不要（POSTがGETに変換されるバグの原因になる）。
+// ALLOWED_ORIGINSが設定されている場合はその許可リストを使用し、
+// 未設定の場合は全originを許可（JWT認証がセキュリティを担保）。
 app.use(cors({
   origin: (origin, callback) => {
-    // 開発環境またはoriginが未指定（Postman等）の場合は許可
-    if (!origin || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    // 本番環境では許可リストをチェック
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('CORS policy: Origin not allowed'));
