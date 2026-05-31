@@ -55,12 +55,18 @@ class PostgresDatabase {
     }
   }
 
+  // SQLiteの ? プレースホルダーをPostgreSQLの $1, $2... に変換
+  convertQuery(query) {
+    let i = 0;
+    return query.replace(/\?/g, () => `$${++i}`);
+  }
+
   async run(query, params = []) {
     try {
-      const result = await this.pool.query(query, params);
-      return { 
-        id: result.rows[0]?.id, 
-        changes: result.rowCount 
+      const result = await this.pool.query(this.convertQuery(query), params);
+      return {
+        id: result.rows[0]?.id,
+        changes: result.rowCount
       };
     } catch (err) {
       throw err;
@@ -69,7 +75,7 @@ class PostgresDatabase {
 
   async get(query, params = []) {
     try {
-      const result = await this.pool.query(query, params);
+      const result = await this.pool.query(this.convertQuery(query), params);
       return result.rows[0] || null;
     } catch (err) {
       throw err;
@@ -78,7 +84,7 @@ class PostgresDatabase {
 
   async all(query, params = []) {
     try {
-      const result = await this.pool.query(query, params);
+      const result = await this.pool.query(this.convertQuery(query), params);
       return result.rows;
     } catch (err) {
       throw err;
