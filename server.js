@@ -147,6 +147,20 @@ const authenticateToken = (req, res, next) => {
 
 // ========== 認証エンドポイント ==========
 
+// トークン検証・ユーザー情報取得
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await db.get('SELECT id, username, name FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(401).json({ error: 'ユーザーが見つかりません' });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error('ユーザー情報取得エラー:', error);
+    res.status(500).json({ error: 'サーバーエラーが発生しました' });
+  }
+});
+
 // ログイン
 app.post('/api/auth/login', async (req, res) => {
   try {

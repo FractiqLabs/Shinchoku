@@ -9,8 +9,9 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="supabase-client.js?v=20260504-server-api"></script>
-    <script src="api-client.js?v=20251128-fix"></script>
+    <script src="api-client.js?v=20260531-fix"></script>
     <style>
         @font-face {
             font-family: 'kirin-Regular';
@@ -1156,17 +1157,34 @@
 
           React.useEffect(() => {
             const token = localStorage.getItem('authToken');
-            if (token) {
-              // Supabaseのdummy-tokenはそのまま使用（検証スキップ）
-              if (token.startsWith('dummy-token-')) {
-                // トークンから簡易的にユーザー情報を復元
-                // 実際のアプリではSupabaseセッションを使うべき
-                apiClient.setToken(token);
-                // トークンが有効ならログイン状態を維持しない
-                // ログアウト後は再ログインが必要
-                localStorage.removeItem('authToken');
-              }
+            if (!token || token.startsWith('dummy-token-')) {
+              localStorage.removeItem('authToken');
+              return;
             }
+            // JWTトークンが存在する場合、サーバーで検証してセッションを復元
+            (async () => {
+              try {
+                apiClient.setToken(token);
+                const response = await fetch('/api/auth/me', {
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  setCurrentUser(data.user);
+                  setIsLoggedIn(true);
+                  apiClient.connectSocket();
+                  await loadApplicants();
+                  await fetchAllNotifications(data.user);
+                  await loadApplicantViews();
+                } else {
+                  localStorage.removeItem('authToken');
+                  apiClient.clearToken();
+                }
+              } catch (e) {
+                localStorage.removeItem('authToken');
+                apiClient.clearToken();
+              }
+            })();
           }, []);
 
           // 自動ログアウト機能（30分無操作でログアウト）
