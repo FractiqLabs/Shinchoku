@@ -60,7 +60,7 @@ app.use(helmet({
 // ExpressのHTTPSリダイレクトは不要（POSTがGETに変換されるバグの原因になる）。
 // ALLOWED_ORIGINSが設定されている場合はその許可リストを使用し、
 // 未設定の場合は全originを許可（JWT認証がセキュリティを担保）。
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
@@ -69,13 +69,19 @@ app.use(cors({
       callback(new Error('CORS policy: Origin not allowed'));
     }
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// OPTIONSプリフライトを全エンドポイントで明示的に許可
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 // レート制限設定（ブルートフォース攻撃対策）
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分
-  max: 5, // 15分間に5回まで
+  max: 20, // 15分間に20回まで
   message: { error: 'ログイン試行回数が多すぎます。15分後に再度お試しください。' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -197,12 +203,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    // 本番環境では詳細なエラー情報をログに出力しない（セキュリティ対策）
-    if (process.env.NODE_ENV === 'production') {
-      console.error('ログインエラーが発生しました');
-    } else {
-      console.error('ログインエラー:', error);
-    }
+    console.error('ログインエラー:', error.message);
     res.status(500).json({ error: 'サーバーエラーが発生しました' });
   }
 });
