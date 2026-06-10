@@ -224,6 +224,8 @@
   .badge-lent { background: #DBEAFE; color: #1E40AF; }
   .badge-free { background: #F1F5F9; color: var(--text-sub); }
   .badge-cat { background: #EFF6FF; color: var(--main); }
+  .badge-loc { background: #EEF2FF; color: #4338CA; }
+  .badge-loc-empty { background: #F1F5F9; color: var(--gray); }
 
   /* ===== モーダル ===== */
   .modal-overlay {
@@ -401,6 +403,10 @@
         <span class="filter-label">カテゴリ</span>
         <select id="filter-category" onchange="setFilter('category', this.value)"></select>
       </div>
+      <div class="filter-group">
+        <span class="filter-label">場所</span>
+        <select id="filter-location" onchange="setFilter('location', this.value)"></select>
+      </div>
       <div class="filter-group" id="filter-status">
         <span class="filter-label">状態</span>
         <button class="filter-btn active" data-value="all" onclick="setFilter('status','all',this)">すべて</button>
@@ -420,7 +426,7 @@
       <table>
         <thead>
           <tr>
-            <th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:280px;">操作</th>
+            <th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>現在の場所</th><th>備考</th><th style="width:280px;">操作</th>
           </tr>
         </thead>
         <tbody id="items-tbody"></tbody>
@@ -438,7 +444,7 @@
     <div class="table-card">
       <table>
         <thead>
-          <tr><th>備品名</th><th>借用者</th><th>借用日時</th><th>返却日時</th><th>操作者</th></tr>
+          <tr><th>備品名</th><th>借用者</th><th>借用日時</th><th>移動先</th><th>返却日時</th><th>返却場所</th><th>操作者</th></tr>
         </thead>
         <tbody id="history-tbody"></tbody>
       </table>
@@ -451,6 +457,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="staff" onclick="showTab('staff', this)">職員管理</button>
       <button class="tab" data-tab="categories" onclick="showTab('categories', this)">カテゴリ管理</button>
+      <button class="tab" data-tab="locations" onclick="showTab('locations', this)">場所管理</button>
       <button class="tab" data-tab="items" onclick="showTab('items', this)">備品管理</button>
       <button class="tab" data-tab="admin" onclick="showTab('admin', this)">管理者設定</button>
     </div>
@@ -499,6 +506,28 @@
       </div>
     </div>
 
+    <!-- タブ: 場所管理 -->
+    <div class="tab-pane" id="tab-locations">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="modal-title">場所の追加</div>
+          <div class="inline-form">
+            <div class="form-group">
+              <label for="new-location-name">場所名</label>
+              <input type="text" id="new-location-name" placeholder="例：2階フロア">
+            </div>
+            <button class="btn btn-borrow" onclick="addLocation()">追加</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>場所ID</th><th>場所名</th><th>登録日時</th><th style="width:170px;">操作</th></tr></thead>
+            <tbody id="locations-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- タブ3: 備品管理 -->
     <div class="tab-pane" id="tab-items">
       <div class="settings-grid">
@@ -511,6 +540,10 @@
           <div class="form-group">
             <label for="new-item-category">カテゴリ <span style="color:var(--red);">*</span></label>
             <select id="new-item-category"></select>
+          </div>
+          <div class="form-group">
+            <label for="new-item-location">保管場所</label>
+            <select id="new-item-location"></select>
           </div>
           <div class="form-group">
             <label for="new-item-note">備考</label>
@@ -530,7 +563,7 @@
         </div>
         <div class="table-card">
           <table>
-            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
+            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>現在の場所</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
             <tbody id="manage-items-tbody"></tbody>
           </table>
         </div>
@@ -559,7 +592,7 @@
   </div>
 </main>
 
-<footer>StockEasy v1.1.0</footer>
+<footer>StockEasy v1.2.0</footer>
 
 <!-- ===== 画面3: 借用モーダル ===== -->
 <div class="modal-overlay" id="modal-borrow">
@@ -571,6 +604,13 @@
       <select id="borrow-staff"></select>
       <div class="note-text" id="borrow-no-staff" style="display:none; margin-top:6px;">
         職員が登録されていません。管理者に職員の登録を依頼してください。
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="borrow-location">移動先（どこで使いますか？）</label>
+      <select id="borrow-location"></select>
+      <div class="note-text" id="borrow-no-location" style="display:none; margin-top:6px;">
+        場所が登録されていません。管理者に場所の登録を依頼してください。
       </div>
     </div>
     <div class="modal-actions">
@@ -588,9 +628,16 @@
       返却する備品：<strong id="return-item-name"></strong><br>
       現在の借用者：<strong id="return-borrower"></strong>
     </div>
+    <div class="form-group">
+      <label for="return-location">返却場所（どこに戻しますか？）</label>
+      <select id="return-location"></select>
+      <div class="note-text" id="return-no-location" style="display:none; margin-top:6px;">
+        場所が登録されていません。管理者に場所の登録を依頼してください。
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('modal-return')">キャンセル</button>
-      <button class="btn btn-return" onclick="submitReturn()">返却する</button>
+      <button class="btn btn-return" id="return-submit" onclick="submitReturn()">返却する</button>
     </div>
   </div>
 </div>
@@ -606,6 +653,10 @@
     <div class="form-group">
       <label for="edit-item-category">カテゴリ <span style="color:var(--red);">*</span></label>
       <select id="edit-item-category"></select>
+    </div>
+    <div class="form-group">
+      <label for="edit-item-location">保管場所（現在の場所）</label>
+      <select id="edit-item-location"></select>
     </div>
     <div class="form-group">
       <label for="edit-item-note">備考</label>
@@ -644,8 +695,9 @@ var state = {
   items: [],
   staff: [],
   categories: [],
+  locations: [],
   history: [],
-  filters: { category: 'all', status: 'all', lend: 'all', search: '' },
+  filters: { category: 'all', location: 'all', status: 'all', lend: 'all', search: '' },
   borrowTarget: null,
   returnTarget: null,
   editTarget: null
@@ -784,6 +836,7 @@ function refreshData() {
       state.items = data.items;
       state.staff = data.staff;
       state.categories = data.categories;
+      state.locations = data.locations || [];
       renderAll();
     })
     .catch(function (err) { toast(err.message, true); });
@@ -803,9 +856,11 @@ function loadHistory() {
 // ===========================================================================
 function renderAll() {
   renderCategoryOptions();
+  renderLocationOptions();
   renderItems();
   renderStaffList();
   renderCategoryList();
+  renderLocationList();
   renderManageItems();
 }
 
@@ -834,11 +889,39 @@ function renderCategoryOptions() {
   });
 }
 
+function locationOptionsHtml() {
+  return state.locations.map(function (l) {
+    return '<option value="' + esc(l.name) + '">' + esc(l.name) + '</option>';
+  }).join('');
+}
+
+function renderLocationOptions() {
+  var filterSel = document.getElementById('filter-location');
+  filterSel.innerHTML = '<option value="all">すべて</option>' + locationOptionsHtml();
+  filterSel.value = state.filters.location;
+  if (filterSel.selectedIndex < 0) { filterSel.value = 'all'; state.filters.location = 'all'; }
+
+  ['new-item-location', 'edit-item-location'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">未設定</option>' + locationOptionsHtml();
+    if (prev) sel.value = prev;
+    if (sel.selectedIndex < 0) sel.value = '';
+  });
+}
+
+function locationBadge(location) {
+  return location
+    ? '<span class="badge badge-loc">📍 ' + esc(location) + '</span>'
+    : '<span class="badge badge-loc-empty">未設定</span>';
+}
+
 function filteredItems() {
   var f = state.filters;
   var q = f.search.trim().toLowerCase();
   return state.items.filter(function (item) {
     if (f.category !== 'all' && item.category !== f.category) return false;
+    if (f.location !== 'all' && item.location !== f.location) return false;
     if (f.status !== 'all' && item.status !== f.status) return false;
     if (f.lend === 'lent' && !item.borrower) return false;
     if (f.lend === 'free' && item.borrower) return false;
@@ -852,7 +935,7 @@ function renderItems() {
   var tbody = document.getElementById('items-tbody');
   document.getElementById('item-count').textContent = items.length + ' 件 / 全 ' + state.items.length + ' 件';
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">該当する備品がありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">該当する備品がありません</td></tr>';
     return;
   }
   tbody.innerHTML = items.map(function (item) {
@@ -870,6 +953,7 @@ function renderItems() {
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
       '<td>' + statusBadge + '</td>' +
       '<td>' + lendBadge + '</td>' +
+      '<td>' + locationBadge(item.location) + '</td>' +
       '<td class="note-text">' + esc(item.note) + '</td>' +
       '<td>' +
         '<button class="btn btn-sm btn-borrow" ' + (item.borrower ? 'disabled' : '') + ' onclick="openBorrowModal(\'' + esc(item.id) + '\')">借用</button> ' +
@@ -888,7 +972,7 @@ function renderHistory() {
   document.getElementById('history-count').textContent = rows.length + ' 件';
   var tbody = document.getElementById('history-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">履歴がありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">履歴がありません</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(function (h) {
@@ -896,7 +980,9 @@ function renderHistory() {
       '<td><strong>' + esc(h.itemName) + '</strong></td>' +
       '<td>' + esc(h.borrower) + '</td>' +
       '<td>' + esc(h.borrowedAt) + '</td>' +
+      '<td>' + (h.moveTo ? locationBadge(h.moveTo) : '<span class="note-text">—</span>') + '</td>' +
       '<td>' + (h.returnedAt ? esc(h.returnedAt) : '<span class="badge badge-lent">貸出中</span>') + '</td>' +
+      '<td>' + (h.returnPlace ? locationBadge(h.returnPlace) : '<span class="note-text">—</span>') + '</td>' +
       '<td class="note-text">' + esc(h.operator) + '</td>' +
     '</tr>';
   }).join('');
@@ -940,7 +1026,7 @@ function renderCategoryList() {
 function renderManageItems() {
   var tbody = document.getElementById('manage-items-tbody');
   if (state.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">備品が登録されていません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">備品が登録されていません</td></tr>';
     return;
   }
   tbody.innerHTML = state.items.map(function (item) {
@@ -957,6 +1043,7 @@ function renderManageItems() {
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
       '<td>' + statusBadge + '</td>' +
       '<td>' + lendBadge + '</td>' +
+      '<td>' + locationBadge(item.location) + '</td>' +
       '<td class="note-text">' + esc(item.note) + '</td>' +
       '<td>' +
         '<button class="btn btn-sm btn-edit" onclick="openEditItemModal(\'' + esc(item.id) + '\')">編集</button> ' +
@@ -1077,19 +1164,24 @@ function openBorrowModal(itemId) {
   sel.innerHTML = state.staff.map(function (s) {
     return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
   }).join('');
+  document.getElementById('borrow-location').innerHTML = locationOptionsHtml();
   var hasStaff = state.staff.length > 0;
+  var hasLocations = state.locations.length > 0;
   document.getElementById('borrow-no-staff').style.display = hasStaff ? 'none' : '';
-  document.getElementById('borrow-submit').disabled = !hasStaff;
+  document.getElementById('borrow-no-location').style.display = hasLocations ? 'none' : '';
+  document.getElementById('borrow-submit').disabled = !hasStaff || !hasLocations;
   openModal('modal-borrow');
 }
 
 function submitBorrow() {
   var item = state.borrowTarget;
   var staffName = document.getElementById('borrow-staff').value;
+  var location = document.getElementById('borrow-location').value;
   if (!item) return;
   if (!staffName) { toast('職員を選択してください。', true); return; }
+  if (!location) { toast('移動先（場所）を選択してください。', true); return; }
   closeModal('modal-borrow');
-  call('borrow', { itemId: item.id, staffName: staffName, operator: operatorName() })
+  call('borrow', { itemId: item.id, staffName: staffName, location: location, operator: operatorName() })
     .then(function (data) { toast(data.message); return refreshData(); })
     .catch(function (err) { toast(err.message, true); refreshData(); });
 }
@@ -1101,14 +1193,20 @@ function openReturnModal(itemId) {
   state.returnTarget = item;
   document.getElementById('return-item-name').textContent = item.name;
   document.getElementById('return-borrower').textContent = item.borrower + ' さん';
+  document.getElementById('return-location').innerHTML = locationOptionsHtml();
+  var hasLocations = state.locations.length > 0;
+  document.getElementById('return-no-location').style.display = hasLocations ? 'none' : '';
+  document.getElementById('return-submit').disabled = !hasLocations;
   openModal('modal-return');
 }
 
 function submitReturn() {
   var item = state.returnTarget;
+  var location = document.getElementById('return-location').value;
   if (!item) return;
+  if (!location) { toast('返却場所を選択してください。', true); return; }
   closeModal('modal-return');
-  call('return', { itemId: item.id, operator: operatorName() })
+  call('return', { itemId: item.id, location: location, operator: operatorName() })
     .then(function (data) { toast(data.message); return refreshData(); })
     .catch(function (err) { toast(err.message, true); refreshData(); });
 }
@@ -1174,15 +1272,68 @@ function deleteCategory(catId) {
 }
 
 // ===========================================================================
+// 設定: 場所
+// ===========================================================================
+function renderLocationList() {
+  var tbody = document.getElementById('locations-tbody');
+  if (state.locations.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-row">場所が登録されていません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.locations.map(function (l) {
+    return '<tr>' +
+      '<td>' + esc(l.id) + '</td>' +
+      '<td><strong>' + esc(l.name) + '</strong></td>' +
+      '<td class="note-text">' + esc(l.createdAt) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-edit" onclick="editLocation(\'' + esc(l.id) + '\')">編集</button> ' +
+        '<button class="btn btn-sm btn-delete" onclick="deleteLocation(\'' + esc(l.id) + '\')">削除</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function addLocation() {
+  var input = document.getElementById('new-location-name');
+  var name = input.value.trim();
+  if (!name) { toast('場所名を入力してください。', true); return; }
+  call('addLocation', { name: name })
+    .then(function (data) { input.value = ''; toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function editLocation(locId) {
+  var loc = state.locations.find(function (l) { return l.id === locId; });
+  if (!loc) return;
+  var name = prompt('新しい場所名を入力してください。', loc.name);
+  if (name === null) return;
+  name = name.trim();
+  if (!name) { toast('場所名を入力してください。', true); return; }
+  call('updateLocation', { locationId: locId, name: name })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function deleteLocation(locId) {
+  var loc = state.locations.find(function (l) { return l.id === locId; });
+  if (!loc) return;
+  if (!confirm('場所「' + loc.name + '」を削除します。よろしいですか？')) return;
+  call('deleteLocation', { locationId: locId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
 // 設定: 備品
 // ===========================================================================
 function addItem() {
   var name = document.getElementById('new-item-name').value.trim();
   var category = document.getElementById('new-item-category').value;
+  var location = document.getElementById('new-item-location').value;
   var note = document.getElementById('new-item-note').value.trim();
   if (!name) { toast('備品名を入力してください。', true); return; }
   if (!category) { toast('カテゴリを選択してください。', true); return; }
-  call('addItem', { name: name, category: category, note: note, imageData: imageDraft.new })
+  call('addItem', { name: name, category: category, location: location, note: note, imageData: imageDraft.new })
     .then(function (data) {
       document.getElementById('new-item-name').value = '';
       document.getElementById('new-item-note').value = '';
@@ -1201,6 +1352,9 @@ function openEditItemModal(itemId) {
   state.editTarget = item;
   document.getElementById('edit-item-name').value = item.name;
   document.getElementById('edit-item-category').value = item.category;
+  var locSel = document.getElementById('edit-item-location');
+  locSel.value = item.location || '';
+  if (locSel.selectedIndex < 0) locSel.value = '';
   document.getElementById('edit-item-note').value = item.note;
   imageDraft.edit = null;
   editRemoveImage = false;
@@ -1222,6 +1376,7 @@ function submitEditItem() {
     itemId: item.id,
     name: name,
     category: category,
+    location: document.getElementById('edit-item-location').value,
     note: note,
     imageData: imageDraft.edit,
     removeImage: editRemoveImage && !imageDraft.edit

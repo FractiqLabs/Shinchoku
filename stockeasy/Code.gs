@@ -21,6 +21,7 @@ var SHEET = {
   HISTORY: 'history',
   STAFF: 'staff',
   CATEGORIES: 'categories',
+  LOCATIONS: 'locations',
   ADMINS: 'admins'
 };
 
@@ -40,10 +41,11 @@ var IMAGE_FOLDER_NAME = 'StockEasy_Images';
 function setupSheets() {
   var ss = getSpreadsheet_();
   var defs = [
-    { name: SHEET.ITEMS,      headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時', '画像ファイルID'] },
-    { name: SHEET.HISTORY,    headers: ['履歴ID', '備品ID', '備品名', '借用者名', '借用日時', '返却日時', '操作者'] },
+    { name: SHEET.ITEMS,      headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時', '画像ファイルID', '現在の場所'] },
+    { name: SHEET.HISTORY,    headers: ['履歴ID', '備品ID', '備品名', '借用者名', '借用日時', '返却日時', '操作者', '移動先', '返却場所'] },
     { name: SHEET.STAFF,      headers: ['職員ID', '職員名', '登録日時'] },
     { name: SHEET.CATEGORIES, headers: ['カテゴリID', 'カテゴリ名', '登録日時'] },
+    { name: SHEET.LOCATIONS,  headers: ['場所ID', '場所名', '登録日時'] },
     { name: SHEET.ADMINS,     headers: ['管理者ID', 'パスワード'] }
   ];
 
@@ -59,11 +61,13 @@ function setupSheets() {
     }
   });
 
-  // v1.1: 既存の items シートに画像列がない場合は見出しを追加する
+  // v1.1〜: 既存シートに後から追加された列の見出しを補う
   var items = ss.getSheetByName(SHEET.ITEMS);
-  if (items.getRange(1, 8).getDisplayValue() === '') {
-    items.getRange(1, 8).setValue('画像ファイルID').setFontWeight('bold').setBackground('#E2E8F0');
-  }
+  ensureHeader_(items, 8, '画像ファイルID');   // v1.1
+  ensureHeader_(items, 9, '現在の場所');       // v1.2
+  var history = ss.getSheetByName(SHEET.HISTORY);
+  ensureHeader_(history, 8, '移動先');         // v1.2
+  ensureHeader_(history, 9, '返却場所');       // v1.2
 
   // 初期データ: 管理者 admin / 1234
   var admins = ss.getSheetByName(SHEET.ADMINS);
@@ -78,6 +82,22 @@ function setupSheets() {
     initial.forEach(function (name) {
       cats.appendRow([nextId_(cats, 'CAT-'), name, now_()]);
     });
+  }
+
+  // 初期データ: 場所
+  var locs = ss.getSheetByName(SHEET.LOCATIONS);
+  if (locs.getLastRow() < 2) {
+    var initialLocs = ['事務室', '相談室', '会議室', '倉庫'];
+    initialLocs.forEach(function (name) {
+      locs.appendRow([nextId_(locs, 'LOC-'), name, now_()]);
+    });
+  }
+}
+
+/** 見出し行の指定列が空なら見出しを設定する（バージョンアップ時の列追加用） */
+function ensureHeader_(sheet, col, title) {
+  if (sheet.getRange(1, col).getDisplayValue() === '') {
+    sheet.getRange(1, col).setValue(title).setFontWeight('bold').setBackground('#E2E8F0');
   }
 }
 
@@ -144,6 +164,9 @@ function handleApi_(action, p) {
       case 'addCategory':    requireAdmin_(p); return withLock_(function () { return apiAddCategory_(p); });
       case 'updateCategory': requireAdmin_(p); return withLock_(function () { return apiUpdateCategory_(p); });
       case 'deleteCategory': requireAdmin_(p); return withLock_(function () { return apiDeleteCategory_(p); });
+      case 'addLocation':    requireAdmin_(p); return withLock_(function () { return apiAddLocation_(p); });
+      case 'updateLocation': requireAdmin_(p); return withLock_(function () { return apiUpdateLocation_(p); });
+      case 'deleteLocation': requireAdmin_(p); return withLock_(function () { return apiDeleteLocation_(p); });
       case 'addItem':        requireAdmin_(p); return withLock_(function () { return apiAddItem_(p); });
       case 'updateItem':     requireAdmin_(p); return withLock_(function () { return apiUpdateItem_(p); });
       case 'deleteItem':     requireAdmin_(p); return withLock_(function () { return apiDeleteItem_(p); });
@@ -196,7 +219,8 @@ function apiGetData_() {
   return ok_({
     items: readItems_(),
     staff: readStaff_(),
-    categories: readCategories_()
+    categories: readCategories_(),
+    locations: readLocations_()
   });
 }
 
@@ -210,7 +234,9 @@ function apiGetHistory_() {
       borrower: row[3],
       borrowedAt: row[4],
       returnedAt: row[5],
-      operator: row[6]
+      operator: row[6],
+      moveTo: row[7] || '',
+      returnPlace: row[8] || ''
     };
   });
   history.reverse(); // 新しい順
@@ -227,7 +253,8 @@ function readItems_() {
       borrower: row[4],
       note: row[5],
       createdAt: row[6],
-      imageId: row[7] || ''
+      imageId: row[7] || '',
+      location: row[8] || ''
     };
   });
 }
@@ -244,6 +271,12 @@ function readCategories_() {
   });
 }
 
+function readLocations_() {
+  return readRows_(SHEET.LOCATIONS).map(function (row) {
+    return { id: row[0], name: row[1], createdAt: row[2] };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // API: 借用・返却・要修理
 // ---------------------------------------------------------------------------
@@ -251,9 +284,11 @@ function readCategories_() {
 function apiBorrow_(p) {
   var itemId = trim_(p.itemId);
   var staffName = trim_(p.staffName);
+  var location = trim_(p.location);
   var operator = trim_(p.operator) || 'ゲスト';
   if (!itemId) return ng_('備品IDが指定されていません。');
   if (!staffName) return ng_('借用者（職員）を選択してください。');
+  if (!location) return ng_('移動先（場所）を選択してください。');
 
   var sheet = getSheet_(SHEET.ITEMS);
   var row = findRowById_(sheet, itemId);
@@ -265,17 +300,20 @@ function apiBorrow_(p) {
   }
 
   sheet.getRange(row, 5).setValue(staffName);
+  sheet.getRange(row, 9).setValue(location);
 
   var history = getSheet_(SHEET.HISTORY);
-  history.appendRow([nextId_(history, 'HIST-'), itemId, current[1], staffName, now_(), '', operator]);
+  history.appendRow([nextId_(history, 'HIST-'), itemId, current[1], staffName, now_(), '', operator, location, '']);
 
-  return ok_({ message: '「' + current[1] + '」を ' + staffName + ' さんに貸し出しました。' });
+  return ok_({ message: '「' + current[1] + '」を ' + staffName + ' さんに貸し出しました（移動先：' + location + '）。' });
 }
 
 function apiReturn_(p) {
   var itemId = trim_(p.itemId);
+  var location = trim_(p.location);
   var operator = trim_(p.operator) || 'ゲスト';
   if (!itemId) return ng_('備品IDが指定されていません。');
+  if (!location) return ng_('返却場所を選択してください。');
 
   var sheet = getSheet_(SHEET.ITEMS);
   var row = findRowById_(sheet, itemId);
@@ -287,6 +325,7 @@ function apiReturn_(p) {
   }
 
   sheet.getRange(row, 5).setValue('');
+  sheet.getRange(row, 9).setValue(location);
 
   // 履歴のうち、この備品で返却日時が空の最新行を更新する
   var history = getSheet_(SHEET.HISTORY);
@@ -297,6 +336,7 @@ function apiReturn_(p) {
       if (rows[i][1] === itemId && !rows[i][5]) {
         var r = i + 2;
         history.getRange(r, 6).setValue(now_());
+        history.getRange(r, 9).setValue(location);
         if (rows[i][6] !== operator) {
           history.getRange(r, 7).setValue(rows[i][6] + ' / 返却: ' + operator);
         }
@@ -305,7 +345,7 @@ function apiReturn_(p) {
     }
   }
 
-  return ok_({ message: '「' + current[1] + '」を返却しました。' });
+  return ok_({ message: '「' + current[1] + '」を返却しました（返却場所：' + location + '）。' });
 }
 
 function apiToggleRepair_(p) {
@@ -413,6 +453,63 @@ function apiDeleteCategory_(p) {
 }
 
 // ---------------------------------------------------------------------------
+// API: 場所管理
+// ---------------------------------------------------------------------------
+
+function apiAddLocation_(p) {
+  var name = trim_(p.name);
+  if (!name) return ng_('場所名を入力してください。');
+
+  var sheet = getSheet_(SHEET.LOCATIONS);
+  if (existsInColumn_(sheet, 2, name)) return ng_('同名の場所がすでに登録されています。');
+
+  sheet.appendRow([nextId_(sheet, 'LOC-'), name, now_()]);
+  return ok_({ message: '場所「' + name + '」を追加しました。' });
+}
+
+function apiUpdateLocation_(p) {
+  var locId = trim_(p.locationId);
+  var name = trim_(p.name);
+  if (!name) return ng_('場所名を入力してください。');
+
+  var sheet = getSheet_(SHEET.LOCATIONS);
+  var row = findRowById_(sheet, locId);
+  if (row < 0) return ng_('対象の場所が見つかりません。');
+
+  var oldName = sheet.getRange(row, 2).getDisplayValue();
+  sheet.getRange(row, 2).setValue(name);
+
+  // 備品の「現在の場所」も追従して更新する
+  var items = getSheet_(SHEET.ITEMS);
+  var last = items.getLastRow();
+  if (last >= 2) {
+    var range = items.getRange(2, 9, last - 1, 1);
+    var values = range.getDisplayValues();
+    var changed = false;
+    values.forEach(function (v) {
+      if (v[0] === oldName) { v[0] = name; changed = true; }
+    });
+    if (changed) range.setValues(values);
+  }
+
+  return ok_({ message: '場所名を「' + name + '」に変更しました。' });
+}
+
+function apiDeleteLocation_(p) {
+  var locId = trim_(p.locationId);
+  var sheet = getSheet_(SHEET.LOCATIONS);
+  var row = findRowById_(sheet, locId);
+  if (row < 0) return ng_('対象の場所が見つかりません。');
+
+  var name = sheet.getRange(row, 2).getDisplayValue();
+  var inUse = readItems_().some(function (item) { return item.location === name; });
+  if (inUse) return ng_('場所「' + name + '」にある備品が存在するため削除できません。');
+
+  sheet.deleteRow(row);
+  return ok_({ message: '場所「' + name + '」を削除しました。' });
+}
+
+// ---------------------------------------------------------------------------
 // API: 備品管理
 // ---------------------------------------------------------------------------
 
@@ -429,7 +526,7 @@ function apiAddItem_(p) {
   }
 
   var sheet = getSheet_(SHEET.ITEMS);
-  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_(), imageId]);
+  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_(), imageId, trim_(p.location)]);
   return ok_({ message: '備品「' + name + '」を登録しました。' });
 }
 
@@ -448,6 +545,9 @@ function apiUpdateItem_(p) {
   sheet.getRange(row, 2).setValue(name);
   sheet.getRange(row, 3).setValue(category);
   sheet.getRange(row, 6).setValue(note);
+  if (p.location !== undefined) {
+    sheet.getRange(row, 9).setValue(trim_(p.location));
+  }
 
   // 画像の差し替え・削除
   var imageCell = sheet.getRange(row, 8);
