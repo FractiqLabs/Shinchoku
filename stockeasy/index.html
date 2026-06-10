@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>StockEasy | 備品管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --main: #3B82F6;
+    --main-dark: #2563EB;
+    --accent: #FCD34D;
+    --green: #10B981;
+    --green-dark: #059669;
+    --orange: #F59E0B;
+    --orange-dark: #D97706;
+    --red: #EF4444;
+    --red-dark: #DC2626;
+    --gray: #94A3B8;
+    --gray-dark: #64748B;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #1E293B;
+    --text-sub: #64748B;
+    --border: #E2E8F0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-width: 1024px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== ヘッダー ===== */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--main);
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .logo .logo-mark { color: var(--accent); }
+  nav { display: flex; align-items: center; gap: 8px; }
+  .nav-link {
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: var(--text-sub);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
+  .nav-link:hover { background: var(--bg); color: var(--text); }
+  .nav-link.active { background: #EFF6FF; color: var(--main); }
+  .user-badge {
+    margin-left: 12px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--accent);
+    color: #78350F;
+  }
+  .user-badge.guest { background: var(--border); color: var(--text-sub); }
+
+  /* ===== レイアウト ===== */
+  main { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--text-sub);
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+
+  /* ===== ボタン ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    transition: background-color 0.15s;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-sm { padding: 5px 12px; font-size: 13px; }
+  .btn-borrow { background: var(--main); }
+  .btn-borrow:hover:not(:disabled) { background: var(--main-dark); }
+  .btn-return { background: var(--green); }
+  .btn-return:hover:not(:disabled) { background: var(--green-dark); }
+  .btn-repair { background: var(--orange); }
+  .btn-repair:hover:not(:disabled) { background: var(--orange-dark); }
+  .btn-delete { background: var(--red); }
+  .btn-delete:hover:not(:disabled) { background: var(--red-dark); }
+  .btn-cancel { background: var(--gray); }
+  .btn-cancel:hover:not(:disabled) { background: var(--gray-dark); }
+  .btn-edit { background: var(--card); color: var(--main); border: 1px solid var(--main); }
+  .btn-edit:hover:not(:disabled) { background: #EFF6FF; }
+
+  /* ===== カード・フォーム ===== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    padding: 24px;
+  }
+  input[type="text"], input[type="password"], select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--card);
+  }
+  input:focus, select:focus { outline: 2px solid var(--main); outline-offset: -1px; }
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; }
+  .form-group { margin-bottom: 16px; }
+
+  /* ===== ログイン画面 ===== */
+  #view-login { display: none; }
+  #view-login.active { display: flex; justify-content: center; padding-top: 60px; }
+  .login-card { width: 400px; }
+  .login-logo { text-align: center; font-size: 32px; font-weight: 700; color: var(--main); margin-bottom: 8px; }
+  .login-sub { text-align: center; font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
+  .login-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0; color: var(--text-sub); font-size: 12px;
+  }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .btn-block { width: 100%; padding: 11px; }
+
+  /* ===== フィルタバー ===== */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 13px; color: var(--text-sub); font-weight: 500; }
+  .filter-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text-sub);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .filter-btn:hover { border-color: var(--main); color: var(--main); }
+  .filter-btn.active { background: var(--main); border-color: var(--main); color: #fff; }
+  .search-box { width: 240px; }
+  .filter-bar select { width: auto; min-width: 140px; }
+
+  /* ===== テーブル ===== */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--bg);
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #FAFCFF; }
+  .empty-row { text-align: center; color: var(--text-sub); padding: 40px !important; }
+
+  /* ===== バッジ ===== */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-normal { background: #D1FAE5; color: #065F46; }
+  .badge-repair { background: #FEF3C7; color: #92400E; }
+  .badge-lent { background: #DBEAFE; color: #1E40AF; }
+  .badge-free { background: #F1F5F9; color: var(--text-sub); }
+  .badge-cat { background: #EFF6FF; color: var(--main); }
+
+  /* ===== モーダル ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 100px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    width: 440px;
+    padding: 24px;
+  }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+  .modal-target {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .modal-target strong { font-size: 15px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  /* ===== 設定タブ ===== */
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+  .tab:hover { color: var(--main); }
+  .tab.active { color: var(--main); border-bottom-color: var(--main); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .settings-grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+  .inline-form { display: flex; gap: 8px; align-items: flex-end; }
+  .inline-form .form-group { flex: 1; margin-bottom: 0; }
+
+  /* ===== トースト ===== */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 300;
+    max-width: 600px;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.error { background: var(--red-dark); }
+
+  /* ===== ローディング ===== */
+  #loading {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(248, 250, 252, 0.6);
+    z-index: 250;
+    justify-content: center;
+    align-items: center;
+  }
+  #loading.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid var(--border);
+    border-top-color: var(--main);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .note-text { font-size: 12px; color: var(--text-sub); }
+  .count-label { font-size: 13px; color: var(--text-sub); margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header id="app-header" style="display:none;">
+  <div class="header-inner">
+    <div class="logo" onclick="showView('dashboard')">Stock<span class="logo-mark">Easy</span></div>
+    <nav>
+      <button class="nav-link" data-view="dashboard" onclick="showView('dashboard')">ダッシュボード</button>
+      <button class="nav-link" data-view="history" onclick="showView('history')">履歴</button>
+      <button class="nav-link" data-view="settings" id="nav-settings" onclick="showView('settings')" style="display:none;">設定</button>
+      <button class="nav-link" onclick="logout()">ログアウト</button>
+      <span class="user-badge" id="user-badge"></span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ===== 画面1: ログイン ===== -->
+  <div class="view" id="view-login">
+    <div class="card login-card">
+      <div class="login-logo">Stock<span style="color:var(--accent);">Easy</span></div>
+      <div class="login-sub">備品管理アプリ</div>
+      <div class="form-group">
+        <label for="login-id">管理者ID</label>
+        <input type="text" id="login-id" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="login-pw">パスワード</label>
+        <input type="password" id="login-pw" autocomplete="current-password">
+      </div>
+      <button class="btn btn-borrow btn-block" onclick="login()">ログイン</button>
+      <div class="login-divider">または</div>
+      <button class="btn btn-cancel btn-block" onclick="loginAsGuest()">ゲストとして利用する</button>
+    </div>
+  </div>
+
+  <!-- ===== 画面2: ダッシュボード ===== -->
+  <div class="view" id="view-dashboard">
+    <div class="page-title">備品一覧</div>
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">カテゴリ</span>
+        <select id="filter-category" onchange="setFilter('category', this.value)"></select>
+      </div>
+      <div class="filter-group" id="filter-status">
+        <span class="filter-label">状態</span>
+        <button class="filter-btn active" data-value="all" onclick="setFilter('status','all',this)">すべて</button>
+        <button class="filter-btn" data-value="正常" onclick="setFilter('status','正常',this)">正常</button>
+        <button class="filter-btn" data-value="要修理" onclick="setFilter('status','要修理',this)">要修理</button>
+      </div>
+      <div class="filter-group" id="filter-lend">
+        <span class="filter-label">貸出</span>
+        <button class="filter-btn active" data-value="all" onclick="setFilter('lend','all',this)">すべて</button>
+        <button class="filter-btn" data-value="lent" onclick="setFilter('lend','lent',this)">貸出中</button>
+        <button class="filter-btn" data-value="free" onclick="setFilter('lend','free',this)">未貸出</button>
+      </div>
+      <input type="text" class="search-box" id="search-items" placeholder="備品名で検索…" oninput="setFilter('search', this.value)">
+      <span class="count-label" id="item-count"></span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:280px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 画面5: 履歴 ===== -->
+  <div class="view" id="view-history">
+    <div class="page-title">借用履歴</div>
+    <div class="filter-bar">
+      <input type="text" class="search-box" id="search-history" placeholder="備品名で検索…" oninput="renderHistory()">
+      <span class="count-label" id="history-count"></span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr><th>備品名</th><th>借用者</th><th>借用日時</th><th>返却日時</th><th>操作者</th></tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 画面6: 設定 ===== -->
+  <div class="view" id="view-settings">
+    <div class="page-title">設定</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="staff" onclick="showTab('staff', this)">職員管理</button>
+      <button class="tab" data-tab="categories" onclick="showTab('categories', this)">カテゴリ管理</button>
+      <button class="tab" data-tab="items" onclick="showTab('items', this)">備品管理</button>
+      <button class="tab" data-tab="admin" onclick="showTab('admin', this)">管理者設定</button>
+    </div>
+
+    <!-- タブ1: 職員管理 -->
+    <div class="tab-pane active" id="tab-staff">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="modal-title">職員の追加</div>
+          <div class="inline-form">
+            <div class="form-group">
+              <label for="new-staff-name">職員名</label>
+              <input type="text" id="new-staff-name" placeholder="例：山田 太郎">
+            </div>
+            <button class="btn btn-borrow" onclick="addStaff()">追加</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>職員ID</th><th>職員名</th><th>登録日時</th><th style="width:100px;">操作</th></tr></thead>
+            <tbody id="staff-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ2: カテゴリ管理 -->
+    <div class="tab-pane" id="tab-categories">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="modal-title">カテゴリの追加</div>
+          <div class="inline-form">
+            <div class="form-group">
+              <label for="new-category-name">カテゴリ名</label>
+              <input type="text" id="new-category-name" placeholder="例：清掃用品">
+            </div>
+            <button class="btn btn-borrow" onclick="addCategory()">追加</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>カテゴリID</th><th>カテゴリ名</th><th>登録日時</th><th style="width:170px;">操作</th></tr></thead>
+            <tbody id="categories-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ3: 備品管理 -->
+    <div class="tab-pane" id="tab-items">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="modal-title">備品の新規登録</div>
+          <div class="form-group">
+            <label for="new-item-name">備品名 <span style="color:var(--red);">*</span></label>
+            <input type="text" id="new-item-name" placeholder="例：車椅子A">
+          </div>
+          <div class="form-group">
+            <label for="new-item-category">カテゴリ <span style="color:var(--red);">*</span></label>
+            <select id="new-item-category"></select>
+          </div>
+          <div class="form-group">
+            <label for="new-item-note">備考</label>
+            <input type="text" id="new-item-note" placeholder="任意">
+          </div>
+          <button class="btn btn-borrow btn-block" onclick="addItem()">登録する</button>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
+            <tbody id="manage-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ4: 管理者設定 -->
+    <div class="tab-pane" id="tab-admin">
+      <div class="card" style="width:400px;">
+        <div class="modal-title">パスワードの変更</div>
+        <div class="form-group">
+          <label for="pw-current">現在のパスワード</label>
+          <input type="password" id="pw-current">
+        </div>
+        <div class="form-group">
+          <label for="pw-new">新しいパスワード</label>
+          <input type="password" id="pw-new">
+        </div>
+        <div class="form-group">
+          <label for="pw-confirm">新しいパスワード（確認）</label>
+          <input type="password" id="pw-confirm">
+        </div>
+        <button class="btn btn-borrow btn-block" onclick="changePassword()">変更する</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>StockEasy v1.0.0</footer>
+
+<!-- ===== 画面3: 借用モーダル ===== -->
+<div class="modal-overlay" id="modal-borrow">
+  <div class="modal">
+    <div class="modal-title">備品の借用</div>
+    <div class="modal-target">借用する備品：<strong id="borrow-item-name"></strong></div>
+    <div class="form-group">
+      <label for="borrow-staff">借用する職員</label>
+      <select id="borrow-staff"></select>
+      <div class="note-text" id="borrow-no-staff" style="display:none; margin-top:6px;">
+        職員が登録されていません。管理者に職員の登録を依頼してください。
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('modal-borrow')">キャンセル</button>
+      <button class="btn btn-borrow" id="borrow-submit" onclick="submitBorrow()">借用する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 画面4: 返却モーダル ===== -->
+<div class="modal-overlay" id="modal-return">
+  <div class="modal">
+    <div class="modal-title">備品の返却</div>
+    <div class="modal-target">
+      返却する備品：<strong id="return-item-name"></strong><br>
+      現在の借用者：<strong id="return-borrower"></strong>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('modal-return')">キャンセル</button>
+      <button class="btn btn-return" onclick="submitReturn()">返却する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 備品編集モーダル ===== -->
+<div class="modal-overlay" id="modal-edit-item">
+  <div class="modal">
+    <div class="modal-title">備品の編集</div>
+    <div class="form-group">
+      <label for="edit-item-name">備品名 <span style="color:var(--red);">*</span></label>
+      <input type="text" id="edit-item-name">
+    </div>
+    <div class="form-group">
+      <label for="edit-item-category">カテゴリ <span style="color:var(--red);">*</span></label>
+      <select id="edit-item-category"></select>
+    </div>
+    <div class="form-group">
+      <label for="edit-item-note">備考</label>
+      <input type="text" id="edit-item-note">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('modal-edit-item')">キャンセル</button>
+      <button class="btn btn-borrow" onclick="submitEditItem()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<script>
+// ===========================================================================
+// 状態管理
+// ===========================================================================
+var state = {
+  items: [],
+  staff: [],
+  categories: [],
+  history: [],
+  filters: { category: 'all', status: 'all', lend: 'all', search: '' },
+  borrowTarget: null,
+  returnTarget: null,
+  editTarget: null
+};
+
+var SESSION_KEY = 'stockeasy_session';
+
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch (e) { return null; }
+}
+function isAdmin() {
+  var s = getSession();
+  return !!(s && s.role === 'admin');
+}
+function operatorName() {
+  var s = getSession();
+  return s && s.role === 'admin' ? s.adminId : 'ゲスト';
+}
+
+// ===========================================================================
+// サーバー呼び出し
+// ===========================================================================
+function call(action, params, silent) {
+  if (!silent) showLoading(true);
+  return new Promise(function (resolve, reject) {
+    var payload = Object.assign({ action: action }, params || {});
+    if (isAdmin()) {
+      var s = getSession();
+      payload.adminId = payload.adminId || s.adminId;
+      payload.password = payload.password || s.password;
+    }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!silent) showLoading(false);
+        if (res && res.success) resolve(res.data);
+        else reject(new Error((res && res.error) || '処理に失敗しました。'));
+      })
+      .withFailureHandler(function (err) {
+        if (!silent) showLoading(false);
+        reject(new Error(err && err.message ? err.message : '通信エラーが発生しました。'));
+      })
+      .api(payload);
+  });
+}
+
+// ===========================================================================
+// 初期化・画面遷移
+// ===========================================================================
+window.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('login-pw').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') login();
+  });
+  if (getSession()) {
+    enterApp();
+  } else {
+    showView('login');
+  }
+});
+
+function enterApp() {
+  document.getElementById('app-header').style.display = '';
+  var badge = document.getElementById('user-badge');
+  if (isAdmin()) {
+    badge.textContent = '管理者：' + getSession().adminId;
+    badge.classList.remove('guest');
+    document.getElementById('nav-settings').style.display = '';
+  } else {
+    badge.textContent = 'ゲスト';
+    badge.classList.add('guest');
+    document.getElementById('nav-settings').style.display = 'none';
+  }
+  showView('dashboard');
+  refreshData();
+}
+
+function showView(name) {
+  if (name !== 'login' && !getSession()) name = 'login';
+  if (name === 'settings' && !isAdmin()) {
+    toast('設定画面は管理者のみ利用できます。', true);
+    return;
+  }
+  document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('app-header').style.display = (name === 'login') ? 'none' : '';
+  document.querySelectorAll('.nav-link[data-view]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-view') === name);
+  });
+  if (name === 'history') loadHistory();
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ===========================================================================
+// 認証
+// ===========================================================================
+function login() {
+  var id = document.getElementById('login-id').value.trim();
+  var pw = document.getElementById('login-pw').value;
+  if (!id || !pw) { toast('管理者IDとパスワードを入力してください。', true); return; }
+  call('login', { adminId: id, password: pw })
+    .then(function () {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: 'admin', adminId: id, password: pw }));
+      document.getElementById('login-pw').value = '';
+      enterApp();
+      toast('ログインしました。');
+    })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function loginAsGuest() {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: 'guest' }));
+  enterApp();
+}
+
+function logout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('app-header').style.display = 'none';
+  showView('login');
+}
+
+// ===========================================================================
+// データ取得
+// ===========================================================================
+function refreshData() {
+  return call('getData')
+    .then(function (data) {
+      state.items = data.items;
+      state.staff = data.staff;
+      state.categories = data.categories;
+      renderAll();
+    })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function loadHistory() {
+  call('getHistory')
+    .then(function (data) {
+      state.history = data.history;
+      renderHistory();
+    })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// 描画
+// ===========================================================================
+function renderAll() {
+  renderCategoryOptions();
+  renderItems();
+  renderStaffList();
+  renderCategoryList();
+  renderManageItems();
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderCategoryOptions() {
+  var filterSel = document.getElementById('filter-category');
+  var opts = '<option value="all">すべて</option>' + state.categories.map(function (c) {
+    return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
+  }).join('');
+  filterSel.innerHTML = opts;
+  filterSel.value = state.filters.category;
+  if (filterSel.selectedIndex < 0) { filterSel.value = 'all'; state.filters.category = 'all'; }
+
+  ['new-item-category', 'edit-item-category'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    var prev = sel.value;
+    sel.innerHTML = state.categories.map(function (c) {
+      return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
+    }).join('');
+    if (prev) sel.value = prev;
+  });
+}
+
+function filteredItems() {
+  var f = state.filters;
+  var q = f.search.trim().toLowerCase();
+  return state.items.filter(function (item) {
+    if (f.category !== 'all' && item.category !== f.category) return false;
+    if (f.status !== 'all' && item.status !== f.status) return false;
+    if (f.lend === 'lent' && !item.borrower) return false;
+    if (f.lend === 'free' && item.borrower) return false;
+    if (q && item.name.toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+
+function renderItems() {
+  var items = filteredItems();
+  var tbody = document.getElementById('items-tbody');
+  document.getElementById('item-count').textContent = items.length + ' 件 / 全 ' + state.items.length + ' 件';
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">該当する備品がありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(function (item) {
+    var statusBadge = item.status === '要修理'
+      ? '<span class="badge badge-repair">要修理</span>'
+      : '<span class="badge badge-normal">正常</span>';
+    var lendBadge = item.borrower
+      ? '<span class="badge badge-lent">貸出中：' + esc(item.borrower) + '</span>'
+      : '<span class="badge badge-free">未貸出</span>';
+    var repairLabel = item.status === '要修理' ? '修理完了' : '要修理';
+    return '<tr>' +
+      '<td>' + esc(item.id) + '</td>' +
+      '<td><strong>' + esc(item.name) + '</strong></td>' +
+      '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + lendBadge + '</td>' +
+      '<td class="note-text">' + esc(item.note) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-borrow" ' + (item.borrower ? 'disabled' : '') + ' onclick="openBorrowModal(\'' + esc(item.id) + '\')">借用</button> ' +
+        '<button class="btn btn-sm btn-return" ' + (item.borrower ? '' : 'disabled') + ' onclick="openReturnModal(\'' + esc(item.id) + '\')">返却</button> ' +
+        '<button class="btn btn-sm btn-repair" onclick="toggleRepair(\'' + esc(item.id) + '\')">' + repairLabel + '</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderHistory() {
+  var q = document.getElementById('search-history').value.trim().toLowerCase();
+  var rows = state.history.filter(function (h) {
+    return !q || h.itemName.toLowerCase().indexOf(q) >= 0;
+  });
+  document.getElementById('history-count').textContent = rows.length + ' 件';
+  var tbody = document.getElementById('history-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">履歴がありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function (h) {
+    return '<tr>' +
+      '<td><strong>' + esc(h.itemName) + '</strong></td>' +
+      '<td>' + esc(h.borrower) + '</td>' +
+      '<td>' + esc(h.borrowedAt) + '</td>' +
+      '<td>' + (h.returnedAt ? esc(h.returnedAt) : '<span class="badge badge-lent">貸出中</span>') + '</td>' +
+      '<td class="note-text">' + esc(h.operator) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderStaffList() {
+  var tbody = document.getElementById('staff-tbody');
+  if (state.staff.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-row">職員が登録されていません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.staff.map(function (s) {
+    return '<tr>' +
+      '<td>' + esc(s.id) + '</td>' +
+      '<td><strong>' + esc(s.name) + '</strong></td>' +
+      '<td class="note-text">' + esc(s.createdAt) + '</td>' +
+      '<td><button class="btn btn-sm btn-delete" onclick="deleteStaff(\'' + esc(s.id) + '\')">削除</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderCategoryList() {
+  var tbody = document.getElementById('categories-tbody');
+  if (state.categories.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-row">カテゴリが登録されていません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.categories.map(function (c) {
+    return '<tr>' +
+      '<td>' + esc(c.id) + '</td>' +
+      '<td><strong>' + esc(c.name) + '</strong></td>' +
+      '<td class="note-text">' + esc(c.createdAt) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-edit" onclick="editCategory(\'' + esc(c.id) + '\')">編集</button> ' +
+        '<button class="btn btn-sm btn-delete" onclick="deleteCategory(\'' + esc(c.id) + '\')">削除</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderManageItems() {
+  var tbody = document.getElementById('manage-items-tbody');
+  if (state.items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">備品が登録されていません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.items.map(function (item) {
+    var statusBadge = item.status === '要修理'
+      ? '<span class="badge badge-repair">要修理</span>'
+      : '<span class="badge badge-normal">正常</span>';
+    var lendBadge = item.borrower
+      ? '<span class="badge badge-lent">貸出中：' + esc(item.borrower) + '</span>'
+      : '<span class="badge badge-free">未貸出</span>';
+    return '<tr>' +
+      '<td>' + esc(item.id) + '</td>' +
+      '<td><strong>' + esc(item.name) + '</strong></td>' +
+      '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + lendBadge + '</td>' +
+      '<td class="note-text">' + esc(item.note) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-edit" onclick="openEditItemModal(\'' + esc(item.id) + '\')">編集</button> ' +
+        '<button class="btn btn-sm btn-delete" onclick="deleteItem(\'' + esc(item.id) + '\')">削除</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ===========================================================================
+// フィルタ
+// ===========================================================================
+function setFilter(key, value, btn) {
+  state.filters[key] = value;
+  if (btn) {
+    btn.parentElement.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  renderItems();
+}
+
+// ===========================================================================
+// 借用・返却・要修理
+// ===========================================================================
+function openBorrowModal(itemId) {
+  var item = state.items.find(function (i) { return i.id === itemId; });
+  if (!item) return;
+  if (item.borrower) { toast('この備品は貸出中です。', true); return; }
+  state.borrowTarget = item;
+  document.getElementById('borrow-item-name').textContent = item.name;
+  var sel = document.getElementById('borrow-staff');
+  sel.innerHTML = state.staff.map(function (s) {
+    return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
+  }).join('');
+  var hasStaff = state.staff.length > 0;
+  document.getElementById('borrow-no-staff').style.display = hasStaff ? 'none' : '';
+  document.getElementById('borrow-submit').disabled = !hasStaff;
+  openModal('modal-borrow');
+}
+
+function submitBorrow() {
+  var item = state.borrowTarget;
+  var staffName = document.getElementById('borrow-staff').value;
+  if (!item) return;
+  if (!staffName) { toast('職員を選択してください。', true); return; }
+  closeModal('modal-borrow');
+  call('borrow', { itemId: item.id, staffName: staffName, operator: operatorName() })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); refreshData(); });
+}
+
+function openReturnModal(itemId) {
+  var item = state.items.find(function (i) { return i.id === itemId; });
+  if (!item) return;
+  if (!item.borrower) { toast('この備品は返却済みです。', true); return; }
+  state.returnTarget = item;
+  document.getElementById('return-item-name').textContent = item.name;
+  document.getElementById('return-borrower').textContent = item.borrower + ' さん';
+  openModal('modal-return');
+}
+
+function submitReturn() {
+  var item = state.returnTarget;
+  if (!item) return;
+  closeModal('modal-return');
+  call('return', { itemId: item.id, operator: operatorName() })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); refreshData(); });
+}
+
+function toggleRepair(itemId) {
+  call('toggleRepair', { itemId: itemId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); refreshData(); });
+}
+
+// ===========================================================================
+// 設定: 職員
+// ===========================================================================
+function addStaff() {
+  var input = document.getElementById('new-staff-name');
+  var name = input.value.trim();
+  if (!name) { toast('職員名を入力してください。', true); return; }
+  call('addStaff', { name: name })
+    .then(function (data) { input.value = ''; toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function deleteStaff(staffId) {
+  var staff = state.staff.find(function (s) { return s.id === staffId; });
+  if (!staff) return;
+  if (!confirm('職員「' + staff.name + '」を削除します。よろしいですか？')) return;
+  call('deleteStaff', { staffId: staffId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// 設定: カテゴリ
+// ===========================================================================
+function addCategory() {
+  var input = document.getElementById('new-category-name');
+  var name = input.value.trim();
+  if (!name) { toast('カテゴリ名を入力してください。', true); return; }
+  call('addCategory', { name: name })
+    .then(function (data) { input.value = ''; toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function editCategory(catId) {
+  var cat = state.categories.find(function (c) { return c.id === catId; });
+  if (!cat) return;
+  var name = prompt('新しいカテゴリ名を入力してください。', cat.name);
+  if (name === null) return;
+  name = name.trim();
+  if (!name) { toast('カテゴリ名を入力してください。', true); return; }
+  call('updateCategory', { categoryId: catId, name: name })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function deleteCategory(catId) {
+  var cat = state.categories.find(function (c) { return c.id === catId; });
+  if (!cat) return;
+  if (!confirm('カテゴリ「' + cat.name + '」を削除します。よろしいですか？')) return;
+  call('deleteCategory', { categoryId: catId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// 設定: 備品
+// ===========================================================================
+function addItem() {
+  var name = document.getElementById('new-item-name').value.trim();
+  var category = document.getElementById('new-item-category').value;
+  var note = document.getElementById('new-item-note').value.trim();
+  if (!name) { toast('備品名を入力してください。', true); return; }
+  if (!category) { toast('カテゴリを選択してください。', true); return; }
+  call('addItem', { name: name, category: category, note: note })
+    .then(function (data) {
+      document.getElementById('new-item-name').value = '';
+      document.getElementById('new-item-note').value = '';
+      toast(data.message);
+      return refreshData();
+    })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function openEditItemModal(itemId) {
+  var item = state.items.find(function (i) { return i.id === itemId; });
+  if (!item) return;
+  state.editTarget = item;
+  document.getElementById('edit-item-name').value = item.name;
+  document.getElementById('edit-item-category').value = item.category;
+  document.getElementById('edit-item-note').value = item.note;
+  openModal('modal-edit-item');
+}
+
+function submitEditItem() {
+  var item = state.editTarget;
+  if (!item) return;
+  var name = document.getElementById('edit-item-name').value.trim();
+  var category = document.getElementById('edit-item-category').value;
+  var note = document.getElementById('edit-item-note').value.trim();
+  if (!name) { toast('備品名を入力してください。', true); return; }
+  if (!category) { toast('カテゴリを選択してください。', true); return; }
+  closeModal('modal-edit-item');
+  call('updateItem', { itemId: item.id, name: name, category: category, note: note })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function deleteItem(itemId) {
+  var item = state.items.find(function (i) { return i.id === itemId; });
+  if (!item) return;
+  if (!confirm('備品「' + item.name + '」を削除します。よろしいですか？')) return;
+  call('deleteItem', { itemId: itemId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// 設定: 管理者
+// ===========================================================================
+function changePassword() {
+  var current = document.getElementById('pw-current').value;
+  var next = document.getElementById('pw-new').value.trim();
+  var confirmPw = document.getElementById('pw-confirm').value.trim();
+  var session = getSession();
+  if (!current || !next) { toast('現在のパスワードと新しいパスワードを入力してください。', true); return; }
+  if (current !== session.password) { toast('現在のパスワードが正しくありません。', true); return; }
+  if (next !== confirmPw) { toast('新しいパスワード（確認）が一致しません。', true); return; }
+  call('changePassword', { newPassword: next })
+    .then(function (data) {
+      session.password = next;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      ['pw-current', 'pw-new', 'pw-confirm'].forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+      toast(data.message);
+    })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// UIユーティリティ
+// ===========================================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+var toastTimer = null;
+function toast(message, isError) {
+  var el = document.getElementById('toast');
+  el.textContent = message;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3500);
+}
+
+function showLoading(show) {
+  document.getElementById('loading').classList.toggle('show', show);
+}
+</script>
+</body>
+</html>
