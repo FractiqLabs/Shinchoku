@@ -26,6 +26,9 @@ var SHEET = {
 
 var ITEM_STATUS = { NORMAL: '正常', REPAIR: '要修理' };
 
+// 備品画像の保存先フォルダ名（Googleドライブに自動作成される）
+var IMAGE_FOLDER_NAME = 'StockEasy_Images';
+
 // ---------------------------------------------------------------------------
 // セットアップ
 // ---------------------------------------------------------------------------
@@ -37,7 +40,7 @@ var ITEM_STATUS = { NORMAL: '正常', REPAIR: '要修理' };
 function setupSheets() {
   var ss = getSpreadsheet_();
   var defs = [
-    { name: SHEET.ITEMS,      headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時'] },
+    { name: SHEET.ITEMS,      headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時', '画像ファイルID'] },
     { name: SHEET.HISTORY,    headers: ['履歴ID', '備品ID', '備品名', '借用者名', '借用日時', '返却日時', '操作者'] },
     { name: SHEET.STAFF,      headers: ['職員ID', '職員名', '登録日時'] },
     { name: SHEET.CATEGORIES, headers: ['カテゴリID', 'カテゴリ名', '登録日時'] },
@@ -55,6 +58,12 @@ function setupSheets() {
       sheet.setFrozenRows(1);
     }
   });
+
+  // v1.1: 既存の items シートに画像列がない場合は見出しを追加する
+  var items = ss.getSheetByName(SHEET.ITEMS);
+  if (items.getRange(1, 8).getDisplayValue() === '') {
+    items.getRange(1, 8).setValue('画像ファイルID').setFontWeight('bold').setBackground('#E2E8F0');
+  }
 
   // 初期データ: 管理者 admin / 1234
   var admins = ss.getSheetByName(SHEET.ADMINS);
@@ -217,7 +226,8 @@ function readItems_() {
       status: row[3],
       borrower: row[4],
       note: row[5],
-      createdAt: row[6]
+      createdAt: row[6],
+      imageId: row[7] || ''
     };
   });
 }
@@ -413,8 +423,13 @@ function apiAddItem_(p) {
   if (!name) return ng_('備品名を入力してください。');
   if (!category) return ng_('カテゴリを選択してください。');
 
+  var imageId = '';
+  if (p.imageData) {
+    imageId = saveImage_(p.imageData, name);
+  }
+
   var sheet = getSheet_(SHEET.ITEMS);
-  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_()]);
+  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_(), imageId]);
   return ok_({ message: '備品「' + name + '」を登録しました。' });
 }
 
@@ -433,6 +448,18 @@ function apiUpdateItem_(p) {
   sheet.getRange(row, 2).setValue(name);
   sheet.getRange(row, 3).setValue(category);
   sheet.getRange(row, 6).setValue(note);
+
+  // 画像の差し替え・削除
+  var imageCell = sheet.getRange(row, 8);
+  var oldImageId = imageCell.getDisplayValue();
+  if (p.imageData) {
+    imageCell.setValue(saveImage_(p.imageData, name));
+    trashImage_(oldImageId);
+  } else if (p.removeImage === true || String(p.removeImage) === 'true') {
+    imageCell.setValue('');
+    trashImage_(oldImageId);
+  }
+
   return ok_({ message: '備品「' + name + '」を更新しました。' });
 }
 
@@ -442,12 +469,13 @@ function apiDeleteItem_(p) {
   var row = findRowById_(sheet, itemId);
   if (row < 0) return ng_('対象の備品が見つかりません。');
 
-  var current = sheet.getRange(row, 1, 1, 7).getDisplayValues()[0];
+  var current = sheet.getRange(row, 1, 1, 8).getDisplayValues()[0];
   if (current[4]) {
     return ng_('「' + current[1] + '」は貸出中のため削除できません。先に返却してください。');
   }
 
   sheet.deleteRow(row);
+  trashImage_(current[7]);
   return ok_({ message: '備品「' + current[1] + '」を削除しました。' });
 }
 
@@ -466,6 +494,41 @@ function apiChangePassword_(p) {
 
   sheet.getRange(row, 2).setValue(newPassword);
   return ok_({ message: 'パスワードを変更しました。' });
+}
+
+// ---------------------------------------------------------------------------
+// 画像（Googleドライブ）
+// ---------------------------------------------------------------------------
+
+/**
+ * base64のデータURL（data:image/jpeg;base64,...）をドライブに保存し、ファイルIDを返す。
+ * 画像はWebアプリの利用者全員が閲覧できるよう「リンクを知っている全員（閲覧者）」で共有される。
+ */
+function saveImage_(dataUrl, itemName) {
+  var m = String(dataUrl).match(/^data:(image\/[a-zA-Z0-9+.\-]+);base64,(.+)$/);
+  if (!m) throw new Error('画像データの形式が正しくありません。');
+
+  var ext = m[1].split('/')[1].replace('jpeg', 'jpg');
+  var blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], 'StockEasy_' + (itemName || 'item') + '.' + ext);
+
+  var file = getImageFolder_().createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getId();
+}
+
+function getImageFolder_() {
+  var folders = DriveApp.getFoldersByName(IMAGE_FOLDER_NAME);
+  return folders.hasNext() ? folders.next() : DriveApp.createFolder(IMAGE_FOLDER_NAME);
+}
+
+/** 画像ファイルをゴミ箱へ移動する（存在しない・権限がない場合は何もしない） */
+function trashImage_(fileId) {
+  if (!fileId) return;
+  try {
+    DriveApp.getFileById(fileId).setTrashed(true);
+  } catch (e) {
+    // 手動削除済みなどで見つからない場合は無視する
+  }
 }
 
 // ---------------------------------------------------------------------------

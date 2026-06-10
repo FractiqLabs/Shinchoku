@@ -321,6 +321,41 @@
 
   .note-text { font-size: 12px; color: var(--text-sub); }
   .count-label { font-size: 13px; color: var(--text-sub); margin-left: auto; }
+
+  /* ===== 備品画像 ===== */
+  .item-thumb {
+    width: 48px; height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    display: block;
+    cursor: pointer;
+  }
+  .no-image {
+    width: 48px; height: 48px;
+    border-radius: 8px;
+    border: 1px dashed #CBD5E1;
+    background: var(--bg);
+    color: var(--gray);
+    font-size: 9px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .image-field { display: flex; gap: 12px; align-items: flex-start; }
+  .image-field .item-thumb, .image-field .no-image { width: 80px; height: 80px; font-size: 11px; }
+  .image-field-controls { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .image-field-controls input[type="file"] { font-size: 12px; width: 100%; }
+  #modal-image { align-items: center; padding-top: 0; }
+  #modal-image img {
+    max-width: 80vw; max-height: 80vh;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    background: #fff;
+  }
 </style>
 </head>
 <body>
@@ -385,7 +420,7 @@
       <table>
         <thead>
           <tr>
-            <th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:280px;">操作</th>
+            <th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:280px;">操作</th>
           </tr>
         </thead>
         <tbody id="items-tbody"></tbody>
@@ -481,11 +516,21 @@
             <label for="new-item-note">備考</label>
             <input type="text" id="new-item-note" placeholder="任意">
           </div>
+          <div class="form-group">
+            <label for="new-item-image">画像（任意）</label>
+            <div class="image-field">
+              <div id="new-item-preview"><div class="no-image">No Image</div></div>
+              <div class="image-field-controls">
+                <input type="file" id="new-item-image" accept="image/*" onchange="onImageSelected(this, 'new')">
+                <button class="btn btn-sm btn-cancel" type="button" onclick="clearImage('new')">画像をクリア</button>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-borrow btn-block" onclick="addItem()">登録する</button>
         </div>
         <div class="table-card">
           <table>
-            <thead><tr><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
+            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
             <tbody id="manage-items-tbody"></tbody>
           </table>
         </div>
@@ -514,7 +559,7 @@
   </div>
 </main>
 
-<footer>StockEasy v1.0.0</footer>
+<footer>StockEasy v1.1.0</footer>
 
 <!-- ===== 画面3: 借用モーダル ===== -->
 <div class="modal-overlay" id="modal-borrow">
@@ -566,11 +611,26 @@
       <label for="edit-item-note">備考</label>
       <input type="text" id="edit-item-note">
     </div>
+    <div class="form-group">
+      <label for="edit-item-image">画像</label>
+      <div class="image-field">
+        <div id="edit-item-preview"><div class="no-image">No Image</div></div>
+        <div class="image-field-controls">
+          <input type="file" id="edit-item-image" accept="image/*" onchange="onImageSelected(this, 'edit')">
+          <button class="btn btn-sm btn-cancel" type="button" onclick="clearImage('edit')">画像をなしにする</button>
+        </div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('modal-edit-item')">キャンセル</button>
       <button class="btn btn-borrow" onclick="submitEditItem()">保存する</button>
     </div>
   </div>
+</div>
+
+<!-- ===== 画像拡大表示 ===== -->
+<div class="modal-overlay" id="modal-image" onclick="closeModal('modal-image')">
+  <img id="lightbox-img" src="" alt="備品画像">
 </div>
 
 <div id="loading"><div class="spinner"></div></div>
@@ -590,6 +650,10 @@ var state = {
   returnTarget: null,
   editTarget: null
 };
+
+// 添付待ちの画像（base64データURL）。new = 新規登録フォーム、edit = 編集モーダル
+var imageDraft = { new: null, edit: null };
+var editRemoveImage = false;
 
 var SESSION_KEY = 'stockeasy_session';
 
@@ -788,7 +852,7 @@ function renderItems() {
   var tbody = document.getElementById('items-tbody');
   document.getElementById('item-count').textContent = items.length + ' 件 / 全 ' + state.items.length + ' 件';
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">該当する備品がありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">該当する備品がありません</td></tr>';
     return;
   }
   tbody.innerHTML = items.map(function (item) {
@@ -800,6 +864,7 @@ function renderItems() {
       : '<span class="badge badge-free">未貸出</span>';
     var repairLabel = item.status === '要修理' ? '修理完了' : '要修理';
     return '<tr>' +
+      '<td>' + thumbHtml(item) + '</td>' +
       '<td>' + esc(item.id) + '</td>' +
       '<td><strong>' + esc(item.name) + '</strong></td>' +
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
@@ -875,7 +940,7 @@ function renderCategoryList() {
 function renderManageItems() {
   var tbody = document.getElementById('manage-items-tbody');
   if (state.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">備品が登録されていません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">備品が登録されていません</td></tr>';
     return;
   }
   tbody.innerHTML = state.items.map(function (item) {
@@ -886,6 +951,7 @@ function renderManageItems() {
       ? '<span class="badge badge-lent">貸出中：' + esc(item.borrower) + '</span>'
       : '<span class="badge badge-free">未貸出</span>';
     return '<tr>' +
+      '<td>' + thumbHtml(item) + '</td>' +
       '<td>' + esc(item.id) + '</td>' +
       '<td><strong>' + esc(item.name) + '</strong></td>' +
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
@@ -898,6 +964,92 @@ function renderManageItems() {
       '</td>' +
     '</tr>';
   }).join('');
+}
+
+// ===========================================================================
+// 画像
+// ===========================================================================
+function imageUrl(imageId, width) {
+  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(imageId) + '&sz=w' + (width || 200);
+}
+
+function thumbHtml(item) {
+  if (!item.imageId) return '<div class="no-image">No Image</div>';
+  return '<img class="item-thumb" src="' + esc(imageUrl(item.imageId, 100)) + '" alt="' + esc(item.name) + '"' +
+    ' onclick="showImage(\'' + esc(item.imageId) + '\')"' +
+    ' onerror="this.outerHTML=\'<div class=&quot;no-image&quot;>No Image</div>\'">';
+}
+
+function showImage(imageId) {
+  document.getElementById('lightbox-img').src = imageUrl(imageId, 1000);
+  openModal('modal-image');
+}
+
+/** 選択された画像ファイルを最大800pxに縮小してJPEGのデータURLにする */
+function resizeImage(file) {
+  return new Promise(function (resolve, reject) {
+    if (!file.type || file.type.indexOf('image/') !== 0) {
+      reject(new Error('画像ファイルを選択してください。'));
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var max = 800;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var w = Math.max(1, Math.round(img.width * scale));
+        var h = Math.max(1, Math.round(img.height * scale));
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function () { reject(new Error('画像を読み込めませんでした。')); };
+      img.src = reader.result;
+    };
+    reader.onerror = function () { reject(new Error('画像を読み込めませんでした。')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function onImageSelected(input, mode) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  resizeImage(file)
+    .then(function (dataUrl) {
+      imageDraft[mode] = dataUrl;
+      if (mode === 'edit') editRemoveImage = false;
+      renderImagePreview(mode);
+    })
+    .catch(function (err) {
+      input.value = '';
+      toast(err.message, true);
+    });
+}
+
+function clearImage(mode) {
+  imageDraft[mode] = null;
+  document.getElementById(mode === 'new' ? 'new-item-image' : 'edit-item-image').value = '';
+  if (mode === 'edit') editRemoveImage = true; // 既存画像も「なし」にする
+  renderImagePreview(mode);
+}
+
+function renderImagePreview(mode) {
+  var box = document.getElementById(mode === 'new' ? 'new-item-preview' : 'edit-item-preview');
+  var src = null;
+  if (imageDraft[mode]) {
+    src = imageDraft[mode];
+  } else if (mode === 'edit' && !editRemoveImage && state.editTarget && state.editTarget.imageId) {
+    src = imageUrl(state.editTarget.imageId, 200);
+  }
+  box.innerHTML = src
+    ? '<img class="item-thumb" src="' + esc(src) + '" alt="プレビュー">'
+    : '<div class="no-image">No Image</div>';
 }
 
 // ===========================================================================
@@ -1030,10 +1182,13 @@ function addItem() {
   var note = document.getElementById('new-item-note').value.trim();
   if (!name) { toast('備品名を入力してください。', true); return; }
   if (!category) { toast('カテゴリを選択してください。', true); return; }
-  call('addItem', { name: name, category: category, note: note })
+  call('addItem', { name: name, category: category, note: note, imageData: imageDraft.new })
     .then(function (data) {
       document.getElementById('new-item-name').value = '';
       document.getElementById('new-item-note').value = '';
+      imageDraft.new = null;
+      document.getElementById('new-item-image').value = '';
+      renderImagePreview('new');
       toast(data.message);
       return refreshData();
     })
@@ -1047,6 +1202,10 @@ function openEditItemModal(itemId) {
   document.getElementById('edit-item-name').value = item.name;
   document.getElementById('edit-item-category').value = item.category;
   document.getElementById('edit-item-note').value = item.note;
+  imageDraft.edit = null;
+  editRemoveImage = false;
+  document.getElementById('edit-item-image').value = '';
+  renderImagePreview('edit');
   openModal('modal-edit-item');
 }
 
@@ -1059,7 +1218,14 @@ function submitEditItem() {
   if (!name) { toast('備品名を入力してください。', true); return; }
   if (!category) { toast('カテゴリを選択してください。', true); return; }
   closeModal('modal-edit-item');
-  call('updateItem', { itemId: item.id, name: name, category: category, note: note })
+  call('updateItem', {
+    itemId: item.id,
+    name: name,
+    category: category,
+    note: note,
+    imageData: imageDraft.edit,
+    removeImage: editRemoveImage && !imageDraft.edit
+  })
     .then(function (data) { toast(data.message); return refreshData(); })
     .catch(function (err) { toast(err.message, true); });
 }
