@@ -590,7 +590,7 @@
         </div>
         <div class="table-card">
           <table>
-            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>保管場所</th><th>現在の場所</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
+            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>保管場所</th><th>現在の場所</th><th>備考</th><th style="width:300px;">操作</th></tr></thead>
             <tbody id="manage-items-tbody"></tbody>
           </table>
         </div>
@@ -619,7 +619,7 @@
   </div>
 </main>
 
-<footer>StockEasy v1.3.0</footer>
+<footer>StockEasy v1.3.1</footer>
 
 <!-- ===== 画面3: 借用モーダル ===== -->
 <div class="modal-overlay" id="modal-borrow">
@@ -1141,6 +1141,7 @@ function renderManageItems() {
     var lendBadge = item.borrower
       ? '<span class="badge badge-lent">貸出中：' + esc(item.borrower) + '</span>'
       : '<span class="badge badge-free">未貸出</span>';
+    var repairLabel = item.status === '要修理' ? '修理完了' : '要修理';
     return '<tr>' +
       '<td>' + thumbHtml(item) + '</td>' +
       '<td>' + esc(item.id) + '</td>' +
@@ -1152,8 +1153,13 @@ function renderManageItems() {
       '<td>' + locationBadge(item.location) + '</td>' +
       '<td class="note-text">' + esc(item.note) + '</td>' +
       '<td>' +
-        '<button class="btn btn-sm btn-edit" onclick="openEditItemModal(\'' + esc(item.id) + '\')">編集</button> ' +
-        '<button class="btn btn-sm btn-delete" onclick="deleteItem(\'' + esc(item.id) + '\')">削除</button>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:4px;">' +
+          '<button class="btn btn-sm btn-borrow" ' + (item.borrower ? 'disabled' : '') + ' onclick="openBorrowModal(\'' + esc(item.id) + '\')">借用</button>' +
+          '<button class="btn btn-sm btn-return" ' + (item.borrower ? '' : 'disabled') + ' onclick="openReturnModal(\'' + esc(item.id) + '\')">返却</button>' +
+          '<button class="btn btn-sm btn-repair" onclick="toggleRepair(\'' + esc(item.id) + '\')">' + repairLabel + '</button>' +
+          '<button class="btn btn-sm btn-edit" onclick="openEditItemModal(\'' + esc(item.id) + '\')">編集</button>' +
+          '<button class="btn btn-sm btn-delete" onclick="deleteItem(\'' + esc(item.id) + '\')">削除</button>' +
+        '</div>' +
       '</td>' +
     '</tr>';
   }).join('');
