@@ -225,6 +225,7 @@
   .badge-free { background: #F1F5F9; color: var(--text-sub); }
   .badge-cat { background: #EFF6FF; color: var(--main); }
   .badge-loc { background: #EEF2FF; color: #4338CA; }
+  .badge-home { background: #FEF9C3; color: #854D0E; }
   .badge-loc-empty { background: #F1F5F9; color: var(--gray); }
 
   /* ===== モーダル ===== */
@@ -426,7 +427,7 @@
       <table>
         <thead>
           <tr>
-            <th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>現在の場所</th><th>備考</th><th style="width:280px;">操作</th>
+            <th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>保管場所</th><th>現在の場所</th><th>備考</th><th style="width:280px;">操作</th>
           </tr>
         </thead>
         <tbody id="items-tbody"></tbody>
@@ -456,6 +457,7 @@
     <div class="page-title">設定</div>
     <div class="tabs">
       <button class="tab active" data-tab="staff" onclick="showTab('staff', this)">職員管理</button>
+      <button class="tab" data-tab="departments" onclick="showTab('departments', this)">部署管理</button>
       <button class="tab" data-tab="categories" onclick="showTab('categories', this)">カテゴリ管理</button>
       <button class="tab" data-tab="locations" onclick="showTab('locations', this)">場所管理</button>
       <button class="tab" data-tab="items" onclick="showTab('items', this)">備品管理</button>
@@ -467,18 +469,43 @@
       <div class="settings-grid">
         <div class="card">
           <div class="modal-title">職員の追加</div>
+          <div class="form-group">
+            <label for="new-staff-name">職員名</label>
+            <input type="text" id="new-staff-name" placeholder="例：山田 太郎">
+          </div>
+          <div class="form-group">
+            <label for="new-staff-dept">部署</label>
+            <select id="new-staff-dept"></select>
+          </div>
+          <button class="btn btn-borrow btn-block" onclick="addStaff()">追加する</button>
+          <div class="note-text" style="margin-top:10px;">部署の追加・編集は「部署管理」タブで行えます。</div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>職員ID</th><th>職員名</th><th>部署</th><th>登録日時</th><th style="width:170px;">操作</th></tr></thead>
+            <tbody id="staff-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ: 部署管理 -->
+    <div class="tab-pane" id="tab-departments">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="modal-title">部署の追加</div>
           <div class="inline-form">
             <div class="form-group">
-              <label for="new-staff-name">職員名</label>
-              <input type="text" id="new-staff-name" placeholder="例：山田 太郎">
+              <label for="new-department-name">部署名</label>
+              <input type="text" id="new-department-name" placeholder="例：リハビリ">
             </div>
-            <button class="btn btn-borrow" onclick="addStaff()">追加</button>
+            <button class="btn btn-borrow" onclick="addDepartment()">追加</button>
           </div>
         </div>
         <div class="table-card">
           <table>
-            <thead><tr><th>職員ID</th><th>職員名</th><th>登録日時</th><th style="width:100px;">操作</th></tr></thead>
-            <tbody id="staff-tbody"></tbody>
+            <thead><tr><th>部署ID</th><th>部署名</th><th>登録日時</th><th style="width:170px;">操作</th></tr></thead>
+            <tbody id="departments-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -542,8 +569,8 @@
             <select id="new-item-category"></select>
           </div>
           <div class="form-group">
-            <label for="new-item-location">保管場所</label>
-            <select id="new-item-location"></select>
+            <label for="new-item-home">もともとの保管場所</label>
+            <select id="new-item-home"></select>
           </div>
           <div class="form-group">
             <label for="new-item-note">備考</label>
@@ -563,7 +590,7 @@
         </div>
         <div class="table-card">
           <table>
-            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>現在の場所</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
+            <thead><tr><th style="width:64px;">画像</th><th>備品ID</th><th>備品名</th><th>カテゴリ</th><th>状態</th><th>貸出状況</th><th>保管場所</th><th>現在の場所</th><th>備考</th><th style="width:170px;">操作</th></tr></thead>
             <tbody id="manage-items-tbody"></tbody>
           </table>
         </div>
@@ -592,7 +619,7 @@
   </div>
 </main>
 
-<footer>StockEasy v1.2.0</footer>
+<footer>StockEasy v1.3.0</footer>
 
 <!-- ===== 画面3: 借用モーダル ===== -->
 <div class="modal-overlay" id="modal-borrow">
@@ -626,7 +653,8 @@
     <div class="modal-title">備品の返却</div>
     <div class="modal-target">
       返却する備品：<strong id="return-item-name"></strong><br>
-      現在の借用者：<strong id="return-borrower"></strong>
+      現在の借用者：<strong id="return-borrower"></strong><br>
+      もともとの保管場所：<strong id="return-home"></strong>
     </div>
     <div class="form-group">
       <label for="return-location">返却場所（どこに戻しますか？）</label>
@@ -638,6 +666,25 @@
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('modal-return')">キャンセル</button>
       <button class="btn btn-return" id="return-submit" onclick="submitReturn()">返却する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 職員編集モーダル ===== -->
+<div class="modal-overlay" id="modal-edit-staff">
+  <div class="modal">
+    <div class="modal-title">職員の編集</div>
+    <div class="form-group">
+      <label for="edit-staff-name">職員名 <span style="color:var(--red);">*</span></label>
+      <input type="text" id="edit-staff-name">
+    </div>
+    <div class="form-group">
+      <label for="edit-staff-dept">部署</label>
+      <select id="edit-staff-dept"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('modal-edit-staff')">キャンセル</button>
+      <button class="btn btn-borrow" onclick="submitEditStaff()">保存する</button>
     </div>
   </div>
 </div>
@@ -655,8 +702,12 @@
       <select id="edit-item-category"></select>
     </div>
     <div class="form-group">
-      <label for="edit-item-location">保管場所（現在の場所）</label>
-      <select id="edit-item-location"></select>
+      <label for="edit-item-home">もともとの保管場所</label>
+      <select id="edit-item-home"></select>
+    </div>
+    <div class="form-group">
+      <label for="edit-item-current">現在の場所</label>
+      <select id="edit-item-current"></select>
     </div>
     <div class="form-group">
       <label for="edit-item-note">備考</label>
@@ -694,13 +745,15 @@
 var state = {
   items: [],
   staff: [],
+  departments: [],
   categories: [],
   locations: [],
   history: [],
   filters: { category: 'all', location: 'all', status: 'all', lend: 'all', search: '' },
   borrowTarget: null,
   returnTarget: null,
-  editTarget: null
+  editTarget: null,
+  editStaffTarget: null
 };
 
 // 添付待ちの画像（base64データURL）。new = 新規登録フォーム、edit = 編集モーダル
@@ -835,6 +888,7 @@ function refreshData() {
     .then(function (data) {
       state.items = data.items;
       state.staff = data.staff;
+      state.departments = data.departments || [];
       state.categories = data.categories;
       state.locations = data.locations || [];
       renderAll();
@@ -857,8 +911,10 @@ function loadHistory() {
 function renderAll() {
   renderCategoryOptions();
   renderLocationOptions();
+  renderDepartmentOptions();
   renderItems();
   renderStaffList();
+  renderDepartmentList();
   renderCategoryList();
   renderLocationList();
   renderManageItems();
@@ -901,7 +957,7 @@ function renderLocationOptions() {
   filterSel.value = state.filters.location;
   if (filterSel.selectedIndex < 0) { filterSel.value = 'all'; state.filters.location = 'all'; }
 
-  ['new-item-location', 'edit-item-location'].forEach(function (id) {
+  ['new-item-home', 'edit-item-home', 'edit-item-current'].forEach(function (id) {
     var sel = document.getElementById(id);
     var prev = sel.value;
     sel.innerHTML = '<option value="">未設定</option>' + locationOptionsHtml();
@@ -914,6 +970,28 @@ function locationBadge(location) {
   return location
     ? '<span class="badge badge-loc">📍 ' + esc(location) + '</span>'
     : '<span class="badge badge-loc-empty">未設定</span>';
+}
+
+function homeBadge(location) {
+  return location
+    ? '<span class="badge badge-home">🏠 ' + esc(location) + '</span>'
+    : '<span class="badge badge-loc-empty">未設定</span>';
+}
+
+function departmentOptionsHtml() {
+  return '<option value="">未設定</option>' + state.departments.map(function (d) {
+    return '<option value="' + esc(d.name) + '">' + esc(d.name) + '</option>';
+  }).join('');
+}
+
+function renderDepartmentOptions() {
+  ['new-staff-dept', 'edit-staff-dept'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    var prev = sel.value;
+    sel.innerHTML = departmentOptionsHtml();
+    if (prev) sel.value = prev;
+    if (sel.selectedIndex < 0) sel.value = '';
+  });
 }
 
 function filteredItems() {
@@ -935,7 +1013,7 @@ function renderItems() {
   var tbody = document.getElementById('items-tbody');
   document.getElementById('item-count').textContent = items.length + ' 件 / 全 ' + state.items.length + ' 件';
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">該当する備品がありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-row">該当する備品がありません</td></tr>';
     return;
   }
   tbody.innerHTML = items.map(function (item) {
@@ -953,6 +1031,7 @@ function renderItems() {
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
       '<td>' + statusBadge + '</td>' +
       '<td>' + lendBadge + '</td>' +
+      '<td>' + homeBadge(item.homeLocation) + '</td>' +
       '<td>' + locationBadge(item.location) + '</td>' +
       '<td class="note-text">' + esc(item.note) + '</td>' +
       '<td>' +
@@ -991,15 +1070,41 @@ function renderHistory() {
 function renderStaffList() {
   var tbody = document.getElementById('staff-tbody');
   if (state.staff.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-row">職員が登録されていません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">職員が登録されていません</td></tr>';
     return;
   }
   tbody.innerHTML = state.staff.map(function (s) {
+    var deptBadge = s.department
+      ? '<span class="badge badge-cat">' + esc(s.department) + '</span>'
+      : '<span class="badge badge-loc-empty">未設定</span>';
     return '<tr>' +
       '<td>' + esc(s.id) + '</td>' +
       '<td><strong>' + esc(s.name) + '</strong></td>' +
+      '<td>' + deptBadge + '</td>' +
       '<td class="note-text">' + esc(s.createdAt) + '</td>' +
-      '<td><button class="btn btn-sm btn-delete" onclick="deleteStaff(\'' + esc(s.id) + '\')">削除</button></td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-edit" onclick="openEditStaffModal(\'' + esc(s.id) + '\')">編集</button> ' +
+        '<button class="btn btn-sm btn-delete" onclick="deleteStaff(\'' + esc(s.id) + '\')">削除</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderDepartmentList() {
+  var tbody = document.getElementById('departments-tbody');
+  if (state.departments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-row">部署が登録されていません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.departments.map(function (d) {
+    return '<tr>' +
+      '<td>' + esc(d.id) + '</td>' +
+      '<td><strong>' + esc(d.name) + '</strong></td>' +
+      '<td class="note-text">' + esc(d.createdAt) + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-edit" onclick="editDepartment(\'' + esc(d.id) + '\')">編集</button> ' +
+        '<button class="btn btn-sm btn-delete" onclick="deleteDepartment(\'' + esc(d.id) + '\')">削除</button>' +
+      '</td>' +
     '</tr>';
   }).join('');
 }
@@ -1026,7 +1131,7 @@ function renderCategoryList() {
 function renderManageItems() {
   var tbody = document.getElementById('manage-items-tbody');
   if (state.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">備品が登録されていません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-row">備品が登録されていません</td></tr>';
     return;
   }
   tbody.innerHTML = state.items.map(function (item) {
@@ -1043,6 +1148,7 @@ function renderManageItems() {
       '<td><span class="badge badge-cat">' + esc(item.category) + '</span></td>' +
       '<td>' + statusBadge + '</td>' +
       '<td>' + lendBadge + '</td>' +
+      '<td>' + homeBadge(item.homeLocation) + '</td>' +
       '<td>' + locationBadge(item.location) + '</td>' +
       '<td class="note-text">' + esc(item.note) + '</td>' +
       '<td>' +
@@ -1162,7 +1268,8 @@ function openBorrowModal(itemId) {
   document.getElementById('borrow-item-name').textContent = item.name;
   var sel = document.getElementById('borrow-staff');
   sel.innerHTML = state.staff.map(function (s) {
-    return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
+    var label = s.name + (s.department ? '（' + s.department + '）' : '');
+    return '<option value="' + esc(s.name) + '">' + esc(label) + '</option>';
   }).join('');
   document.getElementById('borrow-location').innerHTML = locationOptionsHtml();
   var hasStaff = state.staff.length > 0;
@@ -1193,7 +1300,14 @@ function openReturnModal(itemId) {
   state.returnTarget = item;
   document.getElementById('return-item-name').textContent = item.name;
   document.getElementById('return-borrower').textContent = item.borrower + ' さん';
-  document.getElementById('return-location').innerHTML = locationOptionsHtml();
+  document.getElementById('return-home').textContent = item.homeLocation || '未設定';
+  var locSel = document.getElementById('return-location');
+  locSel.innerHTML = locationOptionsHtml();
+  // もともとの保管場所を初期選択にする
+  if (item.homeLocation) {
+    locSel.value = item.homeLocation;
+    if (locSel.selectedIndex < 0) locSel.selectedIndex = 0;
+  }
   var hasLocations = state.locations.length > 0;
   document.getElementById('return-no-location').style.display = hasLocations ? 'none' : '';
   document.getElementById('return-submit').disabled = !hasLocations;
@@ -1223,9 +1337,33 @@ function toggleRepair(itemId) {
 function addStaff() {
   var input = document.getElementById('new-staff-name');
   var name = input.value.trim();
+  var department = document.getElementById('new-staff-dept').value;
   if (!name) { toast('職員名を入力してください。', true); return; }
-  call('addStaff', { name: name })
+  call('addStaff', { name: name, department: department })
     .then(function (data) { input.value = ''; toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function openEditStaffModal(staffId) {
+  var staff = state.staff.find(function (s) { return s.id === staffId; });
+  if (!staff) return;
+  state.editStaffTarget = staff;
+  document.getElementById('edit-staff-name').value = staff.name;
+  var deptSel = document.getElementById('edit-staff-dept');
+  deptSel.value = staff.department || '';
+  if (deptSel.selectedIndex < 0) deptSel.value = '';
+  openModal('modal-edit-staff');
+}
+
+function submitEditStaff() {
+  var staff = state.editStaffTarget;
+  if (!staff) return;
+  var name = document.getElementById('edit-staff-name').value.trim();
+  var department = document.getElementById('edit-staff-dept').value;
+  if (!name) { toast('職員名を入力してください。', true); return; }
+  closeModal('modal-edit-staff');
+  call('updateStaff', { staffId: staff.id, name: name, department: department })
+    .then(function (data) { toast(data.message); return refreshData(); })
     .catch(function (err) { toast(err.message, true); });
 }
 
@@ -1234,6 +1372,39 @@ function deleteStaff(staffId) {
   if (!staff) return;
   if (!confirm('職員「' + staff.name + '」を削除します。よろしいですか？')) return;
   call('deleteStaff', { staffId: staffId })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+// ===========================================================================
+// 設定: 部署
+// ===========================================================================
+function addDepartment() {
+  var input = document.getElementById('new-department-name');
+  var name = input.value.trim();
+  if (!name) { toast('部署名を入力してください。', true); return; }
+  call('addDepartment', { name: name })
+    .then(function (data) { input.value = ''; toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function editDepartment(deptId) {
+  var dept = state.departments.find(function (d) { return d.id === deptId; });
+  if (!dept) return;
+  var name = prompt('新しい部署名を入力してください。', dept.name);
+  if (name === null) return;
+  name = name.trim();
+  if (!name) { toast('部署名を入力してください。', true); return; }
+  call('updateDepartment', { departmentId: deptId, name: name })
+    .then(function (data) { toast(data.message); return refreshData(); })
+    .catch(function (err) { toast(err.message, true); });
+}
+
+function deleteDepartment(deptId) {
+  var dept = state.departments.find(function (d) { return d.id === deptId; });
+  if (!dept) return;
+  if (!confirm('部署「' + dept.name + '」を削除します。よろしいですか？')) return;
+  call('deleteDepartment', { departmentId: deptId })
     .then(function (data) { toast(data.message); return refreshData(); })
     .catch(function (err) { toast(err.message, true); });
 }
@@ -1329,11 +1500,11 @@ function deleteLocation(locId) {
 function addItem() {
   var name = document.getElementById('new-item-name').value.trim();
   var category = document.getElementById('new-item-category').value;
-  var location = document.getElementById('new-item-location').value;
+  var homeLocation = document.getElementById('new-item-home').value;
   var note = document.getElementById('new-item-note').value.trim();
   if (!name) { toast('備品名を入力してください。', true); return; }
   if (!category) { toast('カテゴリを選択してください。', true); return; }
-  call('addItem', { name: name, category: category, location: location, note: note, imageData: imageDraft.new })
+  call('addItem', { name: name, category: category, homeLocation: homeLocation, note: note, imageData: imageDraft.new })
     .then(function (data) {
       document.getElementById('new-item-name').value = '';
       document.getElementById('new-item-note').value = '';
@@ -1352,9 +1523,12 @@ function openEditItemModal(itemId) {
   state.editTarget = item;
   document.getElementById('edit-item-name').value = item.name;
   document.getElementById('edit-item-category').value = item.category;
-  var locSel = document.getElementById('edit-item-location');
-  locSel.value = item.location || '';
-  if (locSel.selectedIndex < 0) locSel.value = '';
+  var homeSel = document.getElementById('edit-item-home');
+  homeSel.value = item.homeLocation || '';
+  if (homeSel.selectedIndex < 0) homeSel.value = '';
+  var curSel = document.getElementById('edit-item-current');
+  curSel.value = item.location || '';
+  if (curSel.selectedIndex < 0) curSel.value = '';
   document.getElementById('edit-item-note').value = item.note;
   imageDraft.edit = null;
   editRemoveImage = false;
@@ -1376,7 +1550,8 @@ function submitEditItem() {
     itemId: item.id,
     name: name,
     category: category,
-    location: document.getElementById('edit-item-location').value,
+    homeLocation: document.getElementById('edit-item-home').value,
+    location: document.getElementById('edit-item-current').value,
     note: note,
     imageData: imageDraft.edit,
     removeImage: editRemoveImage && !imageDraft.edit

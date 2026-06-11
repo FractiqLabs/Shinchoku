@@ -20,6 +20,7 @@ var SHEET = {
   ITEMS: 'items',
   HISTORY: 'history',
   STAFF: 'staff',
+  DEPARTMENTS: 'departments',
   CATEGORIES: 'categories',
   LOCATIONS: 'locations',
   ADMINS: 'admins'
@@ -41,12 +42,13 @@ var IMAGE_FOLDER_NAME = 'StockEasy_Images';
 function setupSheets() {
   var ss = getSpreadsheet_();
   var defs = [
-    { name: SHEET.ITEMS,      headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時', '画像ファイルID', '現在の場所'] },
-    { name: SHEET.HISTORY,    headers: ['履歴ID', '備品ID', '備品名', '借用者名', '借用日時', '返却日時', '操作者', '移動先', '返却場所'] },
-    { name: SHEET.STAFF,      headers: ['職員ID', '職員名', '登録日時'] },
-    { name: SHEET.CATEGORIES, headers: ['カテゴリID', 'カテゴリ名', '登録日時'] },
-    { name: SHEET.LOCATIONS,  headers: ['場所ID', '場所名', '登録日時'] },
-    { name: SHEET.ADMINS,     headers: ['管理者ID', 'パスワード'] }
+    { name: SHEET.ITEMS,       headers: ['備品ID', '備品名', 'カテゴリ', '状態', '現在の借用者', '備考', '登録日時', '画像ファイルID', '現在の場所', '保管場所'] },
+    { name: SHEET.HISTORY,     headers: ['履歴ID', '備品ID', '備品名', '借用者名', '借用日時', '返却日時', '操作者', '移動先', '返却場所'] },
+    { name: SHEET.STAFF,       headers: ['職員ID', '職員名', '登録日時', '部署'] },
+    { name: SHEET.DEPARTMENTS, headers: ['部署ID', '部署名', '登録日時'] },
+    { name: SHEET.CATEGORIES,  headers: ['カテゴリID', 'カテゴリ名', '登録日時'] },
+    { name: SHEET.LOCATIONS,   headers: ['場所ID', '場所名', '登録日時'] },
+    { name: SHEET.ADMINS,      headers: ['管理者ID', 'パスワード'] }
   ];
 
   defs.forEach(function (def) {
@@ -65,9 +67,12 @@ function setupSheets() {
   var items = ss.getSheetByName(SHEET.ITEMS);
   ensureHeader_(items, 8, '画像ファイルID');   // v1.1
   ensureHeader_(items, 9, '現在の場所');       // v1.2
+  ensureHeader_(items, 10, '保管場所');        // v1.3
   var history = ss.getSheetByName(SHEET.HISTORY);
   ensureHeader_(history, 8, '移動先');         // v1.2
   ensureHeader_(history, 9, '返却場所');       // v1.2
+  var staff = ss.getSheetByName(SHEET.STAFF);
+  ensureHeader_(staff, 4, '部署');             // v1.3
 
   // 初期データ: 管理者 admin / 1234
   var admins = ss.getSheetByName(SHEET.ADMINS);
@@ -90,6 +95,15 @@ function setupSheets() {
     var initialLocs = ['事務室', '相談室', '会議室', '倉庫'];
     initialLocs.forEach(function (name) {
       locs.appendRow([nextId_(locs, 'LOC-'), name, now_()]);
+    });
+  }
+
+  // 初期データ: 部署
+  var depts = ss.getSheetByName(SHEET.DEPARTMENTS);
+  if (depts.getLastRow() < 2) {
+    var initialDepts = ['相談員', '介護', '看護', '事務'];
+    initialDepts.forEach(function (name) {
+      depts.appendRow([nextId_(depts, 'DEPT-'), name, now_()]);
     });
   }
 }
@@ -170,7 +184,11 @@ function handleApi_(action, p) {
 
       // --- 設定（管理者のみ）---
       case 'addStaff':       requireAdmin_(p); return withLock_(function () { return apiAddStaff_(p); });
+      case 'updateStaff':    requireAdmin_(p); return withLock_(function () { return apiUpdateStaff_(p); });
       case 'deleteStaff':    requireAdmin_(p); return withLock_(function () { return apiDeleteStaff_(p); });
+      case 'addDepartment':    requireAdmin_(p); return withLock_(function () { return apiAddDepartment_(p); });
+      case 'updateDepartment': requireAdmin_(p); return withLock_(function () { return apiUpdateDepartment_(p); });
+      case 'deleteDepartment': requireAdmin_(p); return withLock_(function () { return apiDeleteDepartment_(p); });
       case 'addCategory':    requireAdmin_(p); return withLock_(function () { return apiAddCategory_(p); });
       case 'updateCategory': requireAdmin_(p); return withLock_(function () { return apiUpdateCategory_(p); });
       case 'deleteCategory': requireAdmin_(p); return withLock_(function () { return apiDeleteCategory_(p); });
@@ -229,6 +247,7 @@ function apiGetData_() {
   return ok_({
     items: readItems_(),
     staff: readStaff_(),
+    departments: readDepartments_(),
     categories: readCategories_(),
     locations: readLocations_()
   });
@@ -264,13 +283,20 @@ function readItems_() {
       note: row[5],
       createdAt: row[6],
       imageId: row[7] || '',
-      location: row[8] || ''
+      location: row[8] || '',
+      homeLocation: row[9] || ''
     };
   });
 }
 
 function readStaff_() {
   return readRows_(SHEET.STAFF).map(function (row) {
+    return { id: row[0], name: row[1], createdAt: row[2], department: row[3] || '' };
+  });
+}
+
+function readDepartments_() {
+  return readRows_(SHEET.DEPARTMENTS).map(function (row) {
     return { id: row[0], name: row[1], createdAt: row[2] };
   });
 }
@@ -385,8 +411,39 @@ function apiAddStaff_(p) {
   var sheet = getSheet_(SHEET.STAFF);
   if (existsInColumn_(sheet, 2, name)) return ng_('同名の職員がすでに登録されています。');
 
-  sheet.appendRow([nextId_(sheet, 'STAFF-'), name, now_()]);
+  sheet.appendRow([nextId_(sheet, 'STAFF-'), name, now_(), trim_(p.department)]);
   return ok_({ message: '職員「' + name + '」を追加しました。' });
+}
+
+function apiUpdateStaff_(p) {
+  var staffId = trim_(p.staffId);
+  var name = trim_(p.name);
+  if (!name) return ng_('職員名を入力してください。');
+
+  var sheet = getSheet_(SHEET.STAFF);
+  var row = findRowById_(sheet, staffId);
+  if (row < 0) return ng_('対象の職員が見つかりません。');
+
+  var oldName = sheet.getRange(row, 2).getDisplayValue();
+  sheet.getRange(row, 2).setValue(name);
+  sheet.getRange(row, 4).setValue(trim_(p.department));
+
+  // 貸出中の備品の借用者名も追従して更新する
+  if (oldName !== name) {
+    var items = getSheet_(SHEET.ITEMS);
+    var last = items.getLastRow();
+    if (last >= 2) {
+      var range = items.getRange(2, 5, last - 1, 1);
+      var values = range.getDisplayValues();
+      var changed = false;
+      values.forEach(function (v) {
+        if (v[0] === oldName) { v[0] = name; changed = true; }
+      });
+      if (changed) range.setValues(values);
+    }
+  }
+
+  return ok_({ message: '職員「' + name + '」を更新しました。' });
 }
 
 function apiDeleteStaff_(p) {
@@ -403,6 +460,63 @@ function apiDeleteStaff_(p) {
 
   sheet.deleteRow(row);
   return ok_({ message: '職員「' + name + '」を削除しました。' });
+}
+
+// ---------------------------------------------------------------------------
+// API: 部署管理
+// ---------------------------------------------------------------------------
+
+function apiAddDepartment_(p) {
+  var name = trim_(p.name);
+  if (!name) return ng_('部署名を入力してください。');
+
+  var sheet = getSheet_(SHEET.DEPARTMENTS);
+  if (existsInColumn_(sheet, 2, name)) return ng_('同名の部署がすでに登録されています。');
+
+  sheet.appendRow([nextId_(sheet, 'DEPT-'), name, now_()]);
+  return ok_({ message: '部署「' + name + '」を追加しました。' });
+}
+
+function apiUpdateDepartment_(p) {
+  var deptId = trim_(p.departmentId);
+  var name = trim_(p.name);
+  if (!name) return ng_('部署名を入力してください。');
+
+  var sheet = getSheet_(SHEET.DEPARTMENTS);
+  var row = findRowById_(sheet, deptId);
+  if (row < 0) return ng_('対象の部署が見つかりません。');
+
+  var oldName = sheet.getRange(row, 2).getDisplayValue();
+  sheet.getRange(row, 2).setValue(name);
+
+  // 職員の部署名も追従して更新する
+  var staff = getSheet_(SHEET.STAFF);
+  var last = staff.getLastRow();
+  if (last >= 2) {
+    var range = staff.getRange(2, 4, last - 1, 1);
+    var values = range.getDisplayValues();
+    var changed = false;
+    values.forEach(function (v) {
+      if (v[0] === oldName) { v[0] = name; changed = true; }
+    });
+    if (changed) range.setValues(values);
+  }
+
+  return ok_({ message: '部署名を「' + name + '」に変更しました。' });
+}
+
+function apiDeleteDepartment_(p) {
+  var deptId = trim_(p.departmentId);
+  var sheet = getSheet_(SHEET.DEPARTMENTS);
+  var row = findRowById_(sheet, deptId);
+  if (row < 0) return ng_('対象の部署が見つかりません。');
+
+  var name = sheet.getRange(row, 2).getDisplayValue();
+  var inUse = readStaff_().some(function (s) { return s.department === name; });
+  if (inUse) return ng_('部署「' + name + '」に所属する職員がいるため削除できません。');
+
+  sheet.deleteRow(row);
+  return ok_({ message: '部署「' + name + '」を削除しました。' });
 }
 
 // ---------------------------------------------------------------------------
@@ -489,15 +603,16 @@ function apiUpdateLocation_(p) {
   var oldName = sheet.getRange(row, 2).getDisplayValue();
   sheet.getRange(row, 2).setValue(name);
 
-  // 備品の「現在の場所」も追従して更新する
+  // 備品の「現在の場所」「保管場所」も追従して更新する
   var items = getSheet_(SHEET.ITEMS);
   var last = items.getLastRow();
   if (last >= 2) {
-    var range = items.getRange(2, 9, last - 1, 1);
+    var range = items.getRange(2, 9, last - 1, 2);
     var values = range.getDisplayValues();
     var changed = false;
     values.forEach(function (v) {
       if (v[0] === oldName) { v[0] = name; changed = true; }
+      if (v[1] === oldName) { v[1] = name; changed = true; }
     });
     if (changed) range.setValues(values);
   }
@@ -512,8 +627,10 @@ function apiDeleteLocation_(p) {
   if (row < 0) return ng_('対象の場所が見つかりません。');
 
   var name = sheet.getRange(row, 2).getDisplayValue();
-  var inUse = readItems_().some(function (item) { return item.location === name; });
-  if (inUse) return ng_('場所「' + name + '」にある備品が存在するため削除できません。');
+  var inUse = readItems_().some(function (item) {
+    return item.location === name || item.homeLocation === name;
+  });
+  if (inUse) return ng_('場所「' + name + '」を現在の場所または保管場所とする備品があるため削除できません。');
 
   sheet.deleteRow(row);
   return ok_({ message: '場所「' + name + '」を削除しました。' });
@@ -535,8 +652,11 @@ function apiAddItem_(p) {
     imageId = saveImage_(p.imageData, name);
   }
 
+  // 登録時の現在の場所は「もともとの保管場所」と同じにする
+  var home = trim_(p.homeLocation);
+
   var sheet = getSheet_(SHEET.ITEMS);
-  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_(), imageId, trim_(p.location)]);
+  sheet.appendRow([nextId_(sheet, 'ITEM-'), name, category, ITEM_STATUS.NORMAL, '', note, now_(), imageId, home, home]);
   return ok_({ message: '備品「' + name + '」を登録しました。' });
 }
 
@@ -557,6 +677,9 @@ function apiUpdateItem_(p) {
   sheet.getRange(row, 6).setValue(note);
   if (p.location !== undefined) {
     sheet.getRange(row, 9).setValue(trim_(p.location));
+  }
+  if (p.homeLocation !== undefined) {
+    sheet.getRange(row, 10).setValue(trim_(p.homeLocation));
   }
 
   // 画像の差し替え・削除
